@@ -1,23 +1,40 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
-import { Check, Star } from "lucide-react";
+import {
+  Check,
+  Palette,
+  Scissors,
+  Sparkles,
+  User,
+  Wind,
+} from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar, type DayState } from "@/components/ui/calendar";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { RatingStars } from "@/components/ui/rating-stars";
 import { TimeGrid } from "@/components/client/time-grid";
 import { SERVICES } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import {
   cn,
-  formatAzDate,
+  formatDate,
   formatPrice,
   getDateISO,
   getTodayISO,
 } from "@/lib/utils";
-import type { Service, Stylist } from "@/lib/types";
+import type {
+  Lang,
+  Localized,
+  Service,
+  ServiceCategory,
+  Stylist,
+} from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   stylist: Stylist | null;
@@ -27,20 +44,49 @@ type Props = {
 
 type Step = "select" | "success";
 
-function buildDateChips(): string[] {
-  return Array.from({ length: 7 }, (_, i) => getDateISO(i));
+const SLOT_MIN = 30;
+const VISIBLE_WINDOW_DAYS = 60;
+
+const CATEGORY_ICONS: Partial<Record<ServiceCategory, typeof Scissors>> = {
+  haircut: Scissors,
+  beard: Scissors,
+  coloring: Palette,
+  styling: Wind,
+};
+
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function fromMinutes(total: number): string {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${h < 10 ? `0${h}` : h}:${m < 10 ? `0${m}` : m}`;
+}
+
+function generateSlots(start: string, end: string): string[] {
+  const slots: string[] = [];
+  const startMin = toMinutes(start);
+  const endMin = toMinutes(end);
+  for (let t = startMin; t + SLOT_MIN <= endMin; t += SLOT_MIN) {
+    slots.push(fromMinutes(t));
+  }
+  return slots;
+}
+
+function isInBreak(
+  time: string,
+  breaks: { start: string; end: string }[],
+): boolean {
+  const t = toMinutes(time);
+  return breaks.some((b) => t >= toMinutes(b.start) && t < toMinutes(b.end));
 }
 
 export function BookingModal({ stylist, open, onClose }: Props) {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title="Görüş təyin et"
-      className="max-w-2xl"
-    >
+    <Dialog open={open} onClose={onClose} className="max-w-3xl">
       {stylist ? (
-        // key forces remount (and fresh state) per stylist + open cycle
         <BookingFlow
           key={`${stylist.id}-${open ? "open" : "closed"}`}
           stylist={stylist}
@@ -60,7 +106,9 @@ function BookingFlow({
   stylist: Stylist;
   onClose: () => void;
 }) {
+  const { t, lang, pickLocalized } = useT();
   const addAppointment = useStore((s) => s.addAppointment);
+  const appointments = useStore((s) => s.appointments);
   const todayISO = getTodayISO();
 
   const services = useMemo<Service[]>(
@@ -77,18 +125,59 @@ function BookingFlow({
   const [clientName, setClientName] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
 
-  const dateChips = buildDateChips();
   const selectedService =
     services.find((s) => s.id === selectedServiceId) ?? null;
 
-  const canConfirm =
+  // Window of visible ISO dates: today through today + VISIBLE_WINDOW_DAYS - 1
+  const windowSet = useMemo(() => {
+    const set = new Set<string>();
+    for (let i = 0; i < VISIBLE_WINDOW_DAYS; i++) {
+      set.add(getDateISO(i));
+    }
+    return set;
+  }, []);
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const dayStateFn = useMemo<(iso: string) => DayState>(() => {
+    const slotsForStylist = generateSlots(
+      stylist.workingHours.start,
+      stylist.workingHours.end,
+    );
+    return (iso: string): DayState => {
+      if (!windowSet.has(iso)) return "default";
+      const isToday = iso === todayISO;
+      const taken = new Set(
+        appointments
+          .filter(
+            (a) =>
+              a.stylistId === stylist.id &&
+              a.date === iso &&
+              a.status !== "cancelled",
+          )
+          .map((a) => a.time),
+      );
+      const hasFree = slotsForStylist.some((time) => {
+        if (isInBreak(time, stylist.breaks)) return false;
+        if (taken.has(time)) return false;
+        if (isToday && toMinutes(time) <= nowMinutes) return false;
+        return true;
+      });
+      return hasFree ? "free" : "busy";
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stylist, appointments, todayISO, windowSet]);
+
+  const availableToday = dayStateFn(todayISO) === "free";
+
+  const ready =
     selectedTime !== null &&
     selectedServiceId !== null &&
-    clientName.trim().length > 0 &&
-    !submitting;
+    clientName.trim().length > 0;
 
   const handleConfirm = async () => {
-    if (!canConfirm || !selectedTime || !selectedServiceId) return;
+    if (!ready || !selectedTime || !selectedServiceId || submitting) return;
     setSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 700));
     addAppointment({
@@ -110,154 +199,152 @@ function BookingFlow({
         stylistName={stylist.name}
         date={selectedDate}
         time={selectedTime ?? ""}
-        serviceName={selectedService?.name ?? ""}
+        serviceName={selectedService?.name ?? null}
+        servicePrice={selectedService?.price ?? 0}
         onClose={onClose}
+        lang={lang}
       />
     );
   }
 
+  const summary =
+    selectedTime && selectedService
+      ? `${formatDate(selectedDate, lang)} · ${selectedTime} · ${formatPrice(selectedService.price)}`
+      : null;
+
   return (
-    <div className="flex max-h-[75vh] flex-col gap-5 overflow-y-auto pr-1">
-      {/* Stylist mini-header */}
-      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-white/10">
-          <Image
-            src={stylist.avatar}
-            alt={stylist.name}
-            fill
-            sizes="48px"
-            className="object-cover"
-            unoptimized
+    <div className="flex max-h-[78vh] flex-col overflow-y-auto pr-1">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <Avatar name={stylist.name} id={stylist.id} imageUrl={stylist.avatar} size="lg" />
+          <div className="min-w-0">
+            <h2 className="font-display font-semibold text-2xl text-ink-900 leading-tight truncate">
+              {stylist.name}
+            </h2>
+            <div className="mt-1 flex items-center gap-2 text-sm text-ink-500">
+              <span>{pickLocalized(stylist.city)}</span>
+              <span aria-hidden className="text-ink-300">
+                ·
+              </span>
+              <RatingStars value={stylist.rating} size={12} />
+              <span className="font-mono text-ink-700 font-medium">
+                {stylist.rating.toFixed(1)}
+              </span>
+              <span className="text-ink-400">
+                ({stylist.reviewsCount} {t("card.reviews")})
+              </span>
+            </div>
+          </div>
+        </div>
+        {availableToday ? (
+          <Badge variant="success-soft" pulse>
+            {t("card.todayFree")}
+          </Badge>
+        ) : null}
+      </div>
+
+      {/* Body grid */}
+      <div className="grid gap-6 md:grid-cols-5 mt-6">
+        {/* Left: Calendar */}
+        <div className="md:col-span-2">
+          <SectionLabel>{t("booking.dateLabel")}</SectionLabel>
+          <Calendar
+            selected={selectedDate}
+            getDayState={dayStateFn}
+            onSelect={(iso) => {
+              setSelectedDate(iso);
+              setSelectedTime(null);
+            }}
           />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-neutral-50">
-            {stylist.name}
-          </div>
-          <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-400">
-            <Star className="size-3 fill-[var(--accent)] text-[var(--accent)]" />
-            <span className="text-neutral-200">
-              {stylist.rating.toFixed(1)}
-            </span>
-            <span className="text-neutral-500">
-              ({stylist.reviewsCount} rəy)
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* Date picker */}
-      <div>
-        <SectionLabel>Tarix seçin</SectionLabel>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {dateChips.map((iso) => {
-            const active = iso === selectedDate;
-            const formatted = formatAzDate(iso);
-            const [dayPart, weekdayPart] = formatted.split(", ");
-            return (
-              <button
-                key={iso}
-                type="button"
-                onClick={() => {
-                  setSelectedDate(iso);
-                  setSelectedTime(null);
-                }}
-                aria-pressed={active}
-                className={cn(
-                  "flex shrink-0 flex-col items-start rounded-xl border px-3 py-2 text-left transition-all duration-200",
-                  active
-                    ? "border-[var(--accent)]/45 bg-[var(--accent)]/15 text-[var(--accent)] shadow-[0_4px_18px_-6px_rgba(212,165,116,0.45)]"
-                    : "border-white/10 bg-white/[0.03] text-neutral-300 hover:border-white/20 hover:bg-white/[0.06] hover:text-neutral-100",
-                )}
-              >
-                <span className="text-[11px] uppercase tracking-wide opacity-70">
-                  {weekdayPart ?? ""}
-                </span>
-                <span className="text-xs font-medium">{dayPart}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Service select */}
-      <div>
-        <SectionLabel>Xidmət seçin</SectionLabel>
-        <div className="flex flex-col gap-2">
-          {services.map((svc) => {
-            const active = svc.id === selectedServiceId;
-            return (
-              <button
-                key={svc.id}
-                type="button"
-                onClick={() => setSelectedServiceId(svc.id)}
-                aria-pressed={active}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200",
-                  active
-                    ? "border-[var(--accent)]/45 bg-[var(--accent)]/10"
-                    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]",
-                )}
-              >
-                <div className="min-w-0">
-                  <div
+        {/* Right: services + time + name */}
+        <div className="md:col-span-3 flex flex-col gap-5">
+          {/* Service select */}
+          <div>
+            <SectionLabel>{t("booking.serviceLabel")}</SectionLabel>
+            <div className="flex flex-col gap-2">
+              {services.map((svc) => {
+                const active = svc.id === selectedServiceId;
+                const Icon = CATEGORY_ICONS[svc.category] ?? Sparkles;
+                return (
+                  <button
+                    key={svc.id}
+                    type="button"
+                    onClick={() => setSelectedServiceId(svc.id)}
+                    aria-pressed={active}
                     className={cn(
-                      "truncate text-sm font-medium",
-                      active ? "text-neutral-50" : "text-neutral-200",
+                      "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition text-left",
+                      active
+                        ? "border-caspian-500 bg-caspian-50/50"
+                        : "border-border hover:border-ink-300",
                     )}
                   >
-                    {svc.name}
-                  </div>
-                  <div className="mt-0.5 text-xs text-neutral-500">
-                    {svc.durationMin} dəq
-                  </div>
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 text-sm font-semibold",
-                    active ? "text-[var(--accent)]" : "text-neutral-200",
-                  )}
-                >
-                  {formatPrice(svc.price)}
-                </span>
-              </button>
-            );
-          })}
+                    <span className="h-9 w-9 rounded-lg bg-ink-50 grid place-items-center shrink-0 text-ink-700">
+                      <Icon className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-ink-900 truncate">
+                        {pickLocalized(svc.name)}
+                      </div>
+                      <div className="text-xs text-ink-500 mt-0.5">
+                        {svc.durationMin} {t("booking.minutes")}
+                      </div>
+                    </div>
+                    <span className="font-mono font-semibold text-ink-900 shrink-0">
+                      {formatPrice(svc.price)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Time grid */}
+          <div>
+            <SectionLabel>{t("booking.timeLabel")}</SectionLabel>
+            <TimeGrid
+              stylist={stylist}
+              date={selectedDate ?? todayISO}
+              selectedTime={selectedTime}
+              onSelect={setSelectedTime}
+            />
+          </div>
+
+          {/* Client name */}
+          <div>
+            <SectionLabel>{t("booking.nameLabel")}</SectionLabel>
+            <Input
+              icon={<User />}
+              placeholder={t("booking.namePlaceholder")}
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              aria-label={t("booking.nameAria")}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Time grid */}
-      <div>
-        <SectionLabel>Vaxt seçin</SectionLabel>
-        <TimeGrid
-          stylist={stylist}
-          date={selectedDate}
-          selectedTime={selectedTime}
-          onSelect={setSelectedTime}
-        />
-      </div>
-
-      {/* Client name */}
-      <div>
-        <SectionLabel>Adınız</SectionLabel>
-        <Input
-          placeholder="Adınızı yazın"
-          value={clientName}
-          onChange={(e) => setClientName(e.target.value)}
-          aria-label="Müştəri adı"
-        />
-      </div>
-
-      <div className="flex items-center justify-end gap-2 pt-1">
-        <Button variant="ghost" onClick={onClose}>
-          Ləğv et
-        </Button>
+      {/* Footer bar */}
+      <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-5">
+        {summary ? (
+          <span className="font-mono text-sm text-ink-600 truncate">
+            {summary}
+          </span>
+        ) : (
+          <span className="text-sm text-ink-400">
+            {t("booking.pickPrompt")}
+          </span>
+        )}
         <Button
+          variant="primary"
+          size="lg"
           onClick={handleConfirm}
-          disabled={!canConfirm}
-          aria-label="Görüşü təsdiqlə"
+          disabled={!ready || submitting}
+          aria-label={t("booking.confirm")}
         >
-          {submitting ? "Göndərilir..." : "Görüşü təsdiqlə"}
+          {submitting ? t("booking.confirming") : t("booking.confirm")}
         </Button>
       </div>
     </div>
@@ -266,7 +353,7 @@ function BookingFlow({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500">
       {children}
     </div>
   );
@@ -277,21 +364,27 @@ function SuccessView({
   date,
   time,
   serviceName,
+  servicePrice,
   onClose,
+  lang,
 }: {
   stylistName: string;
   date: string;
   time: string;
-  serviceName: string;
+  serviceName: Localized | null;
+  servicePrice: number;
   onClose: () => void;
+  lang: Lang;
 }) {
+  const { t, pickLocalized } = useT();
+  const serviceLabel = serviceName ? pickLocalized(serviceName) : "";
   return (
-    <div className="flex flex-col items-center gap-5 py-4 text-center">
+    <div className="flex flex-col items-center gap-6 py-6 text-center">
       <motion.div
-        initial={{ scale: 0, rotate: -90 }}
-        animate={{ scale: 1, rotate: 0 }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 220, damping: 14 }}
-        className="flex size-20 items-center justify-center rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--accent)] shadow-[0_8px_40px_-8px_rgba(212,165,116,0.6)]"
+        className="grid place-items-center size-24 rounded-full bg-caspian-500/10 text-caspian-600"
       >
         <Check className="size-10" strokeWidth={2.5} />
       </motion.div>
@@ -299,43 +392,29 @@ function SuccessView({
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.35 }}
-        className="flex flex-col items-center gap-2"
+        transition={{ delay: 0.18, duration: 0.32 }}
+        className="flex flex-col items-center gap-3"
       >
-        <h3 className="text-xl font-semibold tracking-tight text-neutral-50">
-          Görüş təsdiqləndi!
+        <h3 className="font-display font-semibold text-3xl text-ink-900 leading-tight">
+          {t("booking.success.title")}
         </h3>
-        <p className="max-w-sm text-sm text-neutral-400">
-          Görüşünüz uğurla qeydiyyata alındı. Aşağıda təfərrüatlar:
+        <p className="text-ink-500 max-w-sm font-mono text-sm">
+          {stylistName} · {serviceLabel} · {formatDate(date, lang)} · {time} ·{" "}
+          {formatPrice(servicePrice)}
         </p>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.35 }}
-        className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left text-sm"
-      >
-        <SummaryRow label="Stilist" value={stylistName} />
-        <SummaryRow label="Xidmət" value={serviceName} />
-        <SummaryRow label="Tarix" value={formatAzDate(date)} />
-        <SummaryRow label="Vaxt" value={time} />
-      </motion.div>
-
-      <Button onClick={onClose} className="w-full">
-        Bağla
-      </Button>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-white/5 py-2 last:border-0">
-      <span className="text-xs text-neutral-500">{label}</span>
-      <span className="truncate text-sm font-medium text-neutral-100">
-        {value}
-      </span>
+      <div className="flex gap-2 justify-center flex-wrap">
+        <Button variant="whatsapp" size="lg">
+          {t("contact.whatsapp")}
+        </Button>
+        <Button variant="telegram" size="lg">
+          {t("contact.telegram")}
+        </Button>
+        <Button variant="ghost" size="lg" onClick={onClose}>
+          {t("booking.success.close")}
+        </Button>
+      </div>
     </div>
   );
 }

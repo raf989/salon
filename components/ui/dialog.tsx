@@ -41,7 +41,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
         >
           <motion.div
             aria-hidden
-            className="absolute inset-0 bg-neutral-950/70 backdrop-blur-md"
+            className="absolute inset-0 bg-ink-900/40 backdrop-blur-[2px]"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -52,18 +52,18 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
             aria-modal="true"
             aria-label={title}
             className={cn(
-              "relative w-full max-w-lg bg-neutral-900/80 border border-white/10 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50",
+              "relative w-full max-w-lg bg-surface rounded-[16px] shadow-[0_24px_48px_rgba(14,13,11,0.12)] p-6",
               className,
             )}
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-white/5">
+            <div className="flex items-start justify-between mb-4 gap-4">
               {title ? (
-                <h2 className="text-base font-semibold tracking-tight text-neutral-100">
+                <h2 className="font-display font-semibold text-2xl text-ink-900 leading-tight">
                   {title}
                 </h2>
               ) : (
@@ -73,12 +73,12 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
                 type="button"
                 onClick={onClose}
                 aria-label="Bağla"
-                className="text-neutral-400 hover:text-neutral-100 transition-colors p-1 rounded-md hover:bg-white/[0.06]"
+                className="text-ink-500 hover:text-ink-900 transition-colors p-1.5 rounded-md hover:bg-ink-50 -mt-1 -mr-1"
               >
                 <X className="size-4" />
               </button>
             </div>
-            <div className="px-6 py-5">{children}</div>
+            <div>{children}</div>
           </motion.div>
         </motion.div>
       ) : null}

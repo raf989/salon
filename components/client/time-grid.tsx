@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { Lock, X } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn, getTodayISO } from "@/lib/utils";
 import type { Stylist } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   stylist: Stylist;
@@ -45,6 +46,7 @@ function isInBreak(
 }
 
 export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
+  const { t } = useT();
   const appointments = useStore((s) => s.appointments);
 
   const todayISO = getTodayISO();
@@ -73,48 +75,66 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
   );
 
   return (
-    <div className="grid grid-cols-4 gap-2 md:grid-cols-6">
-      {slots.map((time) => {
-        const inBreak = isInBreak(time, stylist.breaks);
-        const taken = takenTimes.has(time);
-        const past = isToday && toMinutes(time) <= nowMinutes;
-        const disabled = inBreak || taken || past;
-        const selected = selectedTime === time;
+    <div>
+      {/* legend */}
+      <div className="mt-1 mb-3 flex items-center gap-2 text-xs font-medium">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-[4px] bg-ink-50 border border-border" />
+          <span className="text-ink-500">{t("time.legend.free")}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-[4px] bg-caspian-500" />
+          <span className="text-ink-500">{t("time.legend.selected")}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-[4px] bg-ink-50 opacity-60" />
+          <span className="text-ink-500">{t("time.legend.taken")}</span>
+        </span>
+      </div>
 
-        return (
-          <button
-            key={time}
-            type="button"
-            disabled={disabled}
-            onClick={() => onSelect(time)}
-            aria-pressed={selected}
-            aria-label={
-              disabled
-                ? `${time} (mövcud deyil)`
-                : `${time} seçimi`
-            }
-            className={cn(
-              "relative inline-flex h-10 items-center justify-center gap-1 rounded-lg border text-xs font-medium tracking-tight transition-all duration-200",
-              selected &&
-                "border-[var(--accent)]/50 bg-[var(--accent)] text-neutral-950 shadow-[0_4px_18px_-4px_rgba(212,165,116,0.55)]",
-              !selected &&
-                !disabled &&
-                "border-white/10 bg-white/[0.03] text-neutral-200 hover:border-[var(--accent)]/40 hover:bg-white/[0.07] hover:text-neutral-50",
-              disabled &&
-                "cursor-not-allowed border-white/5 bg-white/[0.02] text-neutral-600 line-through opacity-60",
-            )}
-          >
-            <span>{time}</span>
-            {disabled && !selected ? (
-              taken ? (
-                <X className="size-3" aria-hidden />
-              ) : (
-                <Lock className="size-3" aria-hidden />
-              )
-            ) : null}
-          </button>
-        );
-      })}
+      <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+        {slots.map((time) => {
+          const inBreak = isInBreak(time, stylist.breaks);
+          const taken = takenTimes.has(time);
+          const past = isToday && toMinutes(time) <= nowMinutes;
+          const disabled = inBreak || taken || past;
+          const selected = selectedTime === time;
+
+          return (
+            <button
+              key={time}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelect(time)}
+              aria-pressed={selected}
+              aria-disabled={disabled}
+              aria-label={
+                disabled
+                  ? `${time} ${t("time.unavailableSuffix")}`
+                  : `${time} ${t("time.selectionSuffix")}`
+              }
+              className={cn(
+                "h-10 rounded-[10px] text-sm font-mono font-medium border transition-colors inline-flex items-center justify-center gap-1",
+                selected
+                  ? "bg-caspian-500 text-white border-caspian-500"
+                  : disabled
+                    ? "bg-ink-50/50 text-ink-300 border-transparent cursor-not-allowed opacity-60"
+                    : "bg-ink-50 text-ink-800 border-transparent hover:bg-caspian-50 hover:text-caspian-700",
+                disabled && past && !selected && "line-through",
+              )}
+            >
+              <span>{time}</span>
+              {disabled && !selected ? (
+                taken ? (
+                  <Check className="size-3" aria-hidden />
+                ) : inBreak ? (
+                  <Lock className="size-3" aria-hidden />
+                ) : null
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

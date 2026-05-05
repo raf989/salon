@@ -1,20 +1,29 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
 import { Header } from "@/components/header";
+import { HtmlLangSync } from "@/components/html-lang-sync";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fraunces = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
   subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Salon — Premium görüş platforması",
+  title: "Vaxt — Premium görüş platforması",
   description: "Şəhərinizin ən yaxşı stilistləri ilə görüş təyin edin.",
 };
 
@@ -26,9 +35,10 @@ export default function RootLayout({
   return (
     <html
       lang="az"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${inter.variable} ${fraunces.variable} ${mono.variable}`}
     >
-      <body className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
+      <body className="min-h-screen bg-bg text-ink-700 antialiased font-sans">
+        <HtmlLangSync />
         <Header />
         {children}
       </body>

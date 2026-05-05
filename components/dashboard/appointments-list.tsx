@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarX, Clock } from "lucide-react";
+import { CalendarOff, Clock } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { useT, type DictKey } from "@/lib/i18n";
 import { SERVICES } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import type { Appointment, Stylist } from "@/lib/types";
@@ -18,22 +20,8 @@ export type AppointmentsListProps = {
 
 type Tab = "upcoming" | "past";
 
-const AZ_MONTH_ABBR = [
-  "yan",
-  "fev",
-  "mar",
-  "apr",
-  "may",
-  "iyn",
-  "iyl",
-  "avq",
-  "sen",
-  "okt",
-  "noy",
-  "dek",
-];
-
 export function AppointmentsList({ me }: AppointmentsListProps) {
+  const { t } = useT();
   const appointments = useStore((s) => s.appointments);
   const cancelAppointment = useStore((s) => s.cancelAppointment);
 
@@ -62,6 +50,7 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   }, [appointments, me.id, today]);
 
   const items = tab === "upcoming" ? upcoming : past;
+  const total = upcoming.length + past.length;
 
   const onConfirmCancel = () => {
     if (pendingCancelId) cancelAppointment(pendingCancelId);
@@ -69,36 +58,26 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   };
 
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold tracking-tight text-neutral-100">
-          Görüşlərim
+    <Card className="p-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display font-semibold text-xl text-ink-900">
+          {t("dash.appts.title")}
         </h2>
-        <span className="text-xs text-neutral-500">
-          {upcoming.length + past.length} ümumi
-        </span>
+        <span className="text-xs text-ink-500 font-mono">{total}</span>
       </div>
 
-      {/* Tabs */}
-      <div className="relative mt-4 flex gap-1 border-b border-white/5">
-        <TabButton
-          active={tab === "upcoming"}
-          onClick={() => setTab("upcoming")}
-          count={upcoming.length}
-        >
-          Gələcək
-        </TabButton>
-        <TabButton
-          active={tab === "past"}
-          onClick={() => setTab("past")}
-          count={past.length}
-        >
-          Keçmiş
-        </TabButton>
+      {/* Segmented tabs */}
+      <div className="mt-4 inline-flex p-1 bg-ink-50 rounded-[10px]">
+        <SegmentTab active={tab === "upcoming"} onClick={() => setTab("upcoming")}>
+          {t("dash.appts.tab.upcoming")}
+        </SegmentTab>
+        <SegmentTab active={tab === "past"} onClick={() => setTab("past")}>
+          {t("dash.appts.tab.past")}
+        </SegmentTab>
       </div>
 
       {/* List */}
-      <div className="mt-4">
+      <div className="mt-5">
         <AnimatePresence mode="wait">
           <motion.div
             key={tab}
@@ -128,27 +107,21 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
       <Dialog
         open={pendingCancelId !== null}
         onClose={() => setPendingCancelId(null)}
-        title="Görüşü ləğv et"
+        title={t("dash.appts.cancel.confirm.title")}
       >
-        <p className="text-sm text-neutral-300">
-          Görüşü ləğv etmək istədiyinizə əminsiniz?
+        <p className="text-sm text-ink-600">
+          {t("dash.appts.cancel.confirm.body")}
         </p>
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-6 flex justify-end gap-2">
           <Button
             type="button"
-            variant="secondary"
-            size="md"
+            variant="ghost"
             onClick={() => setPendingCancelId(null)}
           >
-            İmtina
+            {t("dash.appts.cancel.confirm.no")}
           </Button>
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            onClick={onConfirmCancel}
-          >
-            Bəli, ləğv et
+          <Button type="button" variant="urgent" onClick={onConfirmCancel}>
+            {t("dash.appts.cancel.confirm.yes")}
           </Button>
         </div>
       </Dialog>
@@ -156,15 +129,13 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   );
 }
 
-function TabButton({
+function SegmentTab({
   active,
   onClick,
-  count,
   children,
 }: {
   active: boolean;
   onClick: () => void;
-  count: number;
   children: React.ReactNode;
 }) {
   return (
@@ -173,30 +144,13 @@ function TabButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "relative px-4 py-2.5 text-sm font-medium tracking-tight transition-colors",
-        active ? "text-neutral-100" : "text-neutral-500 hover:text-neutral-200",
+        "h-9 px-4 rounded-[8px] text-sm font-medium transition-colors",
+        active
+          ? "bg-surface text-ink-900 shadow-[var(--sh-1)]"
+          : "text-ink-500 hover:text-ink-800",
       )}
     >
-      <span className="inline-flex items-center gap-1.5">
-        {children}
-        <span
-          className={cn(
-            "rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors",
-            active
-              ? "bg-[var(--accent)]/15 text-[var(--accent)]"
-              : "bg-white/[0.04] text-neutral-500",
-          )}
-        >
-          {count}
-        </span>
-      </span>
-      {active ? (
-        <motion.span
-          layoutId="appts-tab-underline"
-          className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[var(--accent)]"
-          transition={{ type: "spring", stiffness: 380, damping: 32 }}
-        />
-      ) : null}
+      {children}
     </button>
   );
 }
@@ -212,91 +166,98 @@ function AppointmentRow({
   showCancel: boolean;
   onCancel: () => void;
 }) {
+  const { t, pickLocalized } = useT();
   const service = SERVICES.find((s) => s.id === appt.serviceId);
   const [, monthStr, dayStr] = appt.date.split("-");
   const day = Number(dayStr);
-  const monthAbbr = AZ_MONTH_ABBR[Number(monthStr) - 1];
+  const monthIdx = Number(monthStr) - 1;
+  const monthAbbr = t(`month.short.${monthIdx}` as DictKey);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.03 }}
+      transition={{ duration: 0.22, delay: index * 0.03 }}
+      className="flex items-center gap-4 p-4 rounded-xl border border-border bg-surface hover:bg-bg transition-colors"
     >
-      <Card className="p-3 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.05] sm:p-4">
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Date badge */}
-          <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 py-2 text-[var(--accent)]">
-            <span className="text-lg font-semibold leading-none">{day}</span>
-            <span className="mt-1 text-[10px] uppercase tracking-wider opacity-80">
-              {monthAbbr}
-            </span>
-          </div>
+      {/* Date badge */}
+      <div className="w-14 flex flex-col items-center justify-center py-2 rounded-xl bg-ink-50 text-center shrink-0">
+        <span className="font-display font-semibold text-2xl text-ink-900 leading-none">
+          {day}
+        </span>
+        <span className="text-[11px] uppercase font-semibold tracking-wider text-ink-500 mt-1">
+          {monthAbbr}
+        </span>
+      </div>
 
-          {/* Middle */}
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-neutral-100">
-              {appt.clientName}
-            </div>
-            <div className="mt-0.5 truncate text-xs text-neutral-400">
-              {service?.name ?? "—"}
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-neutral-500">
-              <span className="inline-flex items-center gap-1">
-                <Clock className="size-3" />
-                {appt.time}
-              </span>
-              {service ? (
-                <>
-                  <span className="text-neutral-700">·</span>
-                  <span>{service.durationMin} dəq</span>
-                </>
-              ) : null}
-            </div>
-          </div>
+      {/* Client avatar */}
+      <Avatar
+        name={appt.clientName}
+        id={appt.clientName + appt.id}
+        size="md"
+      />
 
-          {/* Right */}
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <StatusBadge status={appt.status} />
-            {showCancel ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onCancel}
-              >
-                Ləğv et
-              </Button>
-            ) : null}
-          </div>
+      {/* Middle */}
+      <div className="flex-1 min-w-0">
+        <div className="truncate text-sm">
+          <span className="font-medium text-ink-900">{appt.clientName}</span>
+          <span className="text-ink-500"> · {service ? pickLocalized(service.name) : "—"}</span>
         </div>
-      </Card>
+        <div className="mt-1 flex items-center gap-1.5">
+          <Clock className="size-3.5 text-ink-400" />
+          <span className="font-mono text-sm text-ink-700">{appt.time}</span>
+          {service ? (
+            <span className="text-sm text-ink-500"> · {service.durationMin} {t("booking.minutes")}</span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Right */}
+      <div className="flex shrink-0 items-center gap-2">
+        <StatusBadge status={appt.status} />
+        {showCancel ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            className="text-ink-600 hover:text-pomegranate-500 hover:bg-pomegranate-500/5"
+          >
+            {t("dash.appts.cancel")}
+          </Button>
+        ) : null}
+      </div>
     </motion.div>
   );
 }
 
 function StatusBadge({ status }: { status: Appointment["status"] }) {
+  const { t } = useT();
   if (status === "completed") {
-    return <Badge variant="success">Tamamlandı</Badge>;
+    return <Badge variant="success-soft">{t("dash.appts.status.completed")}</Badge>;
   }
   if (status === "cancelled") {
-    return <Badge variant="warning">Ləğv edildi</Badge>;
+    return <Badge variant="danger-soft">{t("dash.appts.status.cancelled")}</Badge>;
   }
-  return <Badge variant="gold">Gözlənilir</Badge>;
+  return <Badge variant="info-soft">{t("dash.appts.status.upcoming")}</Badge>;
 }
 
 function EmptyState() {
+  const { t } = useT();
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
-      className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center"
+      className="py-12 text-center flex flex-col items-center"
     >
-      <span className="flex size-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-neutral-500">
-        <CalendarX className="size-5" />
+      <span className="size-12 rounded-full bg-ink-50 grid place-items-center text-ink-400">
+        <CalendarOff className="size-5" />
       </span>
-      <p className="text-sm text-neutral-400">Hələ görüş yoxdur</p>
+      <p className="text-ink-500 mt-3 text-sm">{t("dash.appts.empty.title")}</p>
+      <p className="text-ink-400 text-xs mt-1">
+        {t("dash.appts.empty.sub")}
+      </p>
     </motion.div>
   );
 }

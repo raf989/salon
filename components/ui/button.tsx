@@ -3,8 +3,17 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost";
-type Size = "sm" | "md" | "lg";
+type Variant =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "urgent"
+  | "outline"
+  | "ghost"
+  | "link"
+  | "whatsapp"
+  | "telegram";
+type Size = "sm" | "md" | "lg" | "xl";
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
@@ -13,16 +22,26 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-[var(--accent)] text-neutral-950 hover:bg-[var(--accent-hover)] shadow-[0_0_0_1px_rgba(212,165,116,0.2),0_8px_30px_-8px_rgba(212,165,116,0.45)]",
-  secondary:
-    "bg-white/[0.04] border border-white/10 text-neutral-100 hover:bg-white/[0.08] hover:border-white/20 backdrop-blur-xl",
-  ghost: "bg-transparent text-neutral-300 hover:bg-white/[0.06] hover:text-neutral-100",
+    "bg-caspian-500 text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] hover:bg-caspian-600",
+  secondary: "bg-ink-800 text-white hover:bg-ink-900",
+  accent:
+    "bg-saffron-400 text-ink-900 shadow-[inset_0_-2px_0_rgba(0,0,0,0.10)] hover:bg-saffron-300",
+  urgent: "bg-pomegranate-500 text-white hover:bg-pomegranate-600",
+  outline:
+    "bg-transparent border border-border-strong text-ink-800 hover:bg-ink-50",
+  ghost: "bg-transparent text-ink-700 hover:bg-ink-50",
+  link: "bg-transparent text-caspian-600 p-0 h-auto hover:underline",
+  whatsapp:
+    "bg-[#25D366] text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.10)] hover:bg-[#1eb957]",
+  telegram:
+    "bg-[#229ED9] text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.10)] hover:bg-[#1d8fc4]",
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs rounded-lg",
-  md: "h-10 px-4 text-sm rounded-xl",
-  lg: "h-12 px-6 text-base rounded-xl",
+  sm: "h-8 px-3 text-[13px]",
+  md: "h-10 px-5 text-sm",
+  lg: "h-12 px-6 text-[15px] rounded-[12px]",
+  xl: "h-14 px-8 text-base",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -35,9 +54,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 font-medium tracking-tight transition-all duration-200 ease-out active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950",
+          "inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(15,133,126,0.25)] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:translate-y-px",
           variantClasses[variant],
-          sizeClasses[size],
+          variant !== "link" && sizeClasses[size],
           className,
         )}
         {...props}

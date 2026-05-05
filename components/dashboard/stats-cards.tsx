@@ -9,9 +9,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useT } from "@/lib/i18n";
 import { SERVICES } from "@/lib/mock-data";
 import type { Appointment, Stylist } from "@/lib/types";
-import { formatPrice, getDateISO, getTodayISO } from "@/lib/utils";
+import { cn, formatPrice, getDateISO, getTodayISO } from "@/lib/utils";
 
 export type StatsCardsProps = {
   me: Stylist;
@@ -22,16 +23,19 @@ type Stat = {
   icon: LucideIcon;
   label: string;
   value: string;
+  iconWrapClass: string;
+  mono?: boolean;
 };
 
 export function StatsCards({ me, appointments }: StatsCardsProps) {
+  const { t } = useT();
   const today = getTodayISO();
   const weekEnd = getDateISO(7);
 
   const mine = appointments.filter((a) => a.stylistId === me.id);
 
   const todayCount = mine.filter(
-    (a) => a.date === today && a.status === "upcoming",
+    (a) => a.date === today && a.status !== "cancelled",
   ).length;
 
   const weekUpcoming = mine.filter(
@@ -48,55 +52,67 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
   const stats: Stat[] = [
     {
       icon: CalendarDays,
-      label: "Bu gün görüşlər",
+      label: t("dash.stats.today"),
       value: String(todayCount),
+      iconWrapClass: "bg-caspian-50 text-caspian-600",
     },
     {
       icon: Calendar,
-      label: "Bu həftə",
+      label: t("dash.stats.week"),
       value: String(weekUpcoming.length),
+      iconWrapClass: "bg-saffron-50 text-saffron-500",
     },
     {
       icon: CheckCircle2,
-      label: "Tamamlanmış",
+      label: t("dash.stats.completed"),
       value: String(completedCount),
+      iconWrapClass: "bg-success-50 text-success-500",
     },
     {
       icon: Wallet,
-      label: "Gəlir (bu həftə)",
+      label: t("dash.stats.revenue"),
       value: formatPrice(weekRevenue),
+      iconWrapClass: "bg-plum-500/10 text-plum-500",
+      mono: true,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, i) => {
         const Icon = stat.icon;
         return (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: 0.4,
-              delay: 0.05 + i * 0.07,
+              duration: 0.35,
+              delay: 0.04 + i * 0.06,
               ease: [0.16, 1, 0.3, 1],
             }}
           >
-            <Card className="group h-full p-4 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.05] sm:p-5">
-              <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)] shadow-[0_0_20px_-6px_rgba(212,165,116,0.55)] transition-colors group-hover:bg-[var(--accent)]/15">
-                  <Icon className="size-5" />
-                </span>
+            <Card
+              interactive
+              className="p-5 flex flex-col gap-3 relative overflow-hidden h-full"
+            >
+              <div
+                className={cn(
+                  "size-9 rounded-xl grid place-items-center",
+                  stat.iconWrapClass,
+                )}
+              >
+                <Icon className="size-4" />
               </div>
-              <div className="mt-3">
-                <div className="text-2xl font-semibold tracking-tight text-neutral-100 sm:text-3xl">
-                  {stat.value}
-                </div>
-                <div className="mt-1 text-xs text-neutral-400 sm:text-sm">
-                  {stat.label}
-                </div>
+              <div
+                className={cn(
+                  "font-semibold text-3xl text-ink-900 leading-none mt-1",
+                  stat.mono ? "font-mono" : "font-display",
+                )}
+              >
+                {stat.value}
               </div>
+              <div className="text-sm text-ink-500">{stat.label}</div>
             </Card>
           </motion.div>
         );

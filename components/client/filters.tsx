@@ -1,7 +1,7 @@
 "use client";
 
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_LABELS,
@@ -9,6 +9,7 @@ import {
   type PriceRange,
   type ServiceCategory,
 } from "@/lib/types";
+import { useT, type DictKey } from "@/lib/i18n";
 
 export type Filters = {
   search: string;
@@ -36,14 +37,16 @@ const PRICE_KEYS = Object.keys(PRICE_LABELS) as PriceRange[];
 
 const AVAILABILITY_OPTIONS: {
   key: Filters["availability"];
-  label: string;
+  labelKey: DictKey;
 }[] = [
-  { key: "all", label: "İstənilən vaxt" },
-  { key: "today", label: "Bu gün" },
-  { key: "week", label: "Bu həftə" },
+  { key: "all", labelKey: "filters.option.anyTime" },
+  { key: "today", labelKey: "filters.option.today" },
+  { key: "week", labelKey: "filters.option.week" },
 ];
 
 export function Filters({ value, onChange }: Props) {
+  const { t, pickLocalized } = useT();
+
   const isActive =
     value.search.length > 0 ||
     value.category !== "all" ||
@@ -54,100 +57,98 @@ export function Filters({ value, onChange }: Props) {
   const reset = () => onChange(DEFAULT_FILTERS);
 
   return (
-    <div className="mb-8 flex flex-col gap-4">
-      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <Input
-            icon={<Search />}
-            placeholder="Stilist və ya xidmət axtar..."
-            value={value.search}
-            onChange={(e) => onChange({ ...value, search: e.target.value })}
-            aria-label="Axtarış"
-          />
-        </div>
-        {isActive ? (
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex h-9 items-center gap-1.5 self-start rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-neutral-300 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-neutral-100 sm:self-auto"
+    <Card className="p-4">
+      {/* Category */}
+      <div>
+        <SectionLabel>{t("filters.label.category")}</SectionLabel>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip
+            active={value.category === "all"}
+            onClick={() => onChange({ ...value, category: "all" })}
           >
-            <X className="size-3.5" />
-            Filtrləri sıfırla
-          </button>
-        ) : null}
+            {t("filters.option.all")}
+          </Chip>
+          {CATEGORY_KEYS.map((c) => (
+            <Chip
+              key={c}
+              active={value.category === c}
+              onClick={() => onChange({ ...value, category: c })}
+            >
+              {pickLocalized(CATEGORY_LABELS[c])}
+            </Chip>
+          ))}
+        </div>
       </div>
 
-      <ChipGroup label="Kateqoriya">
-        <Chip
-          active={value.category === "all"}
-          onClick={() => onChange({ ...value, category: "all" })}
-        >
-          Hamısı
-        </Chip>
-        {CATEGORY_KEYS.map((c) => (
+      {/* Price */}
+      <div className="mt-4">
+        <SectionLabel>{t("filters.label.price")}</SectionLabel>
+        <div className="flex flex-wrap gap-1.5">
           <Chip
-            key={c}
-            active={value.category === c}
-            onClick={() => onChange({ ...value, category: c })}
+            active={value.price === "all"}
+            onClick={() => onChange({ ...value, price: "all" })}
           >
-            {CATEGORY_LABELS[c]}
+            {t("filters.option.anyPrice")}
           </Chip>
-        ))}
-      </ChipGroup>
+          {PRICE_KEYS.map((p) => (
+            <Chip
+              key={p}
+              active={value.price === p}
+              onClick={() => onChange({ ...value, price: p })}
+            >
+              {pickLocalized(PRICE_LABELS[p])}
+            </Chip>
+          ))}
+        </div>
+      </div>
 
-      <ChipGroup label="Qiymət">
-        <Chip
-          active={value.price === "all"}
-          onClick={() => onChange({ ...value, price: "all" })}
-        >
-          İstənilən qiymət
-        </Chip>
-        {PRICE_KEYS.map((p) => (
-          <Chip
-            key={p}
-            active={value.price === p}
-            onClick={() => onChange({ ...value, price: p })}
-          >
-            {PRICE_LABELS[p]}
-          </Chip>
-        ))}
-      </ChipGroup>
+      {/* Availability */}
+      <div className="mt-4">
+        <SectionLabel>{t("filters.label.time")}</SectionLabel>
+        <div className="flex flex-wrap gap-1.5">
+          {AVAILABILITY_OPTIONS.map((opt) => (
+            <Chip
+              key={opt.key}
+              active={value.availability === opt.key}
+              onClick={() => onChange({ ...value, availability: opt.key })}
+            >
+              {t(opt.labelKey)}
+            </Chip>
+          ))}
+        </div>
+      </div>
 
-      <ChipGroup label="Vaxt">
-        {AVAILABILITY_OPTIONS.map((opt) => (
-          <Chip
-            key={opt.key}
-            active={value.availability === opt.key}
-            onClick={() => onChange({ ...value, availability: opt.key })}
-          >
-            {opt.label}
-          </Chip>
-        ))}
-        <Chip
-          active={value.minRating === 4}
-          onClick={() =>
-            onChange({ ...value, minRating: value.minRating === 4 ? 0 : 4 })
-          }
-        >
-          4.0+ reytinq
-        </Chip>
-      </ChipGroup>
-    </div>
+      {/* Rating + reset */}
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <SectionLabel>{t("filters.label.rating")}</SectionLabel>
+          <div className="flex flex-wrap gap-1.5">
+            <Chip
+              active={value.minRating === 4}
+              onClick={() =>
+                onChange({
+                  ...value,
+                  minRating: value.minRating === 4 ? 0 : 4,
+                })
+              }
+            >
+              {t("filters.option.rating4")}
+            </Chip>
+          </div>
+        </div>
+        {isActive ? (
+          <Button variant="link" size="sm" onClick={reset}>
+            {t("filters.reset")}
+          </Button>
+        ) : null}
+      </div>
+    </Card>
   );
 }
 
-function ChipGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 hidden text-[10px] font-medium uppercase tracking-wider text-neutral-500 sm:inline">
-        {label}
-      </span>
+    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500 mb-2">
       {children}
     </div>
   );
@@ -168,10 +169,10 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-8 rounded-full border px-3 text-xs font-medium tracking-tight transition-all duration-200",
+        "h-8 px-3 rounded-full text-sm font-medium border border-transparent transition-colors",
         active
-          ? "border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--accent)] shadow-[0_0_0_1px_rgba(212,165,116,0.15),0_4px_18px_-6px_rgba(212,165,116,0.45)]"
-          : "border-white/10 bg-white/[0.03] text-neutral-300 hover:border-white/20 hover:bg-white/[0.08] hover:text-neutral-100",
+          ? "bg-ink-900 text-ink-0"
+          : "bg-ink-50 text-ink-700 hover:bg-ink-100",
       )}
     >
       {children}

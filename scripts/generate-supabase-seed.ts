@@ -11,19 +11,27 @@ import {
   TENDERS,
 } from "../lib/mock-data";
 
+// Marker class for already-formatted SQL fragments (e.g. explicit ::jsonb).
+class Raw {
+  constructor(public sql: string) {}
+}
+
+function jsonb(value: unknown): Raw {
+  return new Raw(`'${JSON.stringify(value).replace(/'/g, "''")}'::jsonb`);
+}
+
 function sqlText(value: unknown): string {
+  if (value instanceof Raw) return value.sql;
   if (value === null || value === undefined) return "null";
   if (typeof value === "number") return String(value);
   if (typeof value === "boolean") return value ? "true" : "false";
   if (Array.isArray(value)) {
+    // text[] only — for jsonb arrays, callers must wrap with jsonb().
     if (value.length === 0) return "'{}'";
-    if (value.every((v) => typeof v === "string")) {
-      const inner = value
-        .map((v) => `"${(v as string).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
-        .join(",");
-      return `'{${inner}}'`;
-    }
-    return `'${JSON.stringify(value).replace(/'/g, "''")}'::jsonb`;
+    const inner = value
+      .map((v) => `"${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
+      .join(",");
+    return `'{${inner}}'`;
   }
   if (typeof value === "object") {
     return `'${JSON.stringify(value).replace(/'/g, "''")}'::jsonb`;
@@ -79,8 +87,8 @@ lines.push(
       p.specialties,
       p.priceRange,
       p.serviceIds,
-      p.workingHours,
-      p.breaks,
+      jsonb(p.workingHours),
+      jsonb(p.breaks),
       p.city,
       p.kind,
       p.tier,
@@ -128,7 +136,7 @@ lines.push(
       t.budgetMax,
       t.deadline,
       t.openedAt,
-      t.tags,
+      jsonb(t.tags),
       t.authorName,
       t.district,
     ]),

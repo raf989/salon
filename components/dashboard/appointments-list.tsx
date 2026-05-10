@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { useT, type DictKey } from "@/lib/i18n";
-import { SERVICES } from "@/lib/mock-data";
-import { useStore } from "@/lib/store";
-import type { Appointment, Stylist } from "@/lib/types";
+import {
+  cancelAppointment,
+  useAppointments,
+  useServices,
+} from "@/lib/api/repo";
+import type { Appointment, Service, Stylist } from "@/lib/types";
 import { cn, getTodayISO } from "@/lib/utils";
 
 export type AppointmentsListProps = {
@@ -22,8 +25,8 @@ type Tab = "upcoming" | "past";
 
 export function AppointmentsList({ me }: AppointmentsListProps) {
   const { t } = useT();
-  const appointments = useStore((s) => s.appointments);
-  const cancelAppointment = useStore((s) => s.cancelAppointment);
+  const services = useServices();
+  const mine = useAppointments({ stylistId: me.id });
 
   const [tab, setTab] = useState<Tab>("upcoming");
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
@@ -31,7 +34,6 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   const today = getTodayISO();
 
   const { upcoming, past } = useMemo(() => {
-    const mine = appointments.filter((a) => a.stylistId === me.id);
     const up = mine
       .filter((a) => a.status === "upcoming" && a.date >= today)
       .sort((a, b) =>
@@ -47,13 +49,13 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
           : b.date.localeCompare(a.date),
       );
     return { upcoming: up, past: pst };
-  }, [appointments, me.id, today]);
+  }, [mine, today]);
 
   const items = tab === "upcoming" ? upcoming : past;
   const total = upcoming.length + past.length;
 
-  const onConfirmCancel = () => {
-    if (pendingCancelId) cancelAppointment(pendingCancelId);
+  const onConfirmCancel = async () => {
+    if (pendingCancelId) await cancelAppointment(pendingCancelId);
     setPendingCancelId(null);
   };
 
@@ -94,6 +96,7 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
                 <AppointmentRow
                   key={appt.id}
                   appt={appt}
+                  services={services}
                   index={i}
                   showCancel={tab === "upcoming" && appt.status === "upcoming"}
                   onCancel={() => setPendingCancelId(appt.id)}
@@ -157,17 +160,19 @@ function SegmentTab({
 
 function AppointmentRow({
   appt,
+  services,
   index,
   showCancel,
   onCancel,
 }: {
   appt: Appointment;
+  services: Service[];
   index: number;
   showCancel: boolean;
   onCancel: () => void;
 }) {
   const { t, pickLocalized } = useT();
-  const service = SERVICES.find((s) => s.id === appt.serviceId);
+  const service = services.find((s) => s.id === appt.serviceId);
   const [, monthStr, dayStr] = appt.date.split("-");
   const day = Number(dayStr);
   const monthIdx = Number(monthStr) - 1;

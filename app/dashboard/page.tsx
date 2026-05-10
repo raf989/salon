@@ -1,23 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
 import { AppointmentsList } from "@/components/dashboard/appointments-list";
 import { AvailabilityManager } from "@/components/dashboard/availability-manager";
 import { ProfileCard } from "@/components/dashboard/profile-card";
 import { StatsCards } from "@/components/dashboard/stats-cards";
-import { STYLISTS } from "@/lib/mock-data";
-import { useStore, useProvider } from "@/lib/store";
-
-const ME_ID = STYLISTS[0].id;
+import {
+  useAppointments,
+  useProvider,
+  useProviders,
+} from "@/lib/api/repo";
 
 export default function DashboardPage() {
-  const me = useProvider(ME_ID);
-  const appointments = useStore((s) => s.appointments);
-
-  const apptsForMe = useMemo(
-    () => appointments.filter((a) => a.stylistId === ME_ID),
-    [appointments],
-  );
+  const providers = useProviders();
+  const meId = providers[0]?.id;
+  const me = useProvider(meId);
+  const apptsForMe = useAppointments(meId ? { stylistId: meId } : undefined);
 
   if (!me) return null;
 

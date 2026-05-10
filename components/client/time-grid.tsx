@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Check, Lock } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useAppointments } from "@/lib/api/repo";
 import { cn, getTodayISO } from "@/lib/utils";
 import type { Stylist } from "@/lib/types";
 import { useT } from "@/lib/i18n";
@@ -47,7 +47,7 @@ function isInBreak(
 
 export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
   const { t } = useT();
-  const appointments = useStore((s) => s.appointments);
+  const appointments = useAppointments({ stylistId: stylist.id });
 
   const todayISO = getTodayISO();
   const isToday = date === todayISO;

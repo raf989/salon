@@ -12,16 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Crumbs } from "@/components/ui/crumbs";
 import { GalleryUploader } from "@/components/dashboard/gallery-uploader";
-import { PROVIDERS } from "@/lib/mock-data";
-import { useStore, useProvider } from "@/lib/store";
+import { updateProvider, useProvider, useProviders } from "@/lib/api/repo";
 import { useT } from "@/lib/i18n";
-
-const ME_ID = PROVIDERS[0].id;
 
 export default function DashboardProfilePage() {
   const { t, lang } = useT();
-  const me = useProvider(ME_ID);
-  const updateProviderEdit = useStore((s) => s.updateProviderEdit);
+  const providers = useProviders();
+  const meId = providers[0]?.id;
+  const me = useProvider(meId);
 
   const [bio, setBio] = useState(me?.bio[lang] ?? "");
   const [district, setDistrict] = useState(me?.district?.[lang] ?? "");
@@ -42,11 +40,11 @@ export default function DashboardProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const yearsNum = years.trim() ? Number(years) : undefined;
     const bioVal = bio.trim();
     const districtVal = district.trim();
-    updateProviderEdit(me.id, {
+    await updateProvider(me.id, {
       bio: { az: bioVal, ru: bioVal },
       district: { az: districtVal, ru: districtVal },
       experienceYears: yearsNum && !Number.isNaN(yearsNum) ? yearsNum : undefined,

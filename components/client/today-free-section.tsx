@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Cover } from "@/components/ui/cover";
 import { HeartButton } from "@/components/ui/heart-button";
-import { SERVICES } from "@/lib/mock-data";
+import { useServices } from "@/lib/api/repo";
 import { KIND_LABELS, type Provider } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -17,13 +17,14 @@ type Props = {
 
 export function TodayFreeSection({ providers }: Props) {
   const { t, pickLocalized } = useT();
+  const allServices = useServices();
 
   if (providers.length === 0) return null;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {providers.map((p, i) => {
-        const services = SERVICES.filter((s) => p.serviceIds.includes(s.id));
+        const services = allServices.filter((s) => p.serviceIds.includes(s.id));
         const minPrice =
           services.length > 0
             ? Math.min(...services.map((s) => s.price))

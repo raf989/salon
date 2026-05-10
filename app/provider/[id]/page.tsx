@@ -12,8 +12,7 @@ import { ProfileHero } from "@/components/provider/profile-hero";
 import { Reviews } from "@/components/provider/reviews";
 import { StickyBooking } from "@/components/provider/sticky-booking";
 import { useT } from "@/lib/i18n";
-import { PROVIDERS } from "@/lib/mock-data";
-import { useStore, useProvider } from "@/lib/store";
+import { useAppointments, useProvider, useProviders } from "@/lib/api/repo";
 import { KIND_PLURAL, type Provider } from "@/lib/types";
 import { getTodayISO } from "@/lib/utils";
 
@@ -54,19 +53,19 @@ export default function ProviderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  if (!PROVIDERS.find((p) => p.id === id)) notFound();
   return <ProviderPageInner id={id} />;
 }
 
 function ProviderPageInner({ id }: { id: string }) {
   const { t, pickLocalized } = useT();
+  const allProviders = useProviders();
   const provider = useProvider(id);
   const [booking, setBooking] = useState<Provider | null>(null);
-  const appointments = useStore((s) => s.appointments);
+  const appointments = useAppointments({ stylistId: id });
   const todayISO = getTodayISO();
-  if (!provider) return null;
 
   const availableToday = useMemo<boolean>(() => {
+    if (!provider) return false;
     const slots = generateSlots(
       provider.workingHours.start,
       provider.workingHours.end,
@@ -89,8 +88,11 @@ function ProviderPageInner({ id }: { id: string }) {
       if (toMinutes(time) <= nowMinutes) return false;
       return true;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider, appointments, todayISO]);
+
+  const exists = allProviders.some((p) => p.id === id);
+  if (!exists) notFound();
+  if (!provider) return null;
 
   return (
     <main className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6">

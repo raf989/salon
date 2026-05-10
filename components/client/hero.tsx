@@ -1,9 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Search, Zap } from "lucide-react";
+import { Search, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CitySelector } from "@/components/ui/city-selector";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { cn } from "@/lib/utils";
 import { useT, type DictKey } from "@/lib/i18n";
 
 export type QuickFilterKind =
@@ -16,7 +18,9 @@ export type QuickFilterKind =
 type Props = {
   searchValue: string;
   onSearchChange: (v: string) => void;
+  onSearchSubmit?: () => void;
   onQuickFilter?: (kind: QuickFilterKind) => void;
+  activeQuickFilter?: QuickFilterKind | null;
 };
 
 const QUICK_CHIPS: ReadonlyArray<{
@@ -53,7 +57,13 @@ const HERO_BG_STYLE = {
     "radial-gradient(60% 80% at 80% 0%, rgba(241,169,28,0.18), transparent 60%), radial-gradient(50% 70% at 0% 30%, rgba(15,133,126,0.14), transparent 60%), var(--bg)",
 } as const;
 
-export function Hero({ searchValue, onSearchChange, onQuickFilter }: Props) {
+export function Hero({
+  searchValue,
+  onSearchChange,
+  onSearchSubmit,
+  onQuickFilter,
+  activeQuickFilter = null,
+}: Props) {
   const { t } = useT();
 
   const titleBefore = t("hero.title.before");
@@ -95,8 +105,13 @@ export function Hero({ searchValue, onSearchChange, onQuickFilter }: Props) {
             {t("hero.subline")}
           </motion.p>
 
-          <motion.div
+          <motion.form
             variants={itemVariants}
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSearchSubmit?.();
+            }}
             className="flex items-center h-14 max-w-2xl bg-surface border border-border-strong rounded-xl shadow-[var(--sh-1)] pl-5 pr-2 gap-3 focus-within:border-caspian-500 focus-within:shadow-[var(--sh-focus)] transition-all"
           >
             <Search
@@ -112,33 +127,36 @@ export function Hero({ searchValue, onSearchChange, onQuickFilter }: Props) {
               className="flex-1 min-w-0 bg-transparent border-0 outline-none text-base font-medium text-ink-800 placeholder:text-ink-400 placeholder:font-normal"
             />
             <span className="w-px h-7 bg-border shrink-0" aria-hidden />
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-ink-700 px-2 whitespace-nowrap shrink-0">
-              <MapPin
-                className="size-4 text-ink-400"
-                strokeWidth={1.6}
-              />
-              {t("header.city")}
-            </span>
-            <Button variant="primary" size="lg" className="shrink-0">
+            <CitySelector variant="inline" className="hidden sm:block" />
+            <Button type="submit" variant="primary" size="lg" className="shrink-0">
               {t("filters.search.button")}
             </Button>
-          </motion.div>
+          </motion.form>
 
           <motion.div
             variants={itemVariants}
             className="mt-6 flex flex-wrap gap-2"
           >
-            {QUICK_CHIPS.map(({ key, kind, withIcon }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onQuickFilter?.(kind)}
-                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-surface border border-border text-sm font-medium text-ink-700 hover:bg-ink-50 hover:border-border-strong transition-colors cursor-pointer"
-              >
-                {withIcon ? <Zap className="size-4" strokeWidth={1.7} /> : null}
-                {t(key)}
-              </button>
-            ))}
+            {QUICK_CHIPS.map(({ key, kind, withIcon }) => {
+              const active = activeQuickFilter === kind;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onQuickFilter?.(kind)}
+                  aria-pressed={active}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 h-9 px-4 rounded-full border text-sm font-medium transition-colors cursor-pointer",
+                    active
+                      ? "bg-ink-900 text-ink-0 border-ink-900"
+                      : "bg-surface text-ink-700 border-border hover:bg-ink-50 hover:border-border-strong",
+                  )}
+                >
+                  {withIcon ? <Zap className="size-4" strokeWidth={1.7} /> : null}
+                  {t(key)}
+                </button>
+              );
+            })}
           </motion.div>
         </motion.div>
       </div>

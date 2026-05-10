@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useT } from "@/lib/i18n";
-import { SERVICES } from "@/lib/mock-data";
+import { useServices } from "@/lib/api/repo";
 import type { Appointment, Stylist } from "@/lib/types";
 import { cn, formatPrice, getDateISO, getTodayISO } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ type Stat = {
 
 export function StatsCards({ me, appointments }: StatsCardsProps) {
   const { t } = useT();
+  const services = useServices();
   const today = getTodayISO();
   const weekEnd = getDateISO(7);
 
@@ -45,7 +46,7 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
   const completedCount = mine.filter((a) => a.status === "completed").length;
 
   const weekRevenue = weekUpcoming.reduce((sum, appt) => {
-    const service = SERVICES.find((s) => s.id === appt.serviceId);
+    const service = services.find((s) => s.id === appt.serviceId);
     return sum + (service?.price ?? 0);
   }, 0);
 

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { PROVIDERS } from "@/lib/mock-data";
+import { useProviders } from "@/lib/api/repo";
 import {
   KIND_PLURAL,
   type Localized,
@@ -73,11 +73,12 @@ const BLOB_STYLE_BY_TONE: Record<Tone, string> = {
 
 export function CategoriesGrid({ onPick }: Props) {
   const { t, lang, pickLocalized } = useT();
+  const providers = useProviders();
 
   const counts = useMemo(() => {
     const map: Record<string, { total: number; freeToday: number }> = {};
     for (const cat of CATEGORIES) {
-      const matches = PROVIDERS.filter((p) => cat.kinds.includes(p.kind));
+      const matches = providers.filter((p) => cat.kinds.includes(p.kind));
       map[cat.id] = {
         total: matches.length,
         // mock-data has no per-day availability — pick a deterministic share
@@ -85,7 +86,7 @@ export function CategoriesGrid({ onPick }: Props) {
       };
     }
     return map;
-  }, []);
+  }, [providers]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

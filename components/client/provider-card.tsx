@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Cover } from "@/components/ui/cover";
 import { HeartButton } from "@/components/ui/heart-button";
 import { RatingStars } from "@/components/ui/rating-stars";
-import { SERVICES } from "@/lib/mock-data";
+import { useServices } from "@/lib/api/repo";
 import {
   KIND_LABELS,
   type Localized,
@@ -52,8 +52,9 @@ function djBars(id: string, count: number): number[] {
 
 export function ProviderCard({ provider, onBook, availableToday }: Props) {
   const { t, pickLocalized } = useT();
+  const allServices = useServices();
 
-  const services = SERVICES.filter((s) => provider.serviceIds.includes(s.id));
+  const services = allServices.filter((s) => provider.serviceIds.includes(s.id));
   const minPrice =
     services.length > 0 ? Math.min(...services.map((s) => s.price)) : 0;
   const servicesCount = services.length;

@@ -18,8 +18,11 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { TimeGrid } from "@/components/client/time-grid";
-import { SERVICES } from "@/lib/mock-data";
-import { useStore } from "@/lib/store";
+import {
+  createAppointment,
+  useAppointments,
+  useServices,
+} from "@/lib/api/repo";
 import {
   cn,
   formatDate,
@@ -107,13 +110,13 @@ function BookingFlow({
   onClose: () => void;
 }) {
   const { t, lang, pickLocalized } = useT();
-  const addAppointment = useStore((s) => s.addAppointment);
-  const appointments = useStore((s) => s.appointments);
+  const appointments = useAppointments();
+  const allServices = useServices();
   const todayISO = getTodayISO();
 
   const services = useMemo<Service[]>(
-    () => SERVICES.filter((s) => stylist.serviceIds.includes(s.id)),
-    [stylist],
+    () => allServices.filter((s) => stylist.serviceIds.includes(s.id)),
+    [stylist, allServices],
   );
 
   const [step, setStep] = useState<Step>("select");
@@ -179,18 +182,18 @@ function BookingFlow({
   const handleConfirm = async () => {
     if (!ready || !selectedTime || !selectedServiceId || submitting) return;
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    addAppointment({
-      id: crypto.randomUUID(),
-      stylistId: stylist.id,
-      clientName: clientName.trim(),
-      serviceId: selectedServiceId,
-      date: selectedDate,
-      time: selectedTime,
-      status: "upcoming",
-    });
-    setSubmitting(false);
-    setStep("success");
+    try {
+      await createAppointment({
+        stylistId: stylist.id,
+        clientName: clientName.trim(),
+        serviceId: selectedServiceId,
+        date: selectedDate,
+        time: selectedTime,
+      });
+      setStep("success");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (step === "success") {

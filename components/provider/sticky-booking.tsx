@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, type DayState } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
 import { useT } from "@/lib/i18n";
-import { SERVICES } from "@/lib/mock-data";
-import { useStore } from "@/lib/store";
+import { useAppointments, useServices } from "@/lib/api/repo";
 import type { Provider } from "@/lib/types";
 import { formatDate, formatPrice, getDateISO, getTodayISO } from "@/lib/utils";
 
@@ -51,16 +50,17 @@ function isInBreak(
 
 export function StickyBooking({ provider, onOpenBooking }: Props) {
   const { t, lang, pickLocalized } = useT();
-  const appointments = useStore((s) => s.appointments);
+  const appointments = useAppointments({ stylistId: provider.id });
+  const allServices = useServices();
   const todayISO = getTodayISO();
 
   const minPrice = useMemo(() => {
-    const services = SERVICES.filter((s) =>
+    const services = allServices.filter((s) =>
       provider.serviceIds.includes(s.id),
     );
     if (services.length === 0) return 0;
     return Math.min(...services.map((s) => s.price));
-  }, [provider]);
+  }, [provider, allServices]);
 
   const windowSet = useMemo(() => {
     const set = new Set<string>();

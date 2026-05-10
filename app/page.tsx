@@ -14,24 +14,46 @@ import {
 import { BookingModal } from "@/components/client/booking-modal";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { PROVIDERS, SERVICES } from "@/lib/mock-data";
+import { getCityIdByName, getCityById } from "@/lib/cities";
 import { useStore } from "@/lib/store";
+import { useAppointments, useProviders, useServices } from "@/lib/api/repo";
 import { cn, getDateISO, getTodayISO } from "@/lib/utils";
-import type { Provider, ProviderKind, ProviderTier } from "@/lib/types";
+import type { Provider, ProviderKind, ProviderTier, Service } from "@/lib/types";
 import { useT, type DictKey } from "@/lib/i18n";
 
 const SLOT_MIN = 30;
 const FREE_TODAY_LIMIT = 4;
 
-type SortKey = "trust" | "cheap" | "freeToday" | "near";
+type SortKey = "trust" | "cheap" | "freeToday";
 type TierFilter = "all" | ProviderTier;
 
 const SORT_OPTIONS: ReadonlyArray<{ key: SortKey; labelKey: DictKey }> = [
   { key: "trust", labelKey: "results.sort.recommended" },
   { key: "cheap", labelKey: "results.sort.cheapest" },
   { key: "freeToday", labelKey: "filters.option.today" },
-  { key: "near", labelKey: "results.sort.nearest" },
 ];
+
+type QuickFilterPreset = {
+  kind?: ProviderKind | null;
+  availability?: FiltersValue["availability"];
+  category?: FiltersValue["category"];
+};
+
+const QUICK_FILTER_PRESETS: Record<QuickFilterKind, QuickFilterPreset> = {
+  urgentToday: { availability: "today" },
+  weddingTurnkey: { kind: "photographer" },
+  barberHome: { kind: "barber" },
+  corporate: { kind: "dj" },
+  kidsParty: { kind: "host" },
+};
+
+function minServicePrice(p: Provider, services: Service[]): number {
+  let min = Number.POSITIVE_INFINITY;
+  for (const s of services) {
+    if (p.serviceIds.includes(s.id) && s.price < min) min = s.price;
+  }
+  return Number.isFinite(min) ? min : Number.POSITIVE_INFINITY;
+}
 
 function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
@@ -63,15 +85,26 @@ function isInBreak(
 }
 
 export default function HomePage() {
-  const { t, pickLocalized } = useT();
+  const { t, pickLocalized, lang } = useT();
   const [filters, setFilters] = useState<FiltersValue>(DEFAULT_FILTERS);
   const [kindFilter, setKindFilter] = useState<ProviderKind | null>(null);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
+  const [activeQuickFilter, setActiveQuickFilter] =
+    useState<QuickFilterKind | null>(null);
   const [booking, setBooking] = useState<Provider | null>(null);
   const [sort, setSort] = useState<SortKey>("trust");
-  const appointments = useStore((s) => s.appointments);
+  const cityId = useStore((s) => s.cityId);
+  const appointments = useAppointments();
+  const providers = useProviders();
+  const services = useServices();
 
   const todayISO = getTodayISO();
+  const cityName = pickLocalized(getCityById(cityId).name);
+
+  const inSelectedCity = useCallback(
+    (p: Provider): boolean => getCityIdByName(p.city) === cityId,
+    [cityId],
+  );
 
   const hasFreeSlotOnDate = useCallback(
     (p: Provider, date: string): boolean => {
@@ -101,21 +134,21 @@ export default function HomePage() {
 
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
-    for (const p of PROVIDERS) {
+    for (const p of providers) {
       map[p.id] = hasFreeSlotOnDate(p, todayISO);
     }
     return map;
-  }, [hasFreeSlotOnDate, todayISO]);
+  }, [providers, hasFreeSlotOnDate, todayISO]);
 
   const freeTodayProviders = useMemo(() => {
-    const matches = PROVIDERS.filter((p) => availabilityMap[p.id]).filter(
-      (p) => {
+    const matches = providers
+      .filter((p) => inSelectedCity(p) && availabilityMap[p.id])
+      .filter((p) => {
         if (tierFilter === "all") return true;
         return p.tier === tierFilter;
-      },
-    );
+      });
     return matches.slice(0, FREE_TODAY_LIMIT);
-  }, [availabilityMap, tierFilter]);
+  }, [providers, availabilityMap, tierFilter, inSelectedCity]);
 
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -124,7 +157,7 @@ export default function HomePage() {
       if (!search) return true;
       if (p.name.toLowerCase().includes(search)) return true;
       if (pickLocalized(p.bio).toLowerCase().includes(search)) return true;
-      const providerServices = SERVICES.filter((s) =>
+      const providerServices = services.filter((s) =>
         p.serviceIds.includes(s.id),
       );
       return providerServices.some((s) =>
@@ -139,7 +172,8 @@ export default function HomePage() {
       return false;
     };
 
-    return PROVIDERS.filter((p) => {
+    const matched = providers.filter((p) => {
+      if (!inSelectedCity(p)) return false;
       if (!matchesSearch(p)) return false;
       if (kindFilter !== null && p.kind !== kindFilter) return false;
       if (
@@ -159,28 +193,57 @@ export default function HomePage() {
         return false;
       return true;
     });
-  }, [filters, kindFilter, hasFreeSlotOnDate, todayISO, pickLocalized]);
 
-  const handleQuickFilter = (kind: QuickFilterKind) => {
-    switch (kind) {
-      case "urgentToday":
-        setFilters((f) => ({ ...f, availability: "today" }));
-        break;
-      case "weddingTurnkey":
-        setKindFilter("photographer");
-        break;
-      case "barberHome":
-        setKindFilter("barber");
-        break;
-      case "corporate":
-        setKindFilter("dj");
-        break;
-      case "kidsParty":
-        setKindFilter("host");
-        break;
-      default:
-        break;
+    const sorted = [...matched];
+    if (sort === "trust") {
+      sorted.sort((a, b) => {
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        return b.reviewsCount - a.reviewsCount;
+      });
+    } else if (sort === "cheap") {
+      sorted.sort((a, b) => {
+        const pa = minServicePrice(a, services);
+        const pb = minServicePrice(b, services);
+        if (pa !== pb) return pa - pb;
+        return b.rating - a.rating;
+      });
+    } else if (sort === "freeToday") {
+      sorted.sort((a, b) => {
+        const fa = availabilityMap[a.id] ? 1 : 0;
+        const fb = availabilityMap[b.id] ? 1 : 0;
+        if (fa !== fb) return fb - fa;
+        return b.rating - a.rating;
+      });
     }
+    return sorted;
+  }, [
+    providers,
+    services,
+    filters,
+    kindFilter,
+    hasFreeSlotOnDate,
+    todayISO,
+    pickLocalized,
+    inSelectedCity,
+    sort,
+    availabilityMap,
+  ]);
+
+  const applyQuickFilter = (kind: QuickFilterKind) => {
+    if (activeQuickFilter === kind) {
+      setActiveQuickFilter(null);
+      setKindFilter(null);
+      setFilters(DEFAULT_FILTERS);
+      return;
+    }
+    const preset = QUICK_FILTER_PRESETS[kind];
+    setActiveQuickFilter(kind);
+    setKindFilter(preset.kind ?? null);
+    setFilters({
+      ...DEFAULT_FILTERS,
+      availability: preset.availability ?? DEFAULT_FILTERS.availability,
+      category: preset.category ?? DEFAULT_FILTERS.category,
+    });
   };
 
   const isKindActive = kindFilter !== null;
@@ -190,7 +253,8 @@ export default function HomePage() {
       <Hero
         searchValue={filters.search}
         onSearchChange={(v) => setFilters((f) => ({ ...f, search: v }))}
-        onQuickFilter={handleQuickFilter}
+        onQuickFilter={applyQuickFilter}
+        activeQuickFilter={activeQuickFilter}
       />
       <main className="mx-auto max-w-7xl px-4 md:px-6 pb-24 space-y-12">
         <section>
@@ -239,7 +303,10 @@ export default function HomePage() {
               </span>
               <button
                 type="button"
-                onClick={() => setKindFilter(null)}
+                onClick={() => {
+                  setKindFilter(null);
+                  setActiveQuickFilter(null);
+                }}
                 className="text-caspian-600 hover:underline font-medium"
               >
                 {pickLocalized({ az: "təmizlə", ru: "сбросить" })}
@@ -250,8 +317,8 @@ export default function HomePage() {
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <span className="font-mono text-xs text-ink-500">
-              {t("results.foundIn")} {filtered.length}{" "}
-              {t("results.foundCount")}
+              {lang === "ru" ? `В ${cityName}` : `${cityName} şəhərində`}{" "}
+              {filtered.length} {t("results.foundCount")}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {SORT_OPTIONS.map((opt) => {

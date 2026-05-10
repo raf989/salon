@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { useT } from "@/lib/i18n";
-import { SERVICES } from "@/lib/mock-data";
+import { useServicesByProvider } from "@/lib/api/repo";
 import type { Provider } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 
@@ -14,13 +14,11 @@ type Props = {
 
 export function PriceList({ provider }: Props) {
   const { t, pickLocalized } = useT();
+  const providerServices = useServicesByProvider(provider.id);
 
   const services = useMemo(
-    () =>
-      SERVICES.filter((s) => provider.serviceIds.includes(s.id)).slice().sort(
-        (a, b) => a.price - b.price,
-      ),
-    [provider],
+    () => providerServices.slice().sort((a, b) => a.price - b.price),
+    [providerServices],
   );
 
   return (

@@ -37,3 +37,14 @@ export const DEFAULT_CITY_ID = "baku";
 export function getCityById(id: string): City {
   return CITIES.find((c) => c.id === id) ?? CITIES[0];
 }
+
+const CITY_ID_BY_NAME = new Map<string, string>(
+  CITIES.flatMap((c) => [
+    [c.name.az, c.id],
+    [c.name.ru, c.id],
+  ]),
+);
+
+export function getCityIdByName(name: Localized): string | null {
+  return CITY_ID_BY_NAME.get(name.az) ?? CITY_ID_BY_NAME.get(name.ru) ?? null;
+}

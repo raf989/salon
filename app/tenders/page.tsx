@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TENDERS } from "@/lib/mock-data";
+import { useTenders } from "@/lib/api/repo";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Crumbs } from "@/components/ui/crumbs";
@@ -26,14 +26,15 @@ const MINE_AUTHOR = "Aytən S.";
 export default function TendersPage() {
   const { t } = useT();
   const [filter, setFilter] = useState<FilterKey>("all");
+  const tenders = useTenders();
 
   const filtered = useMemo(() => {
-    if (filter === "all") return TENDERS;
+    if (filter === "all") return tenders;
     if (filter === "mine") {
-      return TENDERS.filter((tender) => tender.authorName === MINE_AUTHOR);
+      return tenders.filter((tender) => tender.authorName === MINE_AUTHOR);
     }
-    return TENDERS.filter((tender) => tender.tier === filter);
-  }, [filter]);
+    return tenders.filter((tender) => tender.tier === filter);
+  }, [filter, tenders]);
 
   const [featured, ...rest] = filtered;
 

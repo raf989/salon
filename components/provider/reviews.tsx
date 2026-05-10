@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Avatar } from "@/components/ui/avatar";
 import { Cover } from "@/components/ui/cover";
 import { RatingStars } from "@/components/ui/rating-stars";
+import { useReviews } from "@/lib/api/repo";
 import { useT } from "@/lib/i18n";
 import type { Lang, Provider } from "@/lib/types";
 
@@ -11,14 +12,16 @@ type Props = {
   provider: Provider;
 };
 
-type Review = {
+type DisplayReview = {
   id: string;
   name: string;
   body: string;
   withGallery: boolean;
+  rating: number;
 };
 
-function getReviews(lang: Lang): Review[] {
+// TODO: drop once "leave a review" UI ships and seed data exists for all providers.
+function getMockReviews(lang: Lang): DisplayReview[] {
   return [
     {
       id: "rev_nm",
@@ -28,6 +31,7 @@ function getReviews(lang: Lang): Review[] {
           ? "Aysel сняла нашу свадьбу — каждый кадр живой, ничего постановочного. Прислала отбор за 4 дня."
           : "Aysel toy çəkilişimizi etdi — hər kadr canlı, heç biri quru deyil. Seçimi 4 gün ərzində göndərdi.",
       withGallery: true,
+      rating: 5,
     },
     {
       id: "rev_rt",
@@ -37,13 +41,22 @@ function getReviews(lang: Lang): Review[] {
           ? "Юбилей мамы. Договорились с вечера на следующий день — пришла вовремя, сделала и формальные, и живые кадры."
           : "Anam üçün yubiley. Axşam axşam danışdıq, ertəsi gün vaxtında gəldi — həm rəsmi, həm canlı kadr çəkdi.",
       withGallery: false,
+      rating: 5,
     },
   ];
 }
 
 export function Reviews({ provider }: Props) {
-  const { t, lang } = useT();
-  const reviews = getReviews(lang);
+  const { t, lang, pickLocalized } = useT();
+  const stored = useReviews(provider.id);
+  const fromRepo: DisplayReview[] = stored.map((r) => ({
+    id: r.id,
+    name: r.authorName,
+    body: pickLocalized(r.text),
+    withGallery: false,
+    rating: r.rating,
+  }));
+  const reviews = fromRepo.length > 0 ? fromRepo : getMockReviews(lang);
 
   return (
     <motion.section
@@ -69,7 +82,7 @@ export function Reviews({ provider }: Props) {
             <div className="flex-1 min-w-0 flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <b className="text-ink-900">{review.name}</b>
-                <RatingStars value={5} size={12} />
+                <RatingStars value={review.rating} size={12} />
               </div>
               <p className="text-ink-500 text-sm leading-relaxed">
                 {review.body}

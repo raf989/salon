@@ -3,25 +3,13 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type {
-  Appointment,
   AuthUser,
   Lang,
-  Localized,
-  Provider,
   ProviderKind,
   Role,
   UserRole,
 } from "./types";
-import { APPOINTMENTS, PROVIDERS } from "./mock-data";
 import { normalizePhone } from "./utils";
-
-export type ProviderEditPatch = {
-  bio?: Localized;
-  district?: Localized;
-  experienceYears?: number;
-  gallery?: string[];
-  avatar?: string;
-};
 
 export type RegisterInput = {
   phone: string; // raw input, will be normalized
@@ -43,18 +31,14 @@ export type LoginResult =
   | { ok: false; reason: "notFound" | "wrongPassword" | "notVerified" };
 
 type Store = {
+  // UI prefs
   role: Role;
   setRole: (r: Role) => void;
   language: Lang;
   setLanguage: (l: Lang) => void;
   cityId: string;
   setCityId: (id: string) => void;
-  appointments: Appointment[];
-  addAppointment: (a: Appointment) => void;
-  cancelAppointment: (id: string) => void;
-  // provider profile edits (keyed by provider id)
-  providerEdits: Record<string, ProviderEditPatch>;
-  updateProviderEdit: (id: string, patch: ProviderEditPatch) => void;
+
   // auth slice
   users: AuthUser[];
   sessionUserId: string | null;
@@ -66,7 +50,6 @@ type Store = {
 };
 
 function makeId(): string {
-  // Lightweight unique id; fine for a prototype.
   return `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -79,27 +62,7 @@ export const useStore = create<Store>()(
       setLanguage: (l) => set({ language: l }),
       cityId: "baku",
       setCityId: (id) => set({ cityId: id }),
-      appointments: APPOINTMENTS,
-      addAppointment: (a) =>
-        set((state) => ({ appointments: [...state.appointments, a] })),
-      cancelAppointment: (id) =>
-        set((state) => ({
-          appointments: state.appointments.map((appt) =>
-            appt.id === id ? { ...appt, status: "cancelled" } : appt,
-          ),
-        })),
 
-      // provider edits
-      providerEdits: {},
-      updateProviderEdit: (id, patch) =>
-        set((state) => ({
-          providerEdits: {
-            ...state.providerEdits,
-            [id]: { ...state.providerEdits[id], ...patch },
-          },
-        })),
-
-      // auth
       users: [],
       sessionUserId: null,
 
@@ -166,22 +129,9 @@ export const useStore = create<Store>()(
         role: state.role,
         language: state.language,
         cityId: state.cityId,
-        providerEdits: state.providerEdits,
         users: state.users,
         sessionUserId: state.sessionUserId,
       }),
     },
   ),
 );
-
-/**
- * Returns the provider with any local edits merged in.
- * Reads reactively from the store.
- */
-export function useProvider(id: string | undefined): Provider | null {
-  const edit = useStore((s) => (id ? s.providerEdits[id] : undefined));
-  if (!id) return null;
-  const base = PROVIDERS.find((p) => p.id === id);
-  if (!base) return null;
-  return edit ? { ...base, ...edit } : base;
-}

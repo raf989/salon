@@ -160,3 +160,43 @@ export type Tender = {
   authorName: string;
   district: Localized;
 };
+
+export type Review = {
+  id: string;
+  providerId: string;
+  authorName: string;
+  rating: number; // 1..5
+  text: Localized;
+  createdAt: string; // ISO
+};
+
+export type ProviderEditPatch = {
+  bio?: Localized;
+  district?: Localized;
+  experienceYears?: number;
+  gallery?: string[];
+  avatar?: string;
+};
+
+export type ProviderFilters = {
+  cityId?: string;
+  kind?: ProviderKind;
+  tier?: ProviderTier;
+  category?: ServiceCategory;
+  priceRange?: PriceRange;
+  minRating?: number;
+};
+
+export type CreateAppointmentInput = Omit<Appointment, "id" | "status"> & {
+  status?: Appointment["status"];
+};
+
+export type CreateTenderInput = Omit<Tender, "id" | "openedAt" | "bidsCount" | "bids">;
+
+export type CreateBidInput = Omit<TenderBid, "id">;
+
+export type CreateReviewInput = {
+  authorName: string;
+  rating: number;
+  text: Localized;
+};

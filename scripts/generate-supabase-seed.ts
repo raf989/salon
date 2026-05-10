@@ -166,6 +166,11 @@ lines.push("");
 lines.push("commit;");
 lines.push("");
 
-const out = resolve(process.cwd(), "supabase/migrations/0002_seed.sql");
+// Keep the timestamp stable so re-running this script overwrites the same
+// file. If you ever bump the schema, update both files in lockstep.
+const out = resolve(
+  process.cwd(),
+  "supabase/migrations/20260510190001_seed.sql",
+);
 writeFileSync(out, lines.join("\n"));
 console.log(`Wrote ${out} (${lines.length} lines)`);

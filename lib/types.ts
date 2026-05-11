@@ -100,6 +100,11 @@ export type Stylist = {
   /** Optional photo URL or data URL replacing the gradient avatar. */
   avatar?: string;
   verified?: boolean;
+  /** Contact channels — surfaced on the dashboard only when present. */
+  phones?: string[]; // up to 3
+  whatsapp?: string;
+  tiktok?: string;
+  instagram?: string;
 };
 
 export type Provider = Stylist;
@@ -111,7 +116,7 @@ export type Appointment = {
   serviceId: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
-  status: "upcoming" | "completed" | "cancelled";
+  status: "upcoming" | "completed" | "cancelled" | "no_show";
 };
 
 export type TenderBidBadge =
@@ -172,10 +177,18 @@ export type Review = {
 
 export type ProviderEditPatch = {
   bio?: Localized;
+  city?: Localized;
   district?: Localized;
   experienceYears?: number;
   gallery?: string[];
   avatar?: string;
+  workingHours?: { start: string; end: string };
+  breaks?: { start: string; end: string }[];
+  // Socials: `null` means "explicitly clear", `undefined` means "don't touch".
+  phones?: string[];
+  whatsapp?: string | null;
+  instagram?: string | null;
+  tiktok?: string | null;
 };
 
 export type ProviderFilters = {

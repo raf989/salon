@@ -110,10 +110,17 @@ type ProviderRow = {
 type ProviderEditRow = {
   provider_id: string;
   bio: { az: string; ru: string } | null;
+  city: { az: string; ru: string } | null;
   district: { az: string; ru: string } | null;
   experience_years: number | null;
   gallery: string[] | null;
   avatar: string | null;
+  working_hours: { start: string; end: string } | null;
+  breaks: { start: string; end: string }[] | null;
+  phones: string[] | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  tiktok: string | null;
 };
 
 function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
@@ -143,10 +150,17 @@ function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
   return {
     ...base,
     bio: edit.bio ?? base.bio,
+    city: edit.city ?? base.city,
     district: edit.district ?? base.district,
     experienceYears: edit.experience_years ?? base.experienceYears,
     gallery: edit.gallery ?? base.gallery,
     avatar: edit.avatar ?? base.avatar,
+    workingHours: edit.working_hours ?? base.workingHours,
+    breaks: edit.breaks ?? base.breaks,
+    phones: edit.phones ?? base.phones,
+    whatsapp: edit.whatsapp ?? base.whatsapp,
+    instagram: edit.instagram ?? base.instagram,
+    tiktok: edit.tiktok ?? base.tiktok,
   };
 }
 
@@ -268,8 +282,8 @@ async function fetchProvidersWithEdits(): Promise<Provider[]> {
     supabase.from("providers").select("*").order("id"),
     supabase.from("provider_edits").select("*"),
   ]);
-  if (providersRes.error) throw providersRes.error;
-  if (editsRes.error) throw editsRes.error;
+  if (providersRes.error) throw asError(providersRes.error, "listProviders");
+  if (editsRes.error) throw asError(editsRes.error, "listProviderEdits");
   const editsByProvider = new Map<string, ProviderEditRow>();
   for (const e of (editsRes.data as ProviderEditRow[]) ?? []) {
     editsByProvider.set(e.provider_id, e);
@@ -316,8 +330,8 @@ export function useProvider(id: string | undefined): Provider | null {
         .eq("provider_id", id)
         .maybeSingle(),
     ]);
-    if (pRes.error) throw pRes.error;
-    if (eRes.error) throw eRes.error;
+    if (pRes.error) throw asError(pRes.error, "getProvider");
+    if (eRes.error) throw asError(eRes.error, "getProviderEdit");
     if (!pRes.data) return null;
     return rowToProvider(
       pRes.data as ProviderRow,
@@ -343,8 +357,8 @@ export async function getProvider(id: string): Promise<Provider | null> {
       .eq("provider_id", id)
       .maybeSingle(),
   ]);
-  if (pRes.error) throw pRes.error;
-  if (eRes.error) throw eRes.error;
+  if (pRes.error) throw asError(pRes.error, "getProvider");
+  if (eRes.error) throw asError(eRes.error, "getProviderEdit");
   if (!pRes.data) return null;
   return rowToProvider(
     pRes.data as ProviderRow,
@@ -356,19 +370,44 @@ export async function updateProvider(
   id: string,
   patch: ProviderEditPatch,
 ): Promise<Provider> {
+  // Pull the current overlay so a partial patch from one screen doesn't
+  // clobber fields that another screen owns.
+  const existingRes = await supabase
+    .from("provider_edits")
+    .select("*")
+    .eq("provider_id", id)
+    .maybeSingle();
+  if (existingRes.error) throw asError(existingRes.error, "updateProvider:read");
+  const existing = (existingRes.data as ProviderEditRow | null) ?? null;
+
+  // `patch.X === undefined` means "don't touch this field".
+  // `patch.X === null` means "explicitly clear it" (needed for socials).
+  // Anything else is the new value.
+  const keep = <T,>(
+    patchVal: T | null | undefined,
+    existingVal: T | null | undefined,
+  ): T | null => (patchVal === undefined ? (existingVal ?? null) : patchVal);
+
   const row = {
     provider_id: id,
-    bio: patch.bio ?? null,
-    district: patch.district ?? null,
-    experience_years: patch.experienceYears ?? null,
-    gallery: patch.gallery ?? null,
-    avatar: patch.avatar ?? null,
+    bio: keep(patch.bio, existing?.bio),
+    city: keep(patch.city, existing?.city),
+    district: keep(patch.district, existing?.district),
+    experience_years: keep(patch.experienceYears, existing?.experience_years),
+    gallery: keep(patch.gallery, existing?.gallery),
+    avatar: keep(patch.avatar, existing?.avatar),
+    working_hours: keep(patch.workingHours, existing?.working_hours),
+    breaks: keep(patch.breaks, existing?.breaks),
+    phones: keep(patch.phones, existing?.phones),
+    whatsapp: keep(patch.whatsapp, existing?.whatsapp),
+    instagram: keep(patch.instagram, existing?.instagram),
+    tiktok: keep(patch.tiktok, existing?.tiktok),
     updated_at: new Date().toISOString(),
   };
   const { error } = await supabase
     .from("provider_edits")
     .upsert(row, { onConflict: "provider_id" });
-  if (error) throw error;
+  if (error) throw asError(error, "updateProvider:upsert");
   useVersions.getState().bump("providerEdits");
   const updated = await getProvider(id);
   if (!updated) throw new Error(`Provider not found after update: ${id}`);
@@ -381,7 +420,7 @@ export async function updateProvider(
 
 async function fetchServices(): Promise<Service[]> {
   const { data, error } = await supabase.from("services").select("*").order("id");
-  if (error) throw error;
+  if (error) throw asError(error, "listServices");
   return (data as Parameters<typeof rowToService>[0][]).map(rowToService);
 }
 
@@ -420,7 +459,7 @@ async function fetchAppointments(
   if (query?.stylistId) q = q.eq("stylist_id", query.stylistId);
   if (query?.clientName) q = q.eq("client_name", query.clientName);
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) throw asError(error, "listAppointments");
   return (data as Parameters<typeof rowToAppointment>[0][]).map(rowToAppointment);
 }
 
@@ -447,6 +486,35 @@ function makeId(prefix: string): string {
     .slice(2, 8)}`;
 }
 
+/**
+ * Supabase returns plain `{ code, message, details, hint }` objects on
+ * failure. Throwing those directly makes React/Next print "[object Object]"
+ * in the overlay. Wrap them into a real Error with a readable message so the
+ * cause is visible everywhere (overlay, console, in-app banners).
+ */
+function asError(err: unknown, context: string): Error {
+  if (err instanceof Error) return err;
+  if (err && typeof err === "object") {
+    const e = err as {
+      message?: string;
+      details?: string;
+      hint?: string;
+      code?: string;
+    };
+    const parts = [
+      context,
+      e.message,
+      e.details,
+      e.hint ? `(${e.hint})` : null,
+      e.code ? `[${e.code}]` : null,
+    ].filter(Boolean);
+    const wrapped = new Error(parts.join(" — "));
+    (wrapped as Error & { cause?: unknown }).cause = err;
+    return wrapped;
+  }
+  return new Error(`${context}: ${String(err)}`);
+}
+
 export async function createAppointment(
   input: CreateAppointmentInput,
 ): Promise<Appointment> {
@@ -464,7 +532,7 @@ export async function createAppointment(
     .insert(row)
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw asError(error, "createAppointment");
   useVersions.getState().bump("appointments");
   return rowToAppointment(data as Parameters<typeof rowToAppointment>[0]);
 }
@@ -476,7 +544,19 @@ export async function cancelAppointment(id: string): Promise<Appointment> {
     .eq("id", id)
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw asError(error, "cancelAppointment");
+  useVersions.getState().bump("appointments");
+  return rowToAppointment(data as Parameters<typeof rowToAppointment>[0]);
+}
+
+export async function markAppointmentNoShow(id: string): Promise<Appointment> {
+  const { data, error } = await supabase
+    .from("appointments")
+    .update({ status: "no_show" })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw asError(error, "markAppointmentNoShow");
   useVersions.getState().bump("appointments");
   return rowToAppointment(data as Parameters<typeof rowToAppointment>[0]);
 }
@@ -490,8 +570,8 @@ async function fetchTenders(): Promise<Tender[]> {
     supabase.from("tenders").select("*").order("opened_at", { ascending: false }),
     supabase.from("tender_bids").select("*"),
   ]);
-  if (tRes.error) throw tRes.error;
-  if (bRes.error) throw bRes.error;
+  if (tRes.error) throw asError(tRes.error, "listTenders");
+  if (bRes.error) throw asError(bRes.error, "listTenderBids");
   const bidsByTender = new Map<string, TenderBid[]>();
   for (const row of (bRes.data ?? []) as (Parameters<typeof rowToBid>[0] & {
     tender_id: string;
@@ -547,7 +627,7 @@ export async function createTender(input: CreateTenderInput): Promise<Tender> {
     .insert(row)
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw asError(error, "createTender");
   useVersions.getState().bump("tenders");
   return rowToTender(data as Parameters<typeof rowToTender>[0], []);
 }
@@ -571,7 +651,7 @@ export async function submitBid(
     .insert(row)
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw asError(error, "submitBid");
   useVersions.getState().bump("tenders");
   return rowToBid(data as Parameters<typeof rowToBid>[0]);
 }
@@ -586,7 +666,7 @@ async function fetchReviews(providerId: string): Promise<Review[]> {
     .select("*")
     .eq("provider_id", providerId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) throw asError(error, "listReviews");
   return (data as Parameters<typeof rowToReview>[0][]).map(rowToReview);
 }
 
@@ -619,7 +699,7 @@ export async function createReview(
     .insert(row)
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw asError(error, "createReview");
   useVersions.getState().bump("reviews");
   return rowToReview(data as Parameters<typeof rowToReview>[0]);
 }

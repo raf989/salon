@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CitySelector } from "@/components/ui/city-selector";
 import { UserMenu } from "@/components/auth/user-menu";
 import { useStore } from "@/lib/store";
 import { useT, type DictKey } from "@/lib/i18n";
@@ -27,11 +26,6 @@ const NAV_ITEMS: NavItem[] = [
     href: "/tenders",
     labelKey: "nav.tenders",
     match: (p) => p.startsWith("/tenders"),
-  },
-  {
-    href: "/dashboard",
-    labelKey: "nav.becomeProvider",
-    match: (p) => p.startsWith("/dashboard"),
   },
 ];
 
@@ -86,9 +80,6 @@ export function Header() {
         </nav>
 
         <div className="flex-1" />
-
-        <CitySelector className="hidden md:block" />
-
 
         {/* Language switcher */}
         <div

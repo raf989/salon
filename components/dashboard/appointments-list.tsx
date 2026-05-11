@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarOff, Clock } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { useT, type DictKey } from "@/lib/i18n";
 import {
   cancelAppointment,
+  markAppointmentNoShow,
   useAppointments,
   useServices,
 } from "@/lib/api/repo";
@@ -23,6 +24,38 @@ export type AppointmentsListProps = {
 
 type Tab = "upcoming" | "past";
 
+// "late" is derived from time, not stored in DB. Everything else mirrors
+// the persisted Appointment["status"].
+type DisplayStatus =
+  | "upcoming"
+  | "late"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+
+const NO_SHOW_AFTER_MIN = 31;
+const TICK_MS = 30_000; // re-evaluate timing twice a minute
+
+function apptStartTime(appt: Appointment): number {
+  // Local-time interpretation matches how clients pick the slot in-app.
+  return new Date(`${appt.date}T${appt.time}:00`).getTime();
+}
+
+function deriveDisplayStatus(
+  appt: Appointment,
+  nowMs: number,
+): DisplayStatus {
+  // Persisted terminal states win.
+  if (appt.status === "completed") return "completed";
+  if (appt.status === "cancelled") return "cancelled";
+  if (appt.status === "no_show") return "no_show";
+
+  const diffMin = (nowMs - apptStartTime(appt)) / 60_000;
+  if (diffMin >= NO_SHOW_AFTER_MIN) return "no_show";
+  if (diffMin >= 0) return "late";
+  return "upcoming";
+}
+
 export function AppointmentsList({ me }: AppointmentsListProps) {
   const { t } = useT();
   const services = useServices();
@@ -31,7 +64,34 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   const [tab, setTab] = useState<Tab>("upcoming");
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
 
+  // Live clock: every TICK_MS we recompute display + check if any upcoming
+  // appointment crossed the 31-minute mark and needs promoting to no_show.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), TICK_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
   const today = getTodayISO();
+
+  // Auto-promotion to no_show in the DB. Once promoted, the appointment's
+  // persisted status leaves "upcoming" and the row reappears in the past
+  // tab on the next refetch. The ref de-dupes in-flight requests across
+  // ticks before the refetch lands.
+  const promotedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const appt of mine) {
+      if (appt.status !== "upcoming") continue;
+      if (deriveDisplayStatus(appt, nowMs) !== "no_show") continue;
+      if (promotedRef.current.has(appt.id)) continue;
+      promotedRef.current.add(appt.id);
+      markAppointmentNoShow(appt.id).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("[AppointmentsList] markAppointmentNoShow failed", err);
+        promotedRef.current.delete(appt.id); // allow retry on next tick
+      });
+    }
+  }, [mine, nowMs]);
 
   const { upcoming, past } = useMemo(() => {
     const up = mine
@@ -92,16 +152,22 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
             {items.length === 0 ? (
               <EmptyState />
             ) : (
-              items.map((appt, i) => (
-                <AppointmentRow
-                  key={appt.id}
-                  appt={appt}
-                  services={services}
-                  index={i}
-                  showCancel={tab === "upcoming" && appt.status === "upcoming"}
-                  onCancel={() => setPendingCancelId(appt.id)}
-                />
-              ))
+              items.map((appt, i) => {
+                const display = deriveDisplayStatus(appt, nowMs);
+                return (
+                  <AppointmentRow
+                    key={appt.id}
+                    appt={appt}
+                    display={display}
+                    services={services}
+                    index={i}
+                    showCancel={
+                      tab === "upcoming" && appt.status === "upcoming"
+                    }
+                    onCancel={() => setPendingCancelId(appt.id)}
+                  />
+                );
+              })
             )}
           </motion.div>
         </AnimatePresence>
@@ -160,12 +226,14 @@ function SegmentTab({
 
 function AppointmentRow({
   appt,
+  display,
   services,
   index,
   showCancel,
   onCancel,
 }: {
   appt: Appointment;
+  display: DisplayStatus;
   services: Service[];
   index: number;
   showCancel: boolean;
@@ -178,12 +246,20 @@ function AppointmentRow({
   const monthIdx = Number(monthStr) - 1;
   const monthAbbr = t(`month.short.${monthIdx}` as DictKey);
 
+  const isLate = display === "late";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, delay: index * 0.03 }}
-      className="flex items-center gap-4 p-4 rounded-xl border border-border bg-surface hover:bg-bg transition-colors"
+      className={cn(
+        "flex items-center gap-4 p-4 rounded-xl border bg-surface transition-colors",
+        // Subtle saffron wash on "Gecikir" — attention without alarm.
+        isLate
+          ? "border-saffron-400/40 bg-saffron-50/40 hover:bg-saffron-50/60"
+          : "border-border hover:bg-bg",
+      )}
     >
       {/* Date badge */}
       <div className="w-14 flex flex-col items-center justify-center py-2 rounded-xl bg-ink-50 text-center shrink-0">
@@ -219,7 +295,7 @@ function AppointmentRow({
 
       {/* Right */}
       <div className="flex shrink-0 items-center gap-2">
-        <StatusBadge status={appt.status} />
+        <StatusBadge display={display} />
         {showCancel ? (
           <Button
             type="button"
@@ -236,15 +312,37 @@ function AppointmentRow({
   );
 }
 
-function StatusBadge({ status }: { status: Appointment["status"] }) {
+function StatusBadge({ display }: { display: DisplayStatus }) {
   const { t } = useT();
-  if (status === "completed") {
-    return <Badge variant="success-soft">{t("dash.appts.status.completed")}</Badge>;
+  switch (display) {
+    case "completed":
+      return (
+        <Badge variant="success-soft">
+          {t("dash.appts.status.completed")}
+        </Badge>
+      );
+    case "cancelled":
+      return (
+        <Badge variant="danger-soft">
+          {t("dash.appts.status.cancelled")}
+        </Badge>
+      );
+    case "no_show":
+      return (
+        <Badge variant="danger-soft">{t("dash.appts.status.noShow")}</Badge>
+      );
+    case "late":
+      return (
+        <Badge variant="warning-soft" pulse>
+          {t("dash.appts.status.late")}
+        </Badge>
+      );
+    case "upcoming":
+    default:
+      return (
+        <Badge variant="info-soft">{t("dash.appts.status.upcoming")}</Badge>
+      );
   }
-  if (status === "cancelled") {
-    return <Badge variant="danger-soft">{t("dash.appts.status.cancelled")}</Badge>;
-  }
-  return <Badge variant="info-soft">{t("dash.appts.status.upcoming")}</Badge>;
 }
 
 function EmptyState() {

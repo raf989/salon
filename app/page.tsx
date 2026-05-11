@@ -2,8 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { SearchX } from "lucide-react";
-import { Hero, type QuickFilterKind } from "@/components/client/hero";
-import { CategoriesGrid } from "@/components/client/categories-grid";
+import { Hero } from "@/components/client/hero";
 import { TodayFreeSection } from "@/components/client/today-free-section";
 import { ProviderRow } from "@/components/client/provider-row";
 import {
@@ -18,7 +17,13 @@ import { getCityIdByName, getCityById } from "@/lib/cities";
 import { useStore } from "@/lib/store";
 import { useAppointments, useProviders, useServices } from "@/lib/api/repo";
 import { cn, getDateISO, getTodayISO } from "@/lib/utils";
-import type { Provider, ProviderKind, ProviderTier, Service } from "@/lib/types";
+import type {
+  Localized,
+  Provider,
+  ProviderKind,
+  ProviderTier,
+  Service,
+} from "@/lib/types";
 import { useT, type DictKey } from "@/lib/i18n";
 
 const SLOT_MIN = 30;
@@ -33,26 +38,51 @@ const SORT_OPTIONS: ReadonlyArray<{ key: SortKey; labelKey: DictKey }> = [
   { key: "freeToday", labelKey: "filters.option.today" },
 ];
 
-type QuickFilterPreset = {
-  kind?: ProviderKind | null;
-  availability?: FiltersValue["availability"];
-  category?: FiltersValue["category"];
-};
-
-const QUICK_FILTER_PRESETS: Record<QuickFilterKind, QuickFilterPreset> = {
-  urgentToday: { availability: "today" },
-  weddingTurnkey: { kind: "photographer" },
-  barberHome: { kind: "barber" },
-  corporate: { kind: "dj" },
-  kidsParty: { kind: "host" },
-};
-
 function minServicePrice(p: Provider, services: Service[]): number {
   let min = Number.POSITIVE_INFINITY;
   for (const s of services) {
     if (p.serviceIds.includes(s.id) && s.price < min) min = s.price;
   }
   return Number.isFinite(min) ? min : Number.POSITIVE_INFINITY;
+}
+
+/**
+ * Chain filtering: category → city → text. Pure; safe to call anywhere.
+ * All three are AND-composed; missing criteria are treated as "match all".
+ */
+export type SearchCriteria = {
+  cityId: string;
+  kind: ProviderKind | null;
+  search: string;
+};
+
+function applySearchFilters(
+  providers: Provider[],
+  criteria: SearchCriteria,
+  services: Service[],
+  pickLocalized: (v: Localized) => string,
+): Provider[] {
+  const q = criteria.search.trim().toLowerCase();
+
+  return providers.filter((p) => {
+    // 1. Category (strict equality on ProviderKind).
+    if (criteria.kind !== null && p.kind !== criteria.kind) return false;
+
+    // 2. City.
+    if (getCityIdByName(p.city) !== criteria.cityId) return false;
+
+    // 3. Text — over name + bio + service names of the surviving provider.
+    if (q) {
+      const inName = p.name.toLowerCase().includes(q);
+      const inBio = pickLocalized(p.bio).toLowerCase().includes(q);
+      const inService = services
+        .filter((s) => p.serviceIds.includes(s.id))
+        .some((s) => pickLocalized(s.name).toLowerCase().includes(q));
+      if (!inName && !inBio && !inService) return false;
+    }
+
+    return true;
+  });
 }
 
 function toMinutes(hhmm: string): number {
@@ -89,8 +119,6 @@ export default function HomePage() {
   const [filters, setFilters] = useState<FiltersValue>(DEFAULT_FILTERS);
   const [kindFilter, setKindFilter] = useState<ProviderKind | null>(null);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
-  const [activeQuickFilter, setActiveQuickFilter] =
-    useState<QuickFilterKind | null>(null);
   const [booking, setBooking] = useState<Provider | null>(null);
   const [sort, setSort] = useState<SortKey>("trust");
   const cityId = useStore((s) => s.cityId);
@@ -100,11 +128,6 @@ export default function HomePage() {
 
   const todayISO = getTodayISO();
   const cityName = pickLocalized(getCityById(cityId).name);
-
-  const inSelectedCity = useCallback(
-    (p: Provider): boolean => getCityIdByName(p.city) === cityId,
-    [cityId],
-  );
 
   const hasFreeSlotOnDate = useCallback(
     (p: Provider, date: string): boolean => {
@@ -141,30 +164,31 @@ export default function HomePage() {
   }, [providers, hasFreeSlotOnDate, todayISO]);
 
   const freeTodayProviders = useMemo(() => {
-    const matches = providers
-      .filter((p) => inSelectedCity(p) && availabilityMap[p.id])
+    const base = applySearchFilters(
+      providers,
+      { cityId, kind: kindFilter, search: filters.search },
+      services,
+      pickLocalized,
+    );
+    const matches = base
+      .filter((p) => availabilityMap[p.id])
       .filter((p) => {
         if (tierFilter === "all") return true;
         return p.tier === tierFilter;
       });
     return matches.slice(0, FREE_TODAY_LIMIT);
-  }, [providers, availabilityMap, tierFilter, inSelectedCity]);
+  }, [
+    providers,
+    services,
+    cityId,
+    kindFilter,
+    filters.search,
+    pickLocalized,
+    availabilityMap,
+    tierFilter,
+  ]);
 
   const filtered = useMemo(() => {
-    const search = filters.search.trim().toLowerCase();
-
-    const matchesSearch = (p: Provider): boolean => {
-      if (!search) return true;
-      if (p.name.toLowerCase().includes(search)) return true;
-      if (pickLocalized(p.bio).toLowerCase().includes(search)) return true;
-      const providerServices = services.filter((s) =>
-        p.serviceIds.includes(s.id),
-      );
-      return providerServices.some((s) =>
-        pickLocalized(s.name).toLowerCase().includes(search),
-      );
-    };
-
     const hasFreeSlotInWeek = (p: Provider): boolean => {
       for (let i = 0; i < 7; i++) {
         if (hasFreeSlotOnDate(p, getDateISO(i))) return true;
@@ -172,10 +196,16 @@ export default function HomePage() {
       return false;
     };
 
-    const matched = providers.filter((p) => {
-      if (!inSelectedCity(p)) return false;
-      if (!matchesSearch(p)) return false;
-      if (kindFilter !== null && p.kind !== kindFilter) return false;
+    // Stage 0 — chain filter: category → city → text.
+    const base = applySearchFilters(
+      providers,
+      { cityId, kind: kindFilter, search: filters.search },
+      services,
+      pickLocalized,
+    );
+
+    // Stage 1 — secondary filters from the <Filters /> card.
+    const matched = base.filter((p) => {
       if (
         filters.category !== "all" &&
         !p.specialties.includes(filters.category)
@@ -220,31 +250,14 @@ export default function HomePage() {
     providers,
     services,
     filters,
+    cityId,
     kindFilter,
     hasFreeSlotOnDate,
     todayISO,
     pickLocalized,
-    inSelectedCity,
     sort,
     availabilityMap,
   ]);
-
-  const applyQuickFilter = (kind: QuickFilterKind) => {
-    if (activeQuickFilter === kind) {
-      setActiveQuickFilter(null);
-      setKindFilter(null);
-      setFilters(DEFAULT_FILTERS);
-      return;
-    }
-    const preset = QUICK_FILTER_PRESETS[kind];
-    setActiveQuickFilter(kind);
-    setKindFilter(preset.kind ?? null);
-    setFilters({
-      ...DEFAULT_FILTERS,
-      availability: preset.availability ?? DEFAULT_FILTERS.availability,
-      category: preset.category ?? DEFAULT_FILTERS.category,
-    });
-  };
 
   const isKindActive = kindFilter !== null;
 
@@ -253,19 +266,10 @@ export default function HomePage() {
       <Hero
         searchValue={filters.search}
         onSearchChange={(v) => setFilters((f) => ({ ...f, search: v }))}
-        onQuickFilter={applyQuickFilter}
-        activeQuickFilter={activeQuickFilter}
+        kindFilter={kindFilter}
+        onKindChange={setKindFilter}
       />
-      <main className="mx-auto max-w-7xl px-4 md:px-6 pb-24 space-y-12">
-        <section>
-          <SectionHeader
-            title={t("section.categories")}
-            href="#"
-            linkLabel={t("section.allLink")}
-          />
-          <CategoriesGrid onPick={(kind) => setKindFilter(kind)} />
-        </section>
-
+      <main className="mx-auto max-w-7xl px-4 md:px-6 pt-10 md:pt-16 pb-24 space-y-12">
         <section>
           <SectionHeader
             title={t("section.freeToday")}
@@ -303,10 +307,7 @@ export default function HomePage() {
               </span>
               <button
                 type="button"
-                onClick={() => {
-                  setKindFilter(null);
-                  setActiveQuickFilter(null);
-                }}
+                onClick={() => setKindFilter(null)}
                 className="text-caspian-600 hover:underline font-medium"
               >
                 {pickLocalized({ az: "təmizlə", ru: "сбросить" })}

@@ -1,38 +1,32 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Zap } from "lucide-react";
+import { LayoutGrid, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CitySelector } from "@/components/ui/city-selector";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { SelectMenu } from "@/components/ui/select-menu";
 import { cn } from "@/lib/utils";
-import { useT, type DictKey } from "@/lib/i18n";
-
-export type QuickFilterKind =
-  | "urgentToday"
-  | "weddingTurnkey"
-  | "barberHome"
-  | "corporate"
-  | "kidsParty";
+import { useT } from "@/lib/i18n";
+import { KIND_LABELS, type ProviderKind } from "@/lib/types";
 
 type Props = {
   searchValue: string;
   onSearchChange: (v: string) => void;
   onSearchSubmit?: () => void;
-  onQuickFilter?: (kind: QuickFilterKind) => void;
-  activeQuickFilter?: QuickFilterKind | null;
+  kindFilter: ProviderKind | null;
+  onKindChange: (kind: ProviderKind | null) => void;
 };
 
-const QUICK_CHIPS: ReadonlyArray<{
-  key: DictKey;
-  kind: QuickFilterKind;
-  withIcon: boolean;
-}> = [
-  { key: "hero.chip.urgentToday", kind: "urgentToday", withIcon: true },
-  { key: "hero.chip.weddingTurnkey", kind: "weddingTurnkey", withIcon: false },
-  { key: "hero.chip.barberHome", kind: "barberHome", withIcon: false },
-  { key: "hero.chip.corporate", kind: "corporate", withIcon: false },
-  { key: "hero.chip.kidsParty", kind: "kidsParty", withIcon: false },
+const KIND_OPTIONS: ProviderKind[] = [
+  "photographer",
+  "dj",
+  "host",
+  "restaurant",
+  "barber",
+  "salon",
+  "makeup",
 ];
 
 const containerVariants = {
@@ -61,8 +55,8 @@ export function Hero({
   searchValue,
   onSearchChange,
   onSearchSubmit,
-  onQuickFilter,
-  activeQuickFilter = null,
+  kindFilter,
+  onKindChange,
 }: Props) {
   const { t } = useT();
 
@@ -72,7 +66,7 @@ export function Hero({
 
   return (
     <section
-      className="relative isolate overflow-hidden"
+      className="relative"
       style={HERO_BG_STYLE}
     >
       <div className="mx-auto max-w-7xl px-8 md:px-12 py-12 md:py-16">
@@ -112,54 +106,96 @@ export function Hero({
               e.preventDefault();
               onSearchSubmit?.();
             }}
-            className="flex items-center h-14 max-w-2xl bg-surface border border-border-strong rounded-xl shadow-[var(--sh-1)] pl-5 pr-2 gap-3 focus-within:border-caspian-500 focus-within:shadow-[var(--sh-focus)] transition-all"
+            className="flex items-center h-14 max-w-2xl bg-surface border border-border-strong rounded-xl shadow-[var(--sh-1)] pl-3 pr-1.5 focus-within:border-caspian-500 focus-within:shadow-[var(--sh-focus)] transition-all"
           >
-            <Search
-              className="size-5 text-ink-400 shrink-0"
-              strokeWidth={1.6}
-            />
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={t("hero.searchPlaceholder")}
-              aria-label={t("filters.search.aria")}
-              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-base font-medium text-ink-800 placeholder:text-ink-400 placeholder:font-normal"
-            />
-            <span className="w-px h-7 bg-border shrink-0" aria-hidden />
-            <CitySelector variant="inline" className="hidden sm:block" />
-            <Button type="submit" variant="primary" size="lg" className="shrink-0">
+            {/* 1 — Category */}
+            <div className="flex items-center shrink-0 px-2">
+              <CategoryDropdown
+                value={kindFilter}
+                onChange={onKindChange}
+              />
+            </div>
+            <Divider />
+
+            {/* 2 — Location (hidden on mobile; city is also in the header) */}
+            <div className="hidden sm:flex items-center shrink-0 px-2">
+              <CitySelector variant="inline" align="left" />
+            </div>
+            <Divider className="hidden sm:block" />
+
+            {/* 3 — Free-text input */}
+            <div className="flex items-center gap-2.5 flex-1 min-w-0 px-3">
+              <Search
+                className="size-5 text-ink-400 shrink-0"
+                strokeWidth={1.6}
+              />
+              <input
+                type="text"
+                value={searchValue}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder={t("hero.searchPlaceholder")}
+                aria-label={t("filters.search.aria")}
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-base font-medium text-ink-800 placeholder:text-ink-400 placeholder:font-normal"
+              />
+            </div>
+
+            {/* 4 — Submit */}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="shrink-0 ml-1.5"
+            >
               {t("filters.search.button")}
             </Button>
           </motion.form>
-
-          <motion.div
-            variants={itemVariants}
-            className="mt-6 flex flex-wrap gap-2"
-          >
-            {QUICK_CHIPS.map(({ key, kind, withIcon }) => {
-              const active = activeQuickFilter === kind;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => onQuickFilter?.(kind)}
-                  aria-pressed={active}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 h-9 px-4 rounded-full border text-sm font-medium transition-colors cursor-pointer",
-                    active
-                      ? "bg-ink-900 text-ink-0 border-ink-900"
-                      : "bg-surface text-ink-700 border-border hover:bg-ink-50 hover:border-border-strong",
-                  )}
-                >
-                  {withIcon ? <Zap className="size-4" strokeWidth={1.7} /> : null}
-                  {t(key)}
-                </button>
-              );
-            })}
-          </motion.div>
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function Divider({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn("w-px h-7 bg-border shrink-0", className)}
+    />
+  );
+}
+
+function CategoryDropdown({
+  value,
+  onChange,
+}: {
+  value: ProviderKind | null;
+  onChange: (k: ProviderKind | null) => void;
+}) {
+  const { t, lang, pickLocalized } = useT();
+
+  const options = useMemo(
+    () =>
+      KIND_OPTIONS.map((k) => ({
+        value: k,
+        label: pickLocalized(KIND_LABELS[k]),
+      })),
+    [pickLocalized],
+  );
+
+  return (
+    <SelectMenu
+      value={value}
+      onChange={(v) => onChange((v as ProviderKind | null) ?? null)}
+      options={options}
+      allOptionLabel={lang === "ru" ? "Все категории" : "Hamısı"}
+      triggerVariant="inline"
+      triggerIcon={<LayoutGrid className="size-4 text-ink-400" />}
+      triggerPlaceholder={t("filters.label.category")}
+      searchPlaceholder={
+        lang === "ru" ? "Поиск категории…" : "Kateqoriya axtar…"
+      }
+      emptyLabel={lang === "ru" ? "Ничего не найдено" : "Heç nə tapılmadı"}
+      align="left"
+    />
   );
 }

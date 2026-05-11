@@ -33,8 +33,14 @@ export const CITIES: City[] = [
 ];
 
 export const DEFAULT_CITY_ID = "baku";
+export const ALL_CITIES_ID = "all";
+export const ALL_CITIES: City = {
+  id: ALL_CITIES_ID,
+  name: { az: "Hamısı", ru: "Все" },
+};
 
 export function getCityById(id: string): City {
+  if (id === ALL_CITIES_ID) return ALL_CITIES;
   return CITIES.find((c) => c.id === id) ?? CITIES[0];
 }
 

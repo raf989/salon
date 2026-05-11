@@ -47,6 +47,7 @@ type Store = {
   login: (phone: string, password: string) => LoginResult;
   logout: () => void;
   currentUser: () => AuthUser | null;
+  updateCurrentUser: (patch: Partial<Pick<AuthUser, "name" | "email">>) => void;
 };
 
 function makeId(): string {
@@ -121,6 +122,16 @@ export const useStore = create<Store>()(
           state.users.find((u) => u.id === state.sessionUserId) ?? null
         );
       },
+
+      updateCurrentUser: (patch) =>
+        set((state) => {
+          if (!state.sessionUserId) return state;
+          return {
+            users: state.users.map((u) =>
+              u.id === state.sessionUserId ? { ...u, ...patch } : u,
+            ),
+          };
+        }),
     }),
     {
       name: "salon-store",

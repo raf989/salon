@@ -14,7 +14,10 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { StatusControl } from "@/components/dashboard/status-control";
+import { useProviderEditsRealtime } from "@/lib/api/repo";
 import { useT } from "@/lib/i18n";
+import { useStore } from "@/lib/store";
 import { CATEGORY_LABELS, type Stylist } from "@/lib/types";
 
 export type ProfileCardProps = {
@@ -26,15 +29,14 @@ type ContactItem = { kind: ChannelKind; value: string };
 type ContactRow = [ContactItem | null, ContactItem | null];
 
 /**
- * Pairing rules per the latest spec:
- *
+ * Pairing rules:
  *  3 phones → [P1, WA] / [P2, IG] / [P3, TT]
  *  2 phones → [P1, IG] / [P2, TT] / [WA, _]
  *  1 phone  → [P1, IG] / [WA, TT]
- *  0 phones → fall back to a clean stack of whatever socials exist.
+ *  0 phones → vertical stack of whatever socials exist.
  *
- * Empty socials simply leave their cell blank — the grid keeps two equal
- * columns so the panel stays aligned.
+ * Empty socials leave their cell blank — the inner 2-col grid keeps the
+ * layout aligned.
  */
 function buildContactRows(
   phones: string[],
@@ -77,7 +79,6 @@ function buildContactRows(
     if (wa || tt) rows.push([wa, tt]);
     return rows;
   }
-  // 0 phones — list whatever socials exist, one per row.
   const rows: ContactRow[] = [];
   if (wa) rows.push([wa, null]);
   if (ig) rows.push([ig, null]);
@@ -87,7 +88,20 @@ function buildContactRows(
 
 export function ProfileCard({ me }: ProfileCardProps) {
   const { t, lang, pickLocalized } = useT();
-  const firstName = me.name.split(" ")[0];
+  useProviderEditsRealtime();
+
+  // Greeting source priority: authenticated user → provider overlay → fallback.
+  // The seeded providers.name (e.g. "Elvin Məmmədov") is intentionally NOT
+  // used as a fallback for the greeting — that data belongs to demo rows,
+  // not to whoever is logged in.
+  const authUser = useStore((s) =>
+    s.users.find((u) => u.id === s.sessionUserId) ?? null,
+  );
+  const fallbackName = lang === "ru" ? "пользователь" : "İstifadəçi";
+  const trimmedAuth = (authUser?.name ?? "").trim();
+  const firstName = trimmedAuth
+    ? trimmedAuth.split(" ")[0]
+    : fallbackName;
   const specialtiesLabel = me.specialties
     .map((s) => pickLocalized(CATEGORY_LABELS[s]))
     .join(" · ");
@@ -107,13 +121,15 @@ export function ProfileCard({ me }: ProfileCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
     >
-      <Card className="relative overflow-hidden p-7">
+      <Card className="relative p-7">
+        {/* Without overflow-hidden the gradient bar must round its own top
+            corners so it stays inside the card's rounded edges. */}
         <div
           aria-hidden
-          className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-caspian-500 via-saffron-400 to-pomegranate-500"
+          className="absolute top-0 left-0 right-0 h-1.5 rounded-t-[inherit] bg-gradient-to-r from-caspian-500 via-saffron-400 to-pomegranate-500"
         />
 
-        {/* Edit button — anchored to the original top-right corner */}
+        {/* Edit button — stays in top-right corner, out of the flex flow */}
         <div className="absolute top-4 right-4 z-10">
           <Link href="/dashboard/profile">
             <Button variant="outline" size="sm">
@@ -123,14 +139,14 @@ export function ProfileCard({ me }: ProfileCardProps) {
           </Link>
         </div>
 
-        {/* Three columns: identity · statuses (centered) · contacts (right).
-            pt-12 keeps the absolutely-positioned edit button from overlapping. */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-center pt-12">
-          {/* ── Col 1 — identity */}
-          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center min-w-0">
+        {/* Horizontal flow on md+, vertical stack on mobile.
+            pt-14/pt-12 leaves room for the absolute edit button. */}
+        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-0 pt-14 md:pt-12">
+          {/* ── Block 1 — identity */}
+          <div className="flex items-center gap-4 min-w-0 shrink-0">
             <Avatar
-              name={me.name}
-              id={me.id}
+              name={trimmedAuth || me.name}
+              id={authUser?.id ?? me.id}
               imageUrl={me.avatar}
               size="xl"
             />
@@ -144,8 +160,8 @@ export function ProfileCard({ me }: ProfileCardProps) {
             </div>
           </div>
 
-          {/* ── Col 2 — statuses, sitting closer to centre */}
-          <div className="flex flex-col items-start gap-2 md:items-center md:text-center">
+          {/* ── Block 2 — statuses, anchored next to identity (ml-12 on md+) */}
+          <div className="flex flex-col items-start gap-2 shrink-0 md:ml-12">
             <div className="inline-flex items-center gap-2 px-3 h-9 rounded-full bg-ink-50">
               <Star className="size-4 fill-saffron-400 text-saffron-400" />
               <span className="font-mono font-semibold text-ink-900">
@@ -155,9 +171,7 @@ export function ProfileCard({ me }: ProfileCardProps) {
                 ({me.reviewsCount})
               </span>
             </div>
-            <Badge variant="success-soft" pulse>
-              {t("dash.openToday")}
-            </Badge>
+            <StatusControl provider={me} />
             {me.verified ? (
               <Badge variant="verified">
                 <BadgeCheck className="size-3" />
@@ -166,10 +180,11 @@ export function ProfileCard({ me }: ProfileCardProps) {
             ) : null}
           </div>
 
-          {/* ── Col 3 — contacts, flush right */}
-          <div className="min-w-0 md:justify-self-end w-full md:max-w-sm">
-            {hasContacts ? (
-              <div className="flex flex-col gap-2">
+          {/* ── Block 3 — contacts, centred in the remaining space.
+              pr-44 on md+ keeps it clear of the absolute edit button. */}
+          {hasContacts ? (
+            <div className="min-w-0 md:flex-1 md:flex md:justify-center md:pl-10 md:pr-44">
+              <div className="w-full md:max-w-md flex flex-col gap-2">
                 {rows.map((row, i) => (
                   <div
                     key={i}
@@ -188,8 +203,8 @@ export function ProfileCard({ me }: ProfileCardProps) {
                   </div>
                 ))}
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </Card>
     </motion.div>
@@ -197,8 +212,9 @@ export function ProfileCard({ me }: ProfileCardProps) {
 }
 
 function ContactCell({ item }: { item: ContactItem }) {
-  return (
-    <div className="inline-flex items-center gap-2 text-sm text-ink-700 min-w-0">
+  const href = hrefForItem(item);
+  const inner = (
+    <>
       <span
         aria-hidden
         className="size-7 grid place-items-center rounded-full bg-caspian-500/10 text-caspian-600 shrink-0"
@@ -206,8 +222,68 @@ function ContactCell({ item }: { item: ContactItem }) {
         {iconForKind(item.kind)}
       </span>
       <span className="font-mono truncate">{item.value}</span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 text-sm text-ink-700 min-w-0 hover:text-caspian-600 transition-colors"
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center gap-2 text-sm text-ink-700 min-w-0">
+      {inner}
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// URL builders — users enter handles/numbers; we compose canonical URLs
+// on display so the inputs stay simple.
+// ─────────────────────────────────────────────────────────────────────
+function hrefForItem(item: ContactItem): string | null {
+  switch (item.kind) {
+    case "whatsapp":
+      return whatsappUrl(item.value);
+    case "instagram":
+      return instagramUrl(item.value);
+    case "tiktok":
+      return tiktokUrl(item.value);
+    case "phone":
+      // Phones stay non-clickable — change to `tel:` if it ever needs to dial.
+      return null;
+  }
+}
+
+function instagramUrl(handle: string): string | null {
+  const user = stripHandle(handle)
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/\/+$/, "");
+  return user ? `https://instagram.com/${encodeURIComponent(user)}` : null;
+}
+
+function tiktokUrl(handle: string): string | null {
+  const user = stripHandle(handle)
+    .replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, "")
+    .replace(/\/+$/, "");
+  return user ? `https://tiktok.com/@${encodeURIComponent(user)}` : null;
+}
+
+function whatsappUrl(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  return digits ? `https://wa.me/${digits}` : null;
+}
+
+function stripHandle(raw: string): string {
+  return raw.trim().replace(/^@+/, "");
 }
 
 function iconForKind(kind: ChannelKind): ReactNode {

@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { LayoutGrid, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CitySelector } from "@/components/ui/city-selector";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { SelectMenu } from "@/components/ui/select-menu";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -69,20 +68,16 @@ export function Hero({
       className="relative"
       style={HERO_BG_STYLE}
     >
-      <div className="mx-auto max-w-7xl px-8 md:px-12 py-12 md:py-16">
+      <div className="mx-auto max-w-7xl px-6 sm:px-10 md:px-12 py-16 md:py-24">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="flex flex-col"
+          className="flex flex-col items-center text-center"
         >
-          <motion.div variants={itemVariants} className="mb-4">
-            <Eyebrow className="text-caspian-600">{t("hero.eyebrow")}</Eyebrow>
-          </motion.div>
-
           <motion.h1
             variants={itemVariants}
-            className="font-display font-semibold text-[44px] sm:text-[56px] md:text-[64px] leading-[1.05] tracking-[-0.025em] text-ink-900 max-w-3xl mb-4"
+            className="font-display font-semibold text-[44px] sm:text-[60px] md:text-[72px] lg:text-[80px] leading-[1.05] tracking-[-0.025em] text-ink-900 max-w-4xl mx-auto"
           >
             {titleBefore}
             {titleBefore ? " " : null}
@@ -92,13 +87,6 @@ export function Hero({
             {titleAfter ? <> {titleAfter}</> : null}
           </motion.h1>
 
-          <motion.p
-            variants={itemVariants}
-            className="text-base md:text-lg text-ink-500 max-w-xl mb-8 leading-relaxed"
-          >
-            {t("hero.subline")}
-          </motion.p>
-
           <motion.form
             variants={itemVariants}
             role="search"
@@ -106,7 +94,7 @@ export function Hero({
               e.preventDefault();
               onSearchSubmit?.();
             }}
-            className="flex items-center h-14 max-w-2xl bg-surface border border-border-strong rounded-xl shadow-[var(--sh-1)] pl-3 pr-1.5 focus-within:border-caspian-500 focus-within:shadow-[var(--sh-focus)] transition-all"
+            className="mt-10 md:mt-12 flex items-center h-14 w-full max-w-2xl mx-auto bg-surface border border-border-strong rounded-xl shadow-[var(--sh-1)] pl-3 pr-1.5 focus-within:border-caspian-500 focus-within:shadow-[var(--sh-focus)] transition-all"
           >
             {/* 1 — Category */}
             <div className="flex items-center shrink-0 px-2">

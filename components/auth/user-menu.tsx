@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LogOut, LayoutDashboard, UserRound } from "lucide-react";
+import { LayoutDashboard, LogOut } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { useProviders } from "@/lib/api/repo";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { AuthUser } from "@/lib/types";
@@ -15,6 +16,15 @@ export function UserMenu({ user }: Props) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Display priority for the phone shown under the user's name:
+  //   1. provider.phones[0] — the first entry of the multi-phone array
+  //      that lives on provider_edits (edited from /dashboard/profile).
+  //   2. user.phone — the legacy single number captured at registration.
+  //   3. nothing (don't render a placeholder).
+  const providers = useProviders();
+  const meProvider = providers[0];
+  const primaryPhone = meProvider?.phones?.[0] ?? user.phone ?? "";
 
   useEffect(() => {
     if (!open) return;
@@ -66,15 +76,13 @@ export function UserMenu({ user }: Props) {
             <div className="text-sm font-semibold text-ink-900 truncate">
               {user.name}
             </div>
-            <div className="text-xs text-ink-500 truncate mt-0.5">
-              {formatPhone(user.phone)}
-            </div>
+            {primaryPhone ? (
+              <div className="text-xs text-ink-500 truncate mt-0.5">
+                {formatPhone(primaryPhone)}
+              </div>
+            ) : null}
           </div>
           <div className="h-px bg-border my-1" />
-          <MenuLink href="/" onClick={() => setOpen(false)}>
-            <UserRound className="size-4" />
-            {t("auth.userMenu.profile")}
-          </MenuLink>
           {user.role === "provider" ? (
             <MenuLink href="/dashboard" onClick={() => setOpen(false)}>
               <LayoutDashboard className="size-4" />

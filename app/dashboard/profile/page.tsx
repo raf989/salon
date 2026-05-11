@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type SVGProps } from "react";
+import { Fragment, useRef, useState, type SVGProps } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,7 +9,6 @@ import {
   Check,
   MessageCircle,
   Minus,
-  Phone,
   Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,55 +21,87 @@ import { Crumbs } from "@/components/ui/crumbs";
 import { GalleryUploader } from "@/components/dashboard/gallery-uploader";
 import { updateProvider, useProvider, useProviders } from "@/lib/api/repo";
 import { useT } from "@/lib/i18n";
+import { useStore } from "@/lib/store";
+import type { Stylist } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const MAX_PHONES = 3;
 
-/**
- * Phones are persisted in E.164 form (`"+994 50 ..."`). The input only edits
- * the local part — strip the country code on load, prepend on save.
- */
-function stripCountryCode(p: string | undefined): string {
-  return (p ?? "").replace(/^\+?994\s*/, "").trim();
+// ─── phone-masking helpers ─────────────────────────────────────────────
+// AZ local part = 9 digits, displayed as "xx-xxx-xx-xx".
+
+function formatPhoneLocal(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 9);
+  const a = digits.slice(0, 2);
+  const b = digits.slice(2, 5);
+  const c = digits.slice(5, 7);
+  const d = digits.slice(7, 9);
+  let out = a;
+  if (b) out += "-" + b;
+  if (c) out += "-" + c;
+  if (d) out += "-" + d;
+  return out;
 }
 
-function withCountryCode(local: string): string | null {
-  const stripped = local.replace(/^\+?994\s*/, "").trim();
-  if (!stripped) return null;
-  return `+994 ${stripped}`;
+function stripCountryCodeAndFormat(p: string | undefined): string {
+  if (!p) return "";
+  return formatPhoneLocal(p.replace(/^\+?994\s*/, ""));
 }
 
+function composeE164(local: string): string | null {
+  const formatted = formatPhoneLocal(local);
+  return formatted ? `+994 ${formatted}` : null;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Outer wrapper waits for provider data. The inner editor receives a
+// non-null `me` so all useState initializers see the real values on first
+// render — fixes the "fields are empty on edit page" bug.
+// ───────────────────────────────────────────────────────────────────────
 export default function DashboardProfilePage() {
-  const { t, lang } = useT();
-  const router = useRouter();
   const providers = useProviders();
   const meId = providers[0]?.id;
   const me = useProvider(meId);
 
-  const [bio, setBio] = useState(me?.bio[lang] ?? "");
-  const [years, setYears] = useState<string>(
-    me?.experienceYears !== undefined ? String(me.experienceYears) : "",
-  );
-  const [gallery, setGallery] = useState<string[]>(me?.gallery ?? []);
-  const [avatar, setAvatar] = useState<string | undefined>(me?.avatar);
+  if (!me) return null;
+  return <ProfileEditor key={me.id} me={me} />;
+}
 
-  // Contacts — local parts only, +994 added on save.
-  const initialPhones = (me?.phones ?? []).map(stripCountryCode);
-  const [phones, setPhones] = useState<string[]>(
-    initialPhones.length > 0 ? initialPhones : [""],
+function ProfileEditor({ me }: { me: Stylist }) {
+  const { t, lang } = useT();
+  const router = useRouter();
+
+  // The greeting on the dashboard reads from the authenticated user, so the
+  // edit form pre-fills the same source. Falls back to the provider record
+  // only if there is no logged-in user yet (and never to the seeded "Elvin").
+  const authUser = useStore((s) =>
+    s.users.find((u) => u.id === s.sessionUserId) ?? null,
   );
+  const updateCurrentUser = useStore((s) => s.updateCurrentUser);
+  const initialName = authUser?.name?.trim() ?? "";
+  const [name, setName] = useState<string>(initialName);
+  const [bio, setBio] = useState<string>(me.bio[lang] ?? "");
+  const [years, setYears] = useState<string>(
+    me.experienceYears !== undefined ? String(me.experienceYears) : "",
+  );
+  const [gallery, setGallery] = useState<string[]>(me.gallery ?? []);
+  const [avatar, setAvatar] = useState<string | undefined>(me.avatar);
+
+  // Phones — local parts only, formatted with dashes ("xx-xxx-xx-xx").
+  const [phones, setPhones] = useState<string[]>(() => {
+    const stripped = (me.phones ?? []).map(stripCountryCodeAndFormat);
+    return stripped.length > 0 ? stripped : [""];
+  });
   const [whatsapp, setWhatsapp] = useState<string>(
-    stripCountryCode(me?.whatsapp),
+    stripCountryCodeAndFormat(me.whatsapp),
   );
-  const [instagram, setInstagram] = useState<string>(me?.instagram ?? "");
-  const [tiktok, setTiktok] = useState<string>(me?.tiktok ?? "");
+  const [instagram, setInstagram] = useState<string>(me.instagram ?? "");
+  const [tiktok, setTiktok] = useState<string>(me.tiktok ?? "");
 
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const avatarFileRef = useRef<HTMLInputElement>(null);
-
-  if (!me) return null;
 
   const handleAvatarFile = (file: File | null | undefined) => {
     if (!file) return;
@@ -80,9 +111,9 @@ export default function DashboardProfilePage() {
   };
 
   const updatePhone = (idx: number, raw: string) => {
-    // Strip leading "+994" if the user pastes the full number.
-    const value = raw.replace(/^\+?994\s*/, "");
-    setPhones((prev) => prev.map((p, i) => (i === idx ? value : p)));
+    setPhones((prev) =>
+      prev.map((p, i) => (i === idx ? formatPhoneLocal(raw) : p)),
+    );
   };
 
   const addPhone = () => {
@@ -91,8 +122,7 @@ export default function DashboardProfilePage() {
   };
 
   const removePhone = (idx: number) => {
-    // Never let the user delete the very first slot.
-    if (idx === 0) return;
+    if (idx === 0) return; // first slot is permanent
     setPhones((prev) => prev.filter((_, i) => i !== idx));
   };
 
@@ -103,13 +133,20 @@ export default function DashboardProfilePage() {
       const yearsNum = years.trim() ? Number(years) : undefined;
       const bioVal = bio.trim();
       const cleanedPhones = phones
-        .map((p) => withCountryCode(p))
+        .map((p) => composeE164(p))
         .filter((v): v is string => v !== null);
-      const wa = withCountryCode(whatsapp);
+      const wa = composeE164(whatsapp);
       const ig = instagram.trim() || null;
       const tt = tiktok.trim() || null;
 
+      const trimmedName = name.trim();
+      // Mirror the name on the auth user so the dashboard greeting (which
+      // reads from `useStore.currentUser()`) updates immediately.
+      if (authUser && trimmedName) {
+        updateCurrentUser({ name: trimmedName });
+      }
       await updateProvider(me.id, {
+        name: trimmedName || undefined,
         bio: { az: bioVal, ru: bioVal },
         experienceYears:
           yearsNum && !Number.isNaN(yearsNum) ? yearsNum : undefined,
@@ -121,11 +158,10 @@ export default function DashboardProfilePage() {
         tiktok: tt,
       });
 
-      // Spec: after save, send the user back to the main profile panel.
       router.push("/dashboard");
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error("[DashboardProfilePage.handleSave] failed", err);
+      console.error("[ProfileEditor.handleSave] failed", err);
       const message =
         err instanceof Error
           ? err.message
@@ -167,7 +203,6 @@ export default function DashboardProfilePage() {
         <p className="text-ink-500 mt-2">{t("dash.profile.subtitle")}</p>
       </header>
 
-      {/* Identity preview with avatar uploader */}
       <Card className="p-5 flex items-center gap-4 mb-6">
         <button
           type="button"
@@ -175,14 +210,21 @@ export default function DashboardProfilePage() {
           className="relative group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
           aria-label={lang === "ru" ? "Изменить фото" : "Şəkli dəyiş"}
         >
-          <Avatar name={me.name} id={me.id} imageUrl={avatar} size="lg" />
+          <Avatar
+            name={name.trim() || authUser?.name?.trim() || me.name}
+            id={authUser?.id ?? me.id}
+            imageUrl={avatar}
+            size="lg"
+          />
           <span className="absolute inset-0 rounded-full bg-ink-900/55 grid place-items-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="size-5" />
           </span>
         </button>
         <div className="min-w-0">
           <h2 className="font-display font-semibold text-xl text-ink-900 leading-tight">
-            {me.name}
+            {name.trim() ||
+              authUser?.name?.trim() ||
+              (lang === "ru" ? "Пользователь" : "İstifadəçi")}
           </h2>
           <p className="text-sm text-ink-500 truncate">
             {avatar
@@ -207,6 +249,24 @@ export default function DashboardProfilePage() {
       </Card>
 
       <div className="space-y-6">
+        <Section
+          title={lang === "ru" ? "Имя" : "Ad"}
+          subtitle={
+            lang === "ru"
+              ? "Так клиенты видят вас в каталоге и на дашборде"
+              : "Müştərilər sizi kataloqda və panelde belə görür"
+          }
+        >
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={
+              lang === "ru" ? "Имя и фамилия" : "Ad və soyad"
+            }
+            aria-label={lang === "ru" ? "Имя" : "Ad"}
+          />
+        </Section>
+
         <Section
           title={t("dash.profile.section.bio.title")}
           subtitle={t("dash.profile.section.bio.sub")}
@@ -242,9 +302,7 @@ export default function DashboardProfilePage() {
           </div>
         </Section>
 
-        {/* ============================================================ */}
-        {/* Contacts & socials                                             */}
-        {/* ============================================================ */}
+        {/* ─── Contacts ─── */}
         <Section
           title={lang === "ru" ? "Контактные данные" : "Əlaqə məlumatları"}
           subtitle={
@@ -254,52 +312,34 @@ export default function DashboardProfilePage() {
           }
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Left column — phones + WhatsApp */}
-            <div className="flex flex-col gap-2">
+            {/* LEFT column — phones + WhatsApp share one grid so col widths align */}
+            <div className="grid grid-cols-[1fr_auto] gap-2">
               {phones.map((value, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <Fragment key={i}>
                   <PhoneField
                     value={value}
                     onChange={(v) => updatePhone(i, v)}
-                    placeholder="50 123 45 67"
                     aria-label={`Phone ${i + 1}`}
                   />
-                  {i === 0 ? (
-                    canAddPhone ? (
-                      <IconButton
-                        onClick={addPhone}
-                        aria-label={
-                          lang === "ru"
-                            ? "Добавить номер"
-                            : "Yeni nömrə əlavə et"
-                        }
-                      >
-                        <Plus className="size-4" />
-                      </IconButton>
-                    ) : null
-                  ) : (
-                    <IconButton
-                      tone="danger"
-                      onClick={() => removePhone(i)}
-                      aria-label={
-                        lang === "ru" ? "Удалить номер" : "Nömrəni sil"
-                      }
-                    >
-                      <Minus className="size-4" />
-                    </IconButton>
-                  )}
-                </div>
+                  <PhoneRowButton
+                    isFirst={i === 0}
+                    canAdd={canAddPhone}
+                    onAdd={addPhone}
+                    onRemove={() => removePhone(i)}
+                    lang={lang}
+                  />
+                </Fragment>
               ))}
-
               <PhoneField
                 value={whatsapp}
                 onChange={setWhatsapp}
-                placeholder="WhatsApp"
                 icon={<MessageCircle className="size-3.5" />}
+                aria-label="WhatsApp"
               />
+              <span aria-hidden className="size-11 shrink-0" />
             </div>
 
-            {/* Right column — Instagram + TikTok */}
+            {/* RIGHT column — Instagram + TikTok */}
             <div className="flex flex-col gap-2">
               <Input
                 value={instagram}
@@ -364,13 +404,14 @@ export default function DashboardProfilePage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Phone input — fixed "+994" prefix label + local-part text field.
-// Used both for actual phone slots and for the WhatsApp number.
+// PhoneField: fixed "+994" prefix + masked local-part input.
+// Strips any pasted "+994" and applies xx-xxx-xx-xx formatting via the
+// parent's onChange (which routes through formatPhoneLocal).
 // ─────────────────────────────────────────────────────────────────────
 function PhoneField({
   value,
   onChange,
-  placeholder,
+  placeholder = "xx-xxx-xx-xx",
   icon,
   className,
   "aria-label": ariaLabel,
@@ -385,7 +426,7 @@ function PhoneField({
   return (
     <div
       className={cn(
-        "flex items-stretch h-11 w-full rounded-[10px] border border-border-strong bg-surface overflow-hidden transition-colors hover:border-ink-300 focus-within:border-caspian-500 focus-within:shadow-[var(--sh-focus)]",
+        "flex items-stretch h-11 w-full min-w-0 rounded-[10px] border border-border-strong bg-surface overflow-hidden transition-colors hover:border-ink-300 focus-within:border-caspian-500 focus-within:shadow-[var(--sh-focus)]",
         className,
       )}
     >
@@ -401,7 +442,7 @@ function PhoneField({
         type="tel"
         inputMode="tel"
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/^\+?994\s*/, ""))}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel}
         className={cn(
@@ -413,30 +454,48 @@ function PhoneField({
   );
 }
 
-function IconButton({
-  children,
-  onClick,
-  tone = "default",
-  ...rest
+// First slot always renders something (add button OR a same-sized spacer)
+// so the phone-grid keeps consistent column widths regardless of count.
+function PhoneRowButton({
+  isFirst,
+  canAdd,
+  onAdd,
+  onRemove,
+  lang,
 }: {
-  children: React.ReactNode;
-  onClick: () => void;
-  tone?: "default" | "danger";
-  "aria-label"?: string;
+  isFirst: boolean;
+  canAdd: boolean;
+  onAdd: () => void;
+  onRemove: () => void;
+  lang: "az" | "ru";
 }) {
+  if (isFirst) {
+    if (canAdd) {
+      return (
+        <button
+          type="button"
+          onClick={onAdd}
+          aria-label={
+            lang === "ru" ? "Добавить номер" : "Yeni nömrə əlavə et"
+          }
+          className="size-11 grid place-items-center rounded-[10px] border border-border-strong bg-surface text-ink-700 hover:bg-ink-50 hover:border-ink-300 transition-colors shrink-0"
+        >
+          <Plus className="size-4" />
+        </button>
+      );
+    }
+    // 3 phones reached → hide the +, but keep a spacer of the same width
+    // so the PhoneField column doesn't expand for this row.
+    return <span aria-hidden className="size-11 shrink-0" />;
+  }
   return (
     <button
       type="button"
-      onClick={onClick}
-      {...rest}
-      className={cn(
-        "size-11 grid place-items-center rounded-[10px] border bg-surface shrink-0 transition-colors",
-        tone === "danger"
-          ? "border-border text-ink-500 hover:text-pomegranate-500 hover:border-pomegranate-500/40 hover:bg-pomegranate-500/5"
-          : "border-border-strong text-ink-700 hover:bg-ink-50 hover:border-ink-300",
-      )}
+      onClick={onRemove}
+      aria-label={lang === "ru" ? "Удалить номер" : "Nömrəni sil"}
+      className="size-11 grid place-items-center rounded-[10px] border border-border bg-surface text-ink-500 hover:text-pomegranate-500 hover:border-pomegranate-500/40 hover:bg-pomegranate-500/5 transition-colors shrink-0"
     >
-      {children}
+      <Minus className="size-4" />
     </button>
   );
 }
@@ -465,9 +524,6 @@ function Section({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Brand glyphs (lucide-react in this project lacks them).
-// ─────────────────────────────────────────────────────────────────────
 function InstagramIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg

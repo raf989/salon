@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { MapPin } from "lucide-react";
-import { CITIES, getCityById } from "@/lib/cities";
+import { ALL_CITIES_ID, CITIES, getCityById } from "@/lib/cities";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { SelectMenu } from "./select-menu";
@@ -23,8 +23,14 @@ export function CitySelector({
   const current = getCityById(cityId);
 
   const options = useMemo(
-    () => CITIES.map((c) => ({ value: c.id, label: pickLocalized(c.name) })),
-    [pickLocalized],
+    () => [
+      {
+        value: ALL_CITIES_ID,
+        label: lang === "ru" ? "Все" : "Hamısı",
+      },
+      ...CITIES.map((c) => ({ value: c.id, label: pickLocalized(c.name) })),
+    ],
+    [lang, pickLocalized],
   );
 
   return (

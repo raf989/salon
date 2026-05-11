@@ -109,6 +109,7 @@ type ProviderRow = {
 
 type ProviderEditRow = {
   provider_id: string;
+  name: string | null;
   bio: { az: string; ru: string } | null;
   city: { az: string; ru: string } | null;
   district: { az: string; ru: string } | null;
@@ -121,6 +122,7 @@ type ProviderEditRow = {
   whatsapp: string | null;
   instagram: string | null;
   tiktok: string | null;
+  manual_status: "open" | "closed" | "break" | null;
 };
 
 function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
@@ -149,6 +151,7 @@ function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
   if (!edit) return base;
   return {
     ...base,
+    name: edit.name ?? base.name,
     bio: edit.bio ?? base.bio,
     city: edit.city ?? base.city,
     district: edit.district ?? base.district,
@@ -161,6 +164,7 @@ function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
     whatsapp: edit.whatsapp ?? base.whatsapp,
     instagram: edit.instagram ?? base.instagram,
     tiktok: edit.tiktok ?? base.tiktok,
+    manualStatus: edit.manual_status ?? base.manualStatus,
   };
 }
 
@@ -366,6 +370,29 @@ export async function getProvider(id: string): Promise<Provider | null> {
   );
 }
 
+/**
+ * Subscribe to any change on `provider_edits` and bump the local cache so
+ * dependent hooks (`useProvider`, `useProviders`) refetch. Mount this in
+ * pages that should see remote edits live — e.g. the dashboard.
+ */
+export function useProviderEditsRealtime(): void {
+  useEffect(() => {
+    const channel = supabase
+      .channel("provider_edits_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "provider_edits" },
+        () => {
+          useVersions.getState().bump("providerEdits");
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+}
+
 export async function updateProvider(
   id: string,
   patch: ProviderEditPatch,
@@ -390,6 +417,7 @@ export async function updateProvider(
 
   const row = {
     provider_id: id,
+    name: keep(patch.name, existing?.name),
     bio: keep(patch.bio, existing?.bio),
     city: keep(patch.city, existing?.city),
     district: keep(patch.district, existing?.district),
@@ -402,6 +430,7 @@ export async function updateProvider(
     whatsapp: keep(patch.whatsapp, existing?.whatsapp),
     instagram: keep(patch.instagram, existing?.instagram),
     tiktok: keep(patch.tiktok, existing?.tiktok),
+    manual_status: keep(patch.manualStatus, existing?.manual_status),
     updated_at: new Date().toISOString(),
   };
   const { error } = await supabase

@@ -105,6 +105,12 @@ export type Stylist = {
   whatsapp?: string;
   tiktok?: string;
   instagram?: string;
+  /**
+   * Manual availability override. `"closed"` forces status to red, `"break"`
+   * forces orange, regardless of working hours; `undefined` means status
+   * follows the time-based logic.
+   */
+  manualStatus?: "open" | "closed" | "break";
 };
 
 export type Provider = Stylist;
@@ -176,6 +182,7 @@ export type Review = {
 };
 
 export type ProviderEditPatch = {
+  name?: string;
   bio?: Localized;
   city?: Localized;
   district?: Localized;
@@ -189,6 +196,7 @@ export type ProviderEditPatch = {
   whatsapp?: string | null;
   instagram?: string | null;
   tiktok?: string | null;
+  manualStatus?: "open" | "closed" | "break" | null;
 };
 
 export type ProviderFilters = {

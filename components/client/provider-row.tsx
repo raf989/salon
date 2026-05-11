@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
+import { MapPin, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Cover } from "@/components/ui/cover";
 import { RatingStars } from "@/components/ui/rating-stars";
+import { ProviderStatus } from "@/components/client/provider-status";
 import { useServices } from "@/lib/api/repo";
 import {
   CATEGORY_LABELS,
@@ -51,19 +52,28 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
     if (subtitleKey) return t(subtitleKey);
     return pickLocalized(KIND_LABELS[provider.kind]);
   })();
+  const cityName = pickLocalized(provider.city);
+
   const subtitle = (() => {
+    const parts = [subtitleBase, cityName];
     if (provider.experienceYears) {
-      return `${subtitleBase} · ${provider.experienceYears} ${t("provider.experienceYears")}`;
+      parts.push(
+        `${provider.experienceYears} ${t("provider.experienceYears")}`,
+      );
     }
-    return subtitleBase;
+    return parts.join(" · ");
   })();
 
-  const cityLine = (() => {
-    const city = pickLocalized(provider.city);
-    if (provider.district) {
-      return `${city}, ${pickLocalized(provider.district)}`;
+  // District in our data usually leads with the city ("Bakı, Nəsimi").
+  // Strip that prefix so the address line doesn't repeat the city.
+  const addressDetail = (() => {
+    if (!provider.district) return null;
+    const d = pickLocalized(provider.district).trim();
+    if (!d) return null;
+    if (d.toLowerCase().startsWith(cityName.toLowerCase() + ",")) {
+      return d.slice(cityName.length + 1).trim() || null;
     }
-    return city;
+    return d;
   })();
 
   const respondsLine = provider.responseMins
@@ -86,17 +96,7 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
             kind={provider.kind}
             aspect="1"
             className="rounded-xl"
-          >
-            {availableToday ? (
-              <Badge
-                variant="success-soft"
-                pulse
-                className="absolute top-2 left-2"
-              >
-                {t("provider.freeToday")}
-              </Badge>
-            ) : null}
-          </Cover>
+          />
         </div>
 
         <div className="flex flex-col gap-2 py-2 min-w-0">
@@ -104,6 +104,7 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
             <h3 className="font-display font-semibold text-lg text-ink-900 leading-tight">
               {provider.name}
             </h3>
+            <ProviderStatus provider={provider} />
             {provider.verified ? (
               <Badge variant="verified">{t("provider.verified")}</Badge>
             ) : null}
@@ -129,8 +130,15 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
                 <span>{respondsLine}</span>
               </>
             ) : null}
-            <Dot />
-            <span className="truncate">{cityLine}</span>
+            {addressDetail ? (
+              <>
+                <Dot />
+                <span className="inline-flex items-center gap-1 text-ink-500 min-w-0">
+                  <MapPin className="size-3.5 text-ink-400 shrink-0" />
+                  <span className="truncate">{addressDetail}</span>
+                </span>
+              </>
+            ) : null}
           </div>
 
           {tagChips.length > 0 ? (

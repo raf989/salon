@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SearchX } from "lucide-react";
 import { Hero } from "@/components/client/hero";
 import { TodayFreeSection } from "@/components/client/today-free-section";
@@ -21,16 +21,14 @@ import type {
   Localized,
   Provider,
   ProviderKind,
-  ProviderTier,
   Service,
 } from "@/lib/types";
 import { useT, type DictKey } from "@/lib/i18n";
 
 const SLOT_MIN = 30;
-const FREE_TODAY_LIMIT = 4;
+const FEATURED_PAGE_SIZE = 4;
 
 type SortKey = "trust" | "cheap" | "freeToday";
-type TierFilter = "all" | ProviderTier;
 
 const SORT_OPTIONS: ReadonlyArray<{ key: SortKey; labelKey: DictKey }> = [
   { key: "trust", labelKey: "results.sort.recommended" },
@@ -68,8 +66,9 @@ function applySearchFilters(
     // 1. Category (strict equality on ProviderKind).
     if (criteria.kind !== null && p.kind !== criteria.kind) return false;
 
-    // 2. City.
-    if (getCityIdByName(p.city) !== criteria.cityId) return false;
+    // 2. City — "all" is a sentinel meaning "show every city".
+    if (criteria.cityId !== "all" && getCityIdByName(p.city) !== criteria.cityId)
+      return false;
 
     // 3. Text — over name + bio + service names of the surviving provider.
     if (q) {
@@ -118,7 +117,6 @@ export default function HomePage() {
   const { t, pickLocalized, lang } = useT();
   const [filters, setFilters] = useState<FiltersValue>(DEFAULT_FILTERS);
   const [kindFilter, setKindFilter] = useState<ProviderKind | null>(null);
-  const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [booking, setBooking] = useState<Provider | null>(null);
   const [sort, setSort] = useState<SortKey>("trust");
   const cityId = useStore((s) => s.cityId);
@@ -127,7 +125,12 @@ export default function HomePage() {
   const services = useServices();
 
   const todayISO = getTodayISO();
-  const cityName = pickLocalized(getCityById(cityId).name);
+  const cityIsAll = cityId === "all";
+  const cityName = cityIsAll
+    ? lang === "ru"
+      ? "Все города"
+      : "Bütün şəhərlər"
+    : pickLocalized(getCityById(cityId).name);
 
   const hasFreeSlotOnDate = useCallback(
     (p: Provider, date: string): boolean => {
@@ -163,20 +166,17 @@ export default function HomePage() {
     return map;
   }, [providers, hasFreeSlotOnDate, todayISO]);
 
-  const freeTodayProviders = useMemo(() => {
+  // Full list of providers eligible for the "Önə çıxanlar" section.
+  // The counter shows this length; the rendered slice is governed by
+  // `featuredVisibleCount` below.
+  const featuredAll = useMemo(() => {
     const base = applySearchFilters(
       providers,
       { cityId, kind: kindFilter, search: filters.search },
       services,
       pickLocalized,
     );
-    const matches = base
-      .filter((p) => availabilityMap[p.id])
-      .filter((p) => {
-        if (tierFilter === "all") return true;
-        return p.tier === tierFilter;
-      });
-    return matches.slice(0, FREE_TODAY_LIMIT);
+    return base.filter((p) => availabilityMap[p.id]);
   }, [
     providers,
     services,
@@ -185,8 +185,23 @@ export default function HomePage() {
     filters.search,
     pickLocalized,
     availabilityMap,
-    tierFilter,
   ]);
+
+  const [featuredVisibleCount, setFeaturedVisibleCount] = useState(
+    FEATURED_PAGE_SIZE,
+  );
+
+  // Whenever the user changes a filter, reset pagination so the next list
+  // starts from the first FEATURED_PAGE_SIZE items.
+  useEffect(() => {
+    setFeaturedVisibleCount(FEATURED_PAGE_SIZE);
+  }, [cityId, kindFilter, filters.search]);
+
+  const featuredVisible = useMemo(
+    () => featuredAll.slice(0, featuredVisibleCount),
+    [featuredAll, featuredVisibleCount],
+  );
+  const canLoadMoreFeatured = featuredVisibleCount < featuredAll.length;
 
   const filtered = useMemo(() => {
     const hasFreeSlotInWeek = (p: Provider): boolean => {
@@ -272,31 +287,15 @@ export default function HomePage() {
       <main className="mx-auto max-w-7xl px-4 md:px-6 pt-10 md:pt-16 pb-24 space-y-12">
         <section>
           <SectionHeader
-            title={t("section.freeToday")}
-            right={
-              <div className="flex gap-2">
-                <TabChip
-                  active={tierFilter === "all"}
-                  onClick={() => setTierFilter("all")}
-                >
-                  {t("filters.option.all")}
-                </TabChip>
-                <TabChip
-                  active={tierFilter === "event"}
-                  onClick={() => setTierFilter("event")}
-                >
-                  {t("tier.event")}
-                </TabChip>
-                <TabChip
-                  active={tierFilter === "beauty"}
-                  onClick={() => setTierFilter("beauty")}
-                >
-                  {t("tier.beauty")}
-                </TabChip>
-              </div>
+            title={`${t("section.freeToday")} (${featuredAll.length})`}
+          />
+          <TodayFreeSection
+            providers={featuredVisible}
+            canLoadMore={canLoadMoreFeatured}
+            onLoadMore={() =>
+              setFeaturedVisibleCount((c) => c + FEATURED_PAGE_SIZE)
             }
           />
-          <TodayFreeSection providers={freeTodayProviders} />
         </section>
 
         <section>
@@ -318,7 +317,11 @@ export default function HomePage() {
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <span className="font-mono text-xs text-ink-500">
-              {lang === "ru" ? `В ${cityName}` : `${cityName} şəhərində`}{" "}
+              {cityIsAll
+                ? cityName
+                : lang === "ru"
+                  ? `В ${cityName}`
+                  : `${cityName} şəhərində`}{" "}
               {filtered.length} {t("results.foundCount")}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -372,31 +375,6 @@ export default function HomePage() {
   );
 }
 
-function TabChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "h-8 px-3 rounded-full text-sm font-medium border border-transparent transition-colors",
-        active
-          ? "bg-ink-900 text-ink-0"
-          : "bg-ink-50 text-ink-700 hover:bg-ink-100",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 function EmptyState() {
   const { t } = useT();

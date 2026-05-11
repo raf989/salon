@@ -29,12 +29,12 @@ export const DICT = {
     ru: "Event и Beauty · Азербайджан",
   },
   "hero.title.before": {
-    az: "Şəhərin ən yaxşı icraçılarını,",
-    ru: "Найди исполнителя,",
+    az: "Ən uyğun vaxtı seç,",
+    ru: "Выбери удобное время,",
   },
   "hero.title.emphasis": {
-    az: "axşam başlamamış tap.",
-    ru: "пока вечер ещё не начался.",
+    az: "surətli rezerv et",
+    ru: "забронируй мгновенно",
   },
   "hero.title.after": { az: "", ru: "" },
   "hero.subline": {
@@ -141,6 +141,11 @@ export const DICT = {
   "dash.eyebrowPanel": { az: "PANEL", ru: "ПАНЕЛЬ" },
   "dash.greeting": { az: "Salam", ru: "Привет" },
   "dash.openToday": { az: "Bu gün açıqdır", ru: "Сегодня открыт(а)" },
+  "dash.status.open": { az: "Açıqdır", ru: "Открыт" },
+  "dash.status.closed": { az: "Bağlıdır", ru: "Закрыт" },
+  "dash.status.break": { az: "İstirahətdədir", ru: "На перерыве" },
+  "dash.status.optionOpen": { az: "Açıqdır", ru: "Открыт" },
+  "dash.status.optionClosed": { az: "Bağlıdır", ru: "Закрыт" },
   "dash.stats.today": { az: "Bu gün görüşlər", ru: "Записей сегодня" },
   "dash.stats.week": { az: "Bu həftə", ru: "На этой неделе" },
   "dash.stats.completed": { az: "Tamamlanmış", ru: "Завершено" },
@@ -267,7 +272,8 @@ export const DICT = {
 
   // sections
   "section.categories": { az: "Kateqoriyalar", ru: "Категории" },
-  "section.freeToday": { az: "Bu gün boş", ru: "Свободны сегодня" },
+  "section.freeToday": { az: "Önə çıxanlar", ru: "Рекомендуем" },
+  "section.loadMore": { az: "Daha çox", ru: "Показать ещё" },
   "section.allLink": { az: "Hamısı →", ru: "Все →" },
   "section.discoverDemand": { az: "Tələb analitikası", ru: "Аналитика спроса" },
   "section.about": { az: "Mənim haqqımda", ru: "О себе" },

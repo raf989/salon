@@ -82,8 +82,12 @@ function ProfileEditor({ me }: { me: Stylist }) {
   const updateCurrentUser = useStore((s) => s.updateCurrentUser);
   const initialName = authUser?.name?.trim() ?? "";
   const [name, setName] = useState<string>(initialName);
-  const [bioAz, setBioAz] = useState<string>(me.bio?.az ?? "");
-  const [bioRu, setBioRu] = useState<string>(me.bio?.ru ?? "");
+  // Single bio field — mirrored into both `az` and `ru` slots at save time
+  // since the rest of the UI still reads via pickLocalized. Initialise from
+  // whichever locale has content (prefer current lang, fall back to other).
+  const [bio, setBio] = useState<string>(
+    me.bio?.az?.trim() || me.bio?.ru?.trim() || "",
+  );
   const [years, setYears] = useState<string>(
     me.experienceYears !== undefined ? String(me.experienceYears) : "",
   );
@@ -182,7 +186,7 @@ function ProfileEditor({ me }: { me: Stylist }) {
       }
       await updateProvider(me.id, {
         name: trimmedName || undefined,
-        bio: { az: bioAz.trim(), ru: bioRu.trim() },
+        bio: { az: bio.trim(), ru: bio.trim() },
         experienceYears:
           yearsNum && !Number.isNaN(yearsNum) ? yearsNum : undefined,
         gallery,
@@ -310,38 +314,15 @@ function ProfileEditor({ me }: { me: Stylist }) {
           />
         </Section>
 
-        <Section
-          title={t("dash.profile.section.bio.title")}
-          subtitle={t("dash.profile.section.bio.sub")}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="block text-[11px] uppercase tracking-wider font-semibold text-ink-500 mb-1.5">
-                {t("dash.profile.lang.az")}
-              </span>
-              <textarea
-                value={bioAz}
-                onChange={(e) => setBioAz(e.target.value)}
-                placeholder={t("dash.profile.bio.placeholder")}
-                rows={5}
-                aria-label={t("dash.profile.lang.az")}
-                className="w-full bg-surface border border-border-strong rounded-[10px] px-4 py-3 text-ink-800 placeholder:text-ink-400 hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] transition-colors resize-y leading-relaxed"
-              />
-            </label>
-            <label className="block">
-              <span className="block text-[11px] uppercase tracking-wider font-semibold text-ink-500 mb-1.5">
-                {t("dash.profile.lang.ru")}
-              </span>
-              <textarea
-                value={bioRu}
-                onChange={(e) => setBioRu(e.target.value)}
-                placeholder={t("dash.profile.bio.placeholder")}
-                rows={5}
-                aria-label={t("dash.profile.lang.ru")}
-                className="w-full bg-surface border border-border-strong rounded-[10px] px-4 py-3 text-ink-800 placeholder:text-ink-400 hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] transition-colors resize-y leading-relaxed"
-              />
-            </label>
-          </div>
+        <Section title={t("dash.profile.section.bio.title")}>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder={t("dash.profile.bio.placeholder")}
+            rows={5}
+            aria-label={t("dash.profile.section.bio.title")}
+            className="w-full bg-surface border border-border-strong rounded-[10px] px-4 py-3 text-ink-800 placeholder:text-ink-400 hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] transition-colors resize-y leading-relaxed"
+          />
         </Section>
 
         <Section

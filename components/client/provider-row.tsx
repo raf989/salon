@@ -106,8 +106,16 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
     >
-      <Card className="grid gap-3 md:gap-4 p-3 grid-cols-[96px_1fr] md:grid-cols-[140px_1fr_180px] items-stretch hover:bg-bg transition-colors">
-        <div className="relative">
+      <Card className="relative grid gap-3 md:gap-4 p-3 grid-cols-[96px_1fr] md:grid-cols-[140px_1fr_180px] items-stretch hover:bg-bg transition-colors">
+        {/* Stretched link covers the whole card — clicking anywhere outside
+            an interactive child opens the profile. Inner buttons / the
+            Heart toggle sit above via `relative z-10`. */}
+        <Link
+          href={`/provider/${provider.slug}`}
+          aria-label={provider.name}
+          className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2"
+        />
+        <div className="relative z-10">
           <Cover
             name={provider.name}
             id={provider.id}
@@ -121,7 +129,7 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
           />
         </div>
 
-        <div className="flex flex-col gap-1.5 md:gap-2 py-1 md:py-2 min-w-0">
+        <div className="relative z-10 flex flex-col gap-1.5 md:gap-2 py-1 md:py-2 min-w-0 pointer-events-none">
           <div className="flex items-start flex-wrap gap-x-2 gap-y-1 min-w-0">
             <h3 className="font-display font-semibold text-base md:text-lg text-ink-900 leading-tight min-w-0 break-words">
               {provider.name}
@@ -171,44 +179,46 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
           </div>
         </div>
 
-        {/* Mobile-only price + actions row, sits below the image+meta block */}
-        <div className="col-span-2 flex flex-col gap-2.5 border-t border-border pt-3 md:hidden">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-mono font-semibold text-xl text-ink-900 leading-tight whitespace-nowrap">
-                {t("meta.minPriceSuffix")} {formatPrice(minPrice)}
-              </div>
-              <div className="text-[11px] text-ink-400">/ {priceUnit}</div>
+        {/* Mobile-only price + Book button row */}
+        <div className="relative z-10 col-span-2 flex items-end justify-between gap-3 border-t border-border pt-3 md:hidden pointer-events-none">
+          <div className="min-w-0">
+            <div className="font-mono font-semibold text-xl text-ink-900 leading-tight whitespace-nowrap">
+              {t("meta.minPriceSuffix")} {formatPrice(minPrice)}
             </div>
-            <Link href={`/provider/${provider.slug}`} className="shrink-0">
-              <Button variant="ghost" size="sm" className="h-11 px-3 text-caspian-600">
-                {t("action.profile")}
-              </Button>
-            </Link>
+            <div className="text-[11px] text-ink-400">/ {priceUnit}</div>
           </div>
           <Button
             variant="primary"
             size="md"
-            className="w-full h-11"
-            onClick={() => onBook(provider)}
+            className="h-11 pointer-events-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBook(provider);
+            }}
           >
             {t(availableToday ? "action.bookNow" : "action.book")}
           </Button>
         </div>
 
-        {/* Desktop-only right column with stacked price + buttons */}
-        <div className="hidden md:flex flex-col items-end justify-between py-2 gap-2 min-w-[170px]">
+        {/* Desktop-only right column with stacked price + Book button */}
+        <div className="relative z-10 hidden md:flex flex-col items-end justify-between py-2 gap-2 min-w-[170px] pointer-events-none">
           <div className="text-right">
             <div className="font-mono font-semibold text-xl text-ink-900 whitespace-nowrap">
               {t("meta.minPriceSuffix")} {formatPrice(minPrice)}
             </div>
             <div className="text-xs text-ink-400">/ {priceUnit}</div>
           </div>
-          <RowActions
-            provider={provider}
-            onBook={onBook}
-            availableToday={availableToday}
-          />
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full pointer-events-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBook(provider);
+            }}
+          >
+            {t(availableToday ? "action.bookNow" : "action.book")}
+          </Button>
         </div>
       </Card>
     </motion.div>
@@ -219,32 +229,3 @@ function Dot() {
   return <span aria-hidden className="size-[3px] rounded-full bg-ink-200" />;
 }
 
-function RowActions({
-  provider,
-  onBook,
-  availableToday,
-}: {
-  provider: Provider;
-  onBook: (p: Provider) => void;
-  availableToday: boolean;
-}) {
-  const { t } = useT();
-
-  return (
-    <div className="flex flex-col gap-2 w-full">
-      <Button
-        variant="primary"
-        size="sm"
-        className="w-full"
-        onClick={() => onBook(provider)}
-      >
-        {t(availableToday ? "action.bookNow" : "action.book")}
-      </Button>
-      <Link href={`/provider/${provider.slug}`} className="w-full">
-        <Button variant="outline" size="sm" className="w-full">
-          {t("action.profile")}
-        </Button>
-      </Link>
-    </div>
-  );
-}

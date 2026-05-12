@@ -31,19 +31,26 @@ export function PriceList({ provider }: Props) {
         {t("section.priceList")}
       </h2>
       <Card className="p-4 flex flex-col gap-2">
-        {services.map((svc) => (
-          <div
-            key={svc.id}
-            className="flex justify-between items-center gap-4 py-2 border-b border-border last:border-0"
-          >
-            <span className="text-ink-700 min-w-0">
-              {pickLocalized(svc.name)} · {svc.durationMin} {t("provider.minutes")}
-            </span>
-            <b className="font-mono font-semibold text-ink-900 whitespace-nowrap">
-              {formatPrice(svc.price)}
-            </b>
-          </div>
-        ))}
+        {services.length === 0 ? (
+          <p className="text-sm text-ink-500 py-4 text-center">
+            {t("priceList.empty")}
+          </p>
+        ) : (
+          services.map((svc) => (
+            <div
+              key={svc.id}
+              className="flex justify-between items-center gap-4 py-2 border-b border-border last:border-0"
+            >
+              <span className="text-ink-700 min-w-0">
+                {pickLocalized(svc.name)} · {svc.durationMin}{" "}
+                {t("provider.minutes")}
+              </span>
+              <b className="font-mono font-semibold text-ink-900 whitespace-nowrap">
+                {formatPrice(svc.price)}
+              </b>
+            </div>
+          ))
+        )}
       </Card>
     </motion.section>
   );

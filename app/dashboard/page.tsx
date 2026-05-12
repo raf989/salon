@@ -10,6 +10,7 @@ import {
   useProvider,
   useProviders,
 } from "@/lib/api/repo";
+import { SkeletonDashboard } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
   // Live-refresh the appointment list when a client books / cancels.
@@ -19,7 +20,13 @@ export default function DashboardPage() {
   const me = useProvider(meId);
   const apptsForMe = useAppointments(meId ? { stylistId: meId } : undefined);
 
-  if (!me) return null;
+  if (!me) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6 md:pt-10">
+        <SkeletonDashboard />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6 md:pt-10 space-y-6">

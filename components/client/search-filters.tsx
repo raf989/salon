@@ -117,8 +117,20 @@ export function SearchFilters({ value, onChange, districts, onShow }: Props) {
 
   const districtDisabled = value.cityId === ALL_CITIES_ID;
 
+  // On mobile we hide district + price by default and gate them behind a
+  // toggle. Without this the card pushes the catalog way below the fold.
+  // Auto-expand if the user already has any of those fields set (e.g. they
+  // came back to the page or deep-linked) so they're never hidden.
+  const hasAdvanced =
+    value.districtId !== "all" ||
+    value.priceMin !== "" ||
+    value.priceMax !== "";
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(hasAdvanced);
+  // Keep desktop state ignored — on >=sm the toggle is moot because all
+  // four fields fit in the grid anyway.
+
   return (
-    <Card className="p-4 sm:p-5">
+    <Card className="p-3 sm:p-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <FilterSelect
           label={t("search.label.specialist")}
@@ -134,34 +146,52 @@ export function SearchFilters({ value, onChange, districts, onShow }: Props) {
           options={cityOptions}
           onChange={(v) => set("cityId", v ?? ALL_CITIES_ID)}
         />
-        <FilterSelect
-          label={t("search.label.district")}
-          value={value.districtId}
-          options={districtOptions}
-          disabled={districtDisabled}
-          onChange={(v) => set("districtId", v ?? "all")}
-        />
+        <div className={cn(!showAdvanced && "hidden sm:block")}>
+          <FilterSelect
+            label={t("search.label.district")}
+            value={value.districtId}
+            options={districtOptions}
+            disabled={districtDisabled}
+            onChange={(v) => set("districtId", v ?? "all")}
+          />
+        </div>
 
-        <PriceRange
-          label={t("search.label.price")}
-          from={value.priceMin}
-          to={value.priceMax}
-          onChange={(side, v) =>
-            side === "from" ? set("priceMin", v) : set("priceMax", v)
-          }
-          placeholders={{
-            from: t("search.placeholder.priceFrom"),
-            to: t("search.placeholder.priceTo"),
-          }}
-        />
+        <div className={cn(!showAdvanced && "hidden sm:block")}>
+          <PriceRange
+            label={t("search.label.price")}
+            from={value.priceMin}
+            to={value.priceMax}
+            onChange={(side, v) =>
+              side === "from" ? set("priceMin", v) : set("priceMax", v)
+            }
+            placeholders={{
+              from: t("search.placeholder.priceFrom"),
+              to: t("search.placeholder.priceTo"),
+            }}
+          />
+        </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        aria-expanded={showAdvanced}
+        className="sm:hidden mt-3 inline-flex items-center gap-1 text-sm font-medium text-caspian-600 h-9 px-1"
+      >
+        <ChevronDown
+          className={cn("size-4 transition-transform", showAdvanced && "rotate-180")}
+        />
+        {showAdvanced
+          ? pickLocalized({ az: "Daha az filtr", ru: "Меньше фильтров" })
+          : pickLocalized({ az: "Daha çox filtr", ru: "Больше фильтров" })}
+      </button>
 
       <Button
         type="button"
         variant="primary"
         size="lg"
         onClick={onShow}
-        className="w-full mt-4"
+        className="w-full mt-3 sm:mt-4 h-12"
       >
         {t("search.action.show")}
       </Button>

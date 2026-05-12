@@ -25,7 +25,10 @@ export function TenderCardCompact({ tender }: Props) {
   );
 
   return (
-    <Card className="p-5 flex flex-col gap-3 hover:shadow-[var(--sh-2)] transition-shadow">
+    <Card
+      id={tender.id}
+      className="p-5 flex flex-col gap-3 hover:shadow-[var(--sh-2)] transition-shadow scroll-mt-20"
+    >
       <div className="flex items-center justify-between gap-2">
         <Badge variant={tender.tier === "event" ? "event" : "beauty"}>
           {t(tierKey)}

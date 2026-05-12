@@ -138,7 +138,7 @@ function CreateTenderForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 max-h-[78vh] overflow-y-auto pr-1"
+      className="flex flex-col gap-4 max-h-[78vh] sm:max-h-[78vh] overflow-y-auto -mr-1 pr-1"
     >
         {!currentUser ? (
           <p className="text-sm text-pomegranate-500 leading-relaxed border border-pomegranate-200 bg-pomegranate-50 rounded-[10px] px-3 py-2">

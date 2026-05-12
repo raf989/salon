@@ -75,8 +75,8 @@ function BidRow({
           size="md"
         />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <b className="text-ink-900 truncate">{bid.providerName}</b>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <b className="text-ink-900 truncate min-w-0 flex-1">{bid.providerName}</b>
             <b className="font-mono text-ink-900 whitespace-nowrap">
               {formatPrice(bid.price)}
             </b>

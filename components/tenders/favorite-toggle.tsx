@@ -43,7 +43,7 @@ export function FavoriteToggle({ tenderId, iconOnly, className }: Props) {
         aria-pressed={active}
         aria-label={ariaLabel}
         className={cn(
-          "inline-grid place-items-center size-9 rounded-[10px] border border-border-strong bg-surface hover:bg-ink-50 transition-colors",
+          "inline-grid place-items-center size-11 sm:size-9 rounded-[10px] border border-border-strong bg-surface hover:bg-ink-50 transition-colors shrink-0",
           active && "text-caspian-600 border-caspian-500/40",
           className,
         )}

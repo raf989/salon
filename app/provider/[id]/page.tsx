@@ -10,6 +10,7 @@ import { PriceList } from "@/components/provider/price-list";
 import { ProfileHero } from "@/components/provider/profile-hero";
 import { Reviews } from "@/components/provider/reviews";
 import { StickyBooking } from "@/components/provider/sticky-booking";
+import { SkeletonProviderPage } from "@/components/ui/skeleton";
 import { useT } from "@/lib/i18n";
 import { useAppointments, useProviderBySlugWithStatus } from "@/lib/api/repo";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
@@ -68,10 +69,16 @@ function ProviderPageInner({ id }: { id: string }) {
   // Distinguish "still fetching" from "fetched, definitively absent" so the
   // page doesn't 404 on the first render before Supabase replies.
   if (loaded && !provider) notFound();
-  if (!provider) return null;
+  if (!provider) {
+    return (
+      <main className="mx-auto max-w-7xl px-4 md:px-6 pb-32 lg:pb-24 pt-6">
+        <SkeletonProviderPage />
+      </main>
+    );
+  }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6">
+    <main className="mx-auto max-w-7xl px-4 md:px-6 pb-32 lg:pb-24 pt-6">
       <Crumbs
         items={[
           { label: t("crumbs.catalog"), href: "/" },

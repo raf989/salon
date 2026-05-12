@@ -86,7 +86,10 @@ function LeaveReviewForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-4 max-h-[80vh] overflow-y-auto -mr-1 pr-1"
+    >
         <div>
           <SectionLabel>{t("reviews.field.author")}</SectionLabel>
           <Input

@@ -196,6 +196,8 @@ function BookingFlow({
     return (
       <SuccessView
         stylistName={stylist.name}
+        whatsapp={stylist.whatsapp ?? stylist.phones?.[0]}
+        telegram={stylist.telegram ?? stylist.phones?.[0]}
         date={selectedDate}
         time={selectedTime ?? ""}
         serviceName={selectedService?.name ?? null}
@@ -370,6 +372,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function SuccessView({
   stylistName,
+  whatsapp,
+  telegram,
   date,
   time,
   serviceName,
@@ -378,6 +382,8 @@ function SuccessView({
   lang,
 }: {
   stylistName: string;
+  whatsapp?: string;
+  telegram?: string;
   date: string;
   time: string;
   serviceName: Localized | null;
@@ -387,6 +393,24 @@ function SuccessView({
 }) {
   const { t, pickLocalized } = useT();
   const serviceLabel = serviceName ? pickLocalized(serviceName) : "";
+
+  // Compose real chat URLs so the buttons actually do something.
+  // wa.me wants raw digits; t.me wants a handle or `+digits` deeplink.
+  const waDigits = whatsapp?.replace(/\D/g, "") ?? "";
+  const waHref = waDigits ? `https://wa.me/${waDigits}` : null;
+  const tgRaw = telegram?.trim() ?? "";
+  const tgHref = (() => {
+    if (!tgRaw) return null;
+    const digits = tgRaw.replace(/\D/g, "");
+    if (tgRaw.startsWith("+") || digits.length >= 10) {
+      return digits ? `https://t.me/+${digits}` : null;
+    }
+    const handle = tgRaw
+      .replace(/^@+/, "")
+      .replace(/^https?:\/\/(www\.)?t\.me\//i, "")
+      .replace(/\/+$/, "");
+    return handle ? `https://t.me/${encodeURIComponent(handle)}` : null;
+  })();
   return (
     <div className="flex flex-col items-center gap-6 py-6 text-center">
       <motion.div
@@ -414,12 +438,26 @@ function SuccessView({
       </motion.div>
 
       <div className="flex gap-2 justify-center flex-wrap">
-        <Button variant="whatsapp" size="lg">
-          {t("contact.whatsapp")}
-        </Button>
-        <Button variant="telegram" size="lg">
-          {t("contact.telegram")}
-        </Button>
+        {waHref ? (
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold tracking-tight transition-colors h-12 px-6 text-[15px] bg-[#25D366] text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.10)] hover:bg-[#1eb957]"
+          >
+            {t("contact.whatsapp")}
+          </a>
+        ) : null}
+        {tgHref ? (
+          <a
+            href={tgHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold tracking-tight transition-colors h-12 px-6 text-[15px] bg-[#229ED9] text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.10)] hover:bg-[#1d8fc4]"
+          >
+            {t("contact.telegram")}
+          </a>
+        ) : null}
         <Button variant="ghost" size="lg" onClick={onClose}>
           {t("booking.success.close")}
         </Button>

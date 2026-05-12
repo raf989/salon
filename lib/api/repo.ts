@@ -372,6 +372,27 @@ export function useProviders(filters?: ProviderFilters): Provider[] {
   return useMemo(() => applyClientFilters(all, filters), [all, filters]);
 }
 
+/**
+ * Same as `useProviders` but also surfaces a `loaded` flag — `false` until
+ * the first fetch resolves. Use it to decide whether to render a skeleton
+ * or the empty-state.
+ */
+export function useProvidersWithStatus(
+  filters?: ProviderFilters,
+): { providers: Provider[]; loaded: boolean } {
+  const v = useVersion("providers") + useVersion("providerEdits");
+  const { data, loaded } = useAsyncWithStatus(
+    () => fetchProvidersWithEdits(),
+    [v],
+    [] as Provider[],
+  );
+  const providers = useMemo(
+    () => applyClientFilters(data, filters),
+    [data, filters],
+  );
+  return { providers, loaded };
+}
+
 export function useProvider(id: string | undefined): Provider | null {
   const v = useVersion("providers") + useVersion("providerEdits");
   const fetcher = useCallback(async () => {
@@ -802,6 +823,22 @@ async function fetchTenders(): Promise<Tender[]> {
 export function useTenders(): Tender[] {
   const v = useVersion("tenders");
   return useAsync(() => fetchTenders(), [v], [] as Tender[]);
+}
+
+/**
+ * Same as `useTenders` but also surfaces a `loaded` flag for skeleton UX.
+ */
+export function useTendersWithStatus(): {
+  tenders: Tender[];
+  loaded: boolean;
+} {
+  const v = useVersion("tenders");
+  const { data, loaded } = useAsyncWithStatus(
+    () => fetchTenders(),
+    [v],
+    [] as Tender[],
+  );
+  return { tenders: data, loaded };
 }
 
 export function useTender(id: string | undefined): Tender | null {

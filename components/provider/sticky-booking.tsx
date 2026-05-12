@@ -157,7 +157,35 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
   const hasAnyContact = Boolean(waHref || tgHref || igHref || ttHref);
 
   return (
-    <Card className="p-5 flex flex-col gap-4">
+    <>
+      {/* Mobile-only sticky bottom action bar. On <lg the booking card lives
+          below the entire profile, so without this users have to scroll back
+          to find the CTA. */}
+      <div
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur border-t border-border shadow-[var(--sh-2)]"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-mono font-semibold text-lg text-ink-900 leading-tight whitespace-nowrap">
+              {t("provider.priceFrom")} {formatPrice(minPrice)}
+            </div>
+            <div className="text-xs text-ink-400 truncate">/ {priceUnit}</div>
+          </div>
+          <Button
+            variant="primary"
+            size="lg"
+            className="shrink-0"
+            onClick={onOpenBooking}
+          >
+            {t("action.book")}
+          </Button>
+        </div>
+      </div>
+
+      <Card className="p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="font-mono font-semibold text-xl text-ink-900 leading-tight">
           {t("provider.priceFrom")} {formatPrice(minPrice)}{" "}
@@ -223,7 +251,8 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
       <p className="text-xs text-ink-400 text-center">
         {t("provider.cancelFree")}
       </p>
-    </Card>
+      </Card>
+    </>
   );
 }
 

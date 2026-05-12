@@ -100,7 +100,10 @@ function SubmitBidForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-4 max-h-[80vh] overflow-y-auto -mr-1 pr-1"
+    >
       <p className="text-sm text-ink-500 leading-relaxed -mt-1">
         {pickLocalized(tender.title)}
         <span className="text-ink-300"> · </span>

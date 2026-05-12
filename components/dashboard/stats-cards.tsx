@@ -32,6 +32,7 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
   const services = useServices();
   const today = getTodayISO();
   const weekEnd = getDateISO(7);
+  const weekStart = getDateISO(-7);
 
   const mine = appointments.filter((a) => a.stylistId === me.id);
 
@@ -45,10 +46,21 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
 
   const completedCount = mine.filter((a) => a.status === "completed").length;
 
-  const weekRevenue = weekUpcoming.reduce((sum, appt) => {
-    const service = services.find((s) => s.id === appt.serviceId);
-    return sum + (service?.price ?? 0);
-  }, 0);
+  // Revenue earned over the past 7 days — counts both "completed" appointments
+  // and not-yet-marked "upcoming" ones whose date has already passed (they'll
+  // auto-promote to completed in AppointmentsList soon). "cancelled" / "no_show"
+  // explicitly excluded.
+  const weekRevenue = mine
+    .filter(
+      (a) =>
+        a.date >= weekStart &&
+        a.date <= today &&
+        (a.status === "completed" || a.status === "upcoming"),
+    )
+    .reduce((sum, appt) => {
+      const service = services.find((s) => s.id === appt.serviceId);
+      return sum + (service?.price ?? 0);
+    }, 0);
 
   const stats: Stat[] = [
     {
@@ -95,7 +107,7 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
           >
             <Card
               interactive
-              className="p-5 flex flex-col gap-3 relative overflow-hidden h-full"
+              className="p-4 sm:p-5 flex flex-col gap-2 sm:gap-3 relative overflow-hidden h-full"
             >
               <div
                 className={cn(
@@ -107,13 +119,17 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
               </div>
               <div
                 className={cn(
-                  "font-semibold text-3xl text-ink-900 leading-none mt-1",
+                  // Revenue prices can be long ("1 200 ₼") — clamp the size
+                  // a bit on mobile and let it truncate rather than overflow.
+                  "font-semibold text-2xl sm:text-3xl text-ink-900 leading-none mt-1 truncate",
                   stat.mono ? "font-mono" : "font-display",
                 )}
               >
                 {stat.value}
               </div>
-              <div className="text-sm text-ink-500">{stat.label}</div>
+              <div className="text-xs sm:text-sm text-ink-500">
+                {stat.label}
+              </div>
             </Card>
           </motion.div>
         );

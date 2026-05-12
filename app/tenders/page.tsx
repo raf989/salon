@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
-import { useTenders, useTendersRealtime } from "@/lib/api/repo";
+import { FileSearch, Plus } from "lucide-react";
+import { useTendersRealtime, useTendersWithStatus } from "@/lib/api/repo";
+import {
+  SkeletonTenderCard,
+  SkeletonTenderCardCompact,
+} from "@/components/ui/skeleton";
 import { useStore } from "@/lib/store";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/crumbs";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -24,7 +29,7 @@ export default function TendersPage() {
   const { t } = useT();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [createOpen, setCreateOpen] = useState(false);
-  const tenders = useTenders();
+  const { tenders, loaded: tendersLoaded } = useTendersWithStatus();
 
   // Resolve the current user's display name from the persisted store. Used
   // to scope the "Мои" filter. Same hydration guard as <Header /> — the
@@ -60,7 +65,7 @@ export default function TendersPage() {
 
       <header className="mb-8 max-w-3xl">
         <Eyebrow className="mb-3">{t("hero.eyebrow")}</Eyebrow>
-        <h1 className="font-display font-semibold text-4xl md:text-5xl text-ink-900 leading-[1.05] tracking-[-0.02em] mb-3">
+        <h1 className="font-display font-semibold text-3xl sm:text-4xl md:text-5xl text-ink-900 leading-[1.1] sm:leading-[1.05] tracking-[-0.02em] mb-3 break-words">
           {t("tenders.title")}
         </h1>
         <p className="text-base md:text-lg text-ink-500 leading-relaxed">
@@ -69,38 +74,56 @@ export default function TendersPage() {
       </header>
 
       <div className="flex flex-wrap items-center gap-2 mt-8 mb-6">
-        {FILTER_KEYS.map((key) => {
-          const active = filter === key;
-          const labelKey = `tenders.filters.${key}` as DictKey;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              aria-pressed={active}
-              className={cn(
-                "h-9 px-4 rounded-full text-sm font-medium transition-colors",
-                active
-                  ? "bg-ink-900 text-white"
-                  : "bg-ink-50 text-ink-700 hover:bg-ink-100",
-              )}
-            >
-              {t(labelKey)}
-            </button>
-          );
-        })}
+        <div className="flex flex-wrap items-center gap-2 order-2 sm:order-1">
+          {FILTER_KEYS.map((key) => {
+            const active = filter === key;
+            const labelKey = `tenders.filters.${key}` as DictKey;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFilter(key)}
+                aria-pressed={active}
+                className={cn(
+                  "h-10 sm:h-9 px-4 rounded-full text-sm font-medium transition-colors",
+                  active
+                    ? "bg-ink-900 text-white"
+                    : "bg-ink-50 text-ink-700 hover:bg-ink-100",
+                )}
+              >
+                {t(labelKey)}
+              </button>
+            );
+          })}
+        </div>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="ml-auto inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-semibold bg-caspian-500 text-white hover:bg-caspian-600 transition-colors"
+          className="order-1 sm:order-2 w-full sm:w-auto sm:ml-auto inline-flex items-center justify-center gap-1.5 h-11 sm:h-9 px-4 rounded-full text-sm font-semibold bg-caspian-500 text-white hover:bg-caspian-600 transition-colors"
         >
           <Plus className="size-4" strokeWidth={2} />
           {t("tenders.create.title")}
         </button>
       </div>
 
-      {filtered.length === 0 ? (
-        <p className="text-ink-500 py-12 text-center">{t("tenders.empty")}</p>
+      {!tendersLoaded ? (
+        <div className="space-y-12">
+          <SkeletonTenderCard />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonTenderCardCompact key={i} />
+            ))}
+          </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center gap-3 py-20 text-center border-dashed">
+          <span className="size-12 rounded-full bg-ink-50 grid place-items-center text-ink-500">
+            <FileSearch className="size-5" />
+          </span>
+          <p className="text-ink-500 max-w-md text-sm">
+            {t("tenders.empty")}
+          </p>
+        </Card>
       ) : (
         <>
           {featured ? (

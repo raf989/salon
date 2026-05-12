@@ -59,7 +59,7 @@ export function BidAuthorActions({ bid, tender }: Props) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-success-500 hover:bg-success-50 h-7 px-2.5"
+                className="text-success-500 hover:bg-success-50 h-9 sm:h-7 px-3 sm:px-2.5"
                 disabled={pending}
                 onClick={() => updateStatus("accepted")}
               >
@@ -71,7 +71,7 @@ export function BidAuthorActions({ bid, tender }: Props) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-pomegranate-500 hover:bg-pomegranate-50 h-7 px-2.5"
+                className="text-pomegranate-500 hover:bg-pomegranate-50 h-9 sm:h-7 px-3 sm:px-2.5"
                 disabled={pending}
                 onClick={() => updateStatus("rejected")}
               >
@@ -83,7 +83,7 @@ export function BidAuthorActions({ bid, tender }: Props) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-ink-500 h-7 px-2.5"
+                className="text-ink-500 h-9 sm:h-7 px-3 sm:px-2.5"
                 disabled={pending}
                 onClick={() => updateStatus("pending")}
               >

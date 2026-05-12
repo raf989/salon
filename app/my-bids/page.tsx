@@ -17,7 +17,7 @@ import {
   useTendersRealtime,
   type MyBid,
 } from "@/lib/api/repo";
-import { formatPrice } from "@/lib/utils";
+import { formatDate, formatPrice } from "@/lib/utils";
 
 export default function MyBidsPage() {
   // Live: new tenders / bids land without F5.
@@ -44,9 +44,9 @@ export default function MyBidsPage() {
       />
 
       <header className="mb-8">
-        <h1 className="font-display font-semibold text-3xl md:text-4xl text-ink-900 leading-tight tracking-[-0.015em] mb-2 flex items-center gap-3">
+        <h1 className="font-display font-semibold text-2xl sm:text-3xl md:text-4xl text-ink-900 leading-tight tracking-[-0.015em] mb-2 flex items-center gap-2 sm:gap-3 flex-wrap">
           <span className="text-ink-400">
-            <Send className="size-7" strokeWidth={1.8} />
+            <Send className="size-6 sm:size-7" strokeWidth={1.8} />
           </span>
           {t("myBids.title")}
           {visible.length > 0 ? (
@@ -83,7 +83,7 @@ export default function MyBidsPage() {
 }
 
 function BidRow({ bid, tender }: MyBid) {
-  const { t, pickLocalized } = useT();
+  const { t, lang, pickLocalized } = useT();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,25 +107,25 @@ function BidRow({ bid, tender }: MyBid) {
   const canWithdraw = (bid.status ?? "pending") === "pending";
 
   return (
-    <Card className="p-5 flex flex-col gap-3 hover:bg-bg transition-colors">
-      <div className="flex items-start justify-between gap-4">
+    <Card className="p-4 sm:p-5 flex flex-col gap-3 hover:bg-bg transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <Link
               href={`/tenders#${tender.id}`}
-              className="font-display font-semibold text-lg text-ink-900 hover:text-caspian-600 transition-colors truncate"
+              className="font-display font-semibold text-base sm:text-lg text-ink-900 hover:text-caspian-600 transition-colors break-words sm:truncate min-w-0"
             >
               {pickLocalized(tender.title)}
             </Link>
             <BidStatusBadge status={bid.status} />
           </div>
           <div className="text-xs text-ink-500 font-mono">
-            {tender.eventDate ?? tender.deadline}
+            {formatDate(tender.eventDate ?? tender.deadline, lang)}
             {tender.eventTime ? ` · ${tender.eventTime}` : null}
           </div>
         </div>
-        <div className="text-right">
-          <div className="font-mono font-semibold text-xl text-ink-900 whitespace-nowrap">
+        <div className="sm:text-right">
+          <div className="font-mono font-semibold text-lg sm:text-xl text-ink-900 whitespace-nowrap">
             {formatPrice(bid.price)}
           </div>
         </div>

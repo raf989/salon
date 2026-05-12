@@ -53,10 +53,11 @@ export function TenderCard({ tender }: Props) {
 
   return (
     <motion.div
+      id={tender.id}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="relative overflow-hidden rounded-[16px] border p-6 md:p-7"
+      className="relative overflow-hidden rounded-[16px] border p-5 sm:p-6 md:p-7 scroll-mt-20"
       style={TENDER_CARD_STYLE}
     >
       <div
@@ -67,12 +68,12 @@ export function TenderCard({ tender }: Props) {
       <div className="relative">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <Badge variant="event">{tierBadge}</Badge>
-          <span className="text-xs text-ink-500 font-mono">
+          <span className="text-xs text-ink-500 font-mono whitespace-nowrap">
             {openedAgo} · {bidsLabel}
           </span>
         </div>
 
-        <h2 className="font-display font-semibold text-2xl md:text-[32px] tracking-[-0.015em] leading-[1.2] text-ink-900 mt-3">
+        <h2 className="font-display font-semibold text-xl sm:text-2xl md:text-[32px] tracking-[-0.015em] leading-[1.2] text-ink-900 mt-3 break-words">
           {pickLocalized(tender.title)}
         </h2>
 
@@ -81,7 +82,7 @@ export function TenderCard({ tender }: Props) {
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
-          <span className="font-mono text-ink-700">{budgetLine}</span>
+          <span className="font-mono text-ink-700 whitespace-nowrap">{budgetLine}</span>
           <span className="inline-flex items-center gap-1.5">
             <MapPin className="size-3.5 text-ink-400" strokeWidth={1.7} />
             {pickLocalized(tender.district)}
@@ -113,6 +114,7 @@ export function TenderCard({ tender }: Props) {
           <Button
             variant="primary"
             size="lg"
+            className="flex-1 sm:flex-none"
             onClick={() => setBidOpen(true)}
           >
             {t("tenders.action.bid")}

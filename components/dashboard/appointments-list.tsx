@@ -255,7 +255,7 @@ function AppointmentRow({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, delay: index * 0.03 }}
       className={cn(
-        "flex items-center gap-4 p-4 rounded-xl border bg-surface transition-colors",
+        "flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border bg-surface transition-colors",
         // Subtle saffron wash on "Gecikir" — attention without alarm.
         isLate
           ? "border-saffron-400/40 bg-saffron-50/40 hover:bg-saffron-50/60"
@@ -263,11 +263,11 @@ function AppointmentRow({
       )}
     >
       {/* Date badge */}
-      <div className="w-14 flex flex-col items-center justify-center py-2 rounded-xl bg-ink-50 text-center shrink-0">
-        <span className="font-display font-semibold text-2xl text-ink-900 leading-none">
+      <div className="w-12 sm:w-14 flex flex-col items-center justify-center py-1.5 sm:py-2 rounded-xl bg-ink-50 text-center shrink-0">
+        <span className="font-display font-semibold text-xl sm:text-2xl text-ink-900 leading-none">
           {day}
         </span>
-        <span className="text-[11px] uppercase font-semibold tracking-wider text-ink-500 mt-1">
+        <span className="text-[10px] sm:text-[11px] uppercase font-semibold tracking-wider text-ink-500 mt-1">
           {monthAbbr}
         </span>
       </div>
@@ -280,12 +280,12 @@ function AppointmentRow({
       />
 
       {/* Middle */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 order-3 sm:order-none basis-full sm:basis-auto">
         <div className="truncate text-sm">
           <span className="font-medium text-ink-900">{appt.clientName}</span>
           <span className="text-ink-500"> · {service ? pickLocalized(service.name) : "—"}</span>
         </div>
-        <div className="mt-1 flex items-center gap-1.5">
+        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
           <Clock className="size-3.5 text-ink-400" />
           <span className="font-mono text-sm text-ink-700">{appt.time}</span>
           {service ? (
@@ -295,7 +295,7 @@ function AppointmentRow({
       </div>
 
       {/* Right */}
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 ml-auto sm:ml-0">
         <StatusBadge display={display} />
         {showCancel ? (
           <Button

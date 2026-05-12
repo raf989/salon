@@ -93,7 +93,7 @@ export function ProfileHero({ provider, availableToday }: Props) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col md:flex-row gap-6 items-start"
+      className="flex flex-col md:flex-row gap-4 md:gap-6 items-center md:items-start text-center md:text-left"
     >
       <Avatar
         name={provider.name}
@@ -102,12 +102,12 @@ export function ProfileHero({ provider, availableToday }: Props) {
         size="xl"
       />
 
-      <div className="flex-1 flex flex-col gap-3 min-w-0">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display font-semibold text-2xl md:text-3xl lg:text-4xl text-ink-900 tracking-[-0.015em] leading-tight">
+      <div className="flex-1 flex flex-col gap-2.5 md:gap-3 min-w-0 w-full">
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 min-w-0">
+          <h1 className="font-display font-semibold text-[26px] md:text-3xl lg:text-4xl text-ink-900 tracking-[-0.015em] leading-tight break-words min-w-0">
             {provider.name}
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap justify-center">
             {provider.verified ? (
               <Badge variant="verified">{t("provider.verified")}</Badge>
             ) : null}
@@ -123,7 +123,7 @@ export function ProfileHero({ provider, availableToday }: Props) {
           {sublineParts.join(" · ")}
         </p>
 
-        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-500">
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-ink-500">
           <RatingStars value={provider.rating} size={16} />
           <b className="text-ink-900 font-mono">
             {provider.rating.toFixed(1)}
@@ -135,14 +135,14 @@ export function ProfileHero({ provider, availableToday }: Props) {
         </div>
 
         {hasAnyContact ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center md:justify-start gap-2">
             {waHref ? (
               <a
                 href={waHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="WhatsApp"
-                className="inline-grid place-items-center size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
+                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
               >
                 <MessageCircle className="size-4" />
               </a>
@@ -153,7 +153,7 @@ export function ProfileHero({ provider, availableToday }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Telegram"
-                className="inline-grid place-items-center size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
+                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
               >
                 <TelegramIcon className="size-4" />
               </a>
@@ -164,7 +164,7 @@ export function ProfileHero({ provider, availableToday }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
-                className="inline-grid place-items-center size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
+                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
               >
                 <InstagramIcon className="size-4" />
               </a>
@@ -175,7 +175,7 @@ export function ProfileHero({ provider, availableToday }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="TikTok"
-                className="inline-grid place-items-center size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
+                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
               >
                 <TikTokIcon className="size-4" />
               </a>

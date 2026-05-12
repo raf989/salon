@@ -70,7 +70,7 @@ export default function DashboardProfilePage() {
 }
 
 function ProfileEditor({ me }: { me: Stylist }) {
-  const { t, lang } = useT();
+  const { t } = useT();
   const router = useRouter();
 
   // The greeting on the dashboard reads from the authenticated user, so the
@@ -245,7 +245,7 @@ function ProfileEditor({ me }: { me: Stylist }) {
           onClick={() => avatarFileRef.current?.click()}
           disabled={avatarUploading}
           className="relative group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed"
-          aria-label={lang === "ru" ? "Изменить фото" : "Şəkli dəyiş"}
+          aria-label={t("dash.profile.avatar.change")}
         >
           <Avatar
             name={name.trim() || authUser?.name?.trim() || me.name}
@@ -272,20 +272,14 @@ function ProfileEditor({ me }: { me: Stylist }) {
           <h2 className="font-display font-semibold text-xl text-ink-900 leading-tight">
             {name.trim() ||
               authUser?.name?.trim() ||
-              (lang === "ru" ? "Пользователь" : "İstifadəçi")}
+              t("dash.profile.user.fallback")}
           </h2>
           <p className="text-sm text-ink-500 truncate">
             {avatarUploading
-              ? lang === "ru"
-                ? "Загрузка…"
-                : "Yüklənir…"
+              ? t("dash.profile.avatar.uploading")
               : avatar
-                ? lang === "ru"
-                  ? "Нажмите на фото, чтобы заменить"
-                  : "Şəkli dəyişmək üçün üzərinə basın"
-                : lang === "ru"
-                  ? "Нажмите на аватар, чтобы добавить фото"
-                  : "Şəkil əlavə etmək üçün avatara basın"}
+                ? t("dash.profile.avatar.replace")
+                : t("dash.profile.avatar.add")}
           </p>
           {avatarError ? (
             <p className="text-xs text-pomegranate-500 mt-1">{avatarError}</p>
@@ -305,20 +299,14 @@ function ProfileEditor({ me }: { me: Stylist }) {
 
       <div className="space-y-6">
         <Section
-          title={lang === "ru" ? "Имя" : "Ad"}
-          subtitle={
-            lang === "ru"
-              ? "Так клиенты видят вас в каталоге и на дашборде"
-              : "Müştərilər sizi kataloqda və panelde belə görür"
-          }
+          title={t("dash.profile.section.name.title")}
+          subtitle={t("dash.profile.section.name.sub")}
         >
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={
-              lang === "ru" ? "Имя и фамилия" : "Ad və soyad"
-            }
-            aria-label={lang === "ru" ? "Имя" : "Ad"}
+            placeholder={t("dash.profile.name.placeholder")}
+            aria-label={t("dash.profile.section.name.title")}
           />
         </Section>
 
@@ -380,12 +368,8 @@ function ProfileEditor({ me }: { me: Stylist }) {
 
         {/* ─── Contacts ─── */}
         <Section
-          title={lang === "ru" ? "Контактные данные" : "Əlaqə məlumatları"}
-          subtitle={
-            lang === "ru"
-              ? "До 3 номеров, плюс мессенджеры и соцсети"
-              : "3 nömrəyə qədər və messencer/sosial şəbəkə hesabları"
-          }
+          title={t("dash.profile.section.contacts.title")}
+          subtitle={t("dash.profile.section.contacts.sub")}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* LEFT column — phones + WhatsApp share one grid so col widths align */}
@@ -402,7 +386,6 @@ function ProfileEditor({ me }: { me: Stylist }) {
                     canAdd={canAddPhone}
                     onAdd={addPhone}
                     onRemove={() => removePhone(i)}
-                    lang={lang}
                   />
                 </Fragment>
               ))}
@@ -483,8 +466,6 @@ function ProfileEditor({ me }: { me: Stylist }) {
           {saving ? t("booking.confirming") : t("dash.profile.save")}
         </Button>
       </div>
-
-      <p className="sr-only">{lang}</p>
     </main>
   );
 }
@@ -547,23 +528,20 @@ function PhoneRowButton({
   canAdd,
   onAdd,
   onRemove,
-  lang,
 }: {
   isFirst: boolean;
   canAdd: boolean;
   onAdd: () => void;
   onRemove: () => void;
-  lang: "az" | "ru";
 }) {
+  const { t } = useT();
   if (isFirst) {
     if (canAdd) {
       return (
         <button
           type="button"
           onClick={onAdd}
-          aria-label={
-            lang === "ru" ? "Добавить номер" : "Yeni nömrə əlavə et"
-          }
+          aria-label={t("dash.profile.phone.add")}
           className="size-11 grid place-items-center rounded-[10px] border border-border-strong bg-surface text-ink-700 hover:bg-ink-50 hover:border-ink-300 transition-colors shrink-0"
         >
           <Plus className="size-4" />
@@ -578,7 +556,7 @@ function PhoneRowButton({
     <button
       type="button"
       onClick={onRemove}
-      aria-label={lang === "ru" ? "Удалить номер" : "Nömrəni sil"}
+      aria-label={t("dash.profile.phone.remove")}
       className="size-11 grid place-items-center rounded-[10px] border border-border bg-surface text-ink-500 hover:text-pomegranate-500 hover:border-pomegranate-500/40 hover:bg-pomegranate-500/5 transition-colors shrink-0"
     >
       <Minus className="size-4" />

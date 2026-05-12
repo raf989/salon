@@ -60,7 +60,7 @@ export function GalleryGrid({ provider }: Props) {
                 />
               )}
               {isLast && remaining > 0 ? (
-                <div className="absolute inset-0 bg-ink-900/50 grid place-items-center text-white font-display font-bold text-xl">
+                <div className="absolute inset-0 bg-ink-900/60 backdrop-blur-[1px] grid place-items-center text-white font-display font-bold text-2xl md:text-xl tracking-tight">
                   +{remaining}
                 </div>
               ) : null}

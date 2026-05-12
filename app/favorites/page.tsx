@@ -76,7 +76,7 @@ export default function FavoritesPage() {
       />
 
       <header className="mb-8 max-w-3xl">
-        <h1 className="font-display font-semibold text-3xl md:text-4xl text-ink-900 leading-tight tracking-[-0.015em] mb-2">
+        <h1 className="font-display font-semibold text-2xl sm:text-3xl md:text-4xl text-ink-900 leading-tight tracking-[-0.015em] mb-2 break-words">
           {t("favorites.title")}
         </h1>
         <p className="text-base text-ink-500 leading-relaxed">

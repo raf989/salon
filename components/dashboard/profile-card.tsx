@@ -108,7 +108,7 @@ export function ProfileCard({ me }: ProfileCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
     >
-      <Card className="relative p-7">
+      <Card className="relative p-4 sm:p-7">
         {/* Without overflow-hidden the gradient bar must round its own top
             corners so it stays inside the card's rounded edges. */}
         <div
@@ -116,21 +116,23 @@ export function ProfileCard({ me }: ProfileCardProps) {
           className="absolute top-0 left-0 right-0 h-1.5 rounded-t-[inherit] bg-gradient-to-r from-caspian-500 via-saffron-400 to-pomegranate-500"
         />
 
-        {/* Edit button — stays in top-right corner, out of the flex flow */}
-        <div className="absolute top-4 right-4 z-10">
-          <Link href="/dashboard/profile">
-            <Button variant="outline" size="sm">
-              {t("dash.profile.goTo")}
+        {/* Edit button — stays in top-right corner, out of the flex flow.
+            Slightly inset further on mobile so it can't graze the avatar. */}
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
+          <Link href="/dashboard/profile" aria-label={t("dash.profile.goTo")}>
+            <Button variant="outline" size="sm" className="min-h-11">
+              <span className="hidden sm:inline">{t("dash.profile.goTo")}</span>
               <ArrowRight className="size-3.5" />
             </Button>
           </Link>
         </div>
 
-        {/* Horizontal flow on md+, vertical stack on mobile.
-            pt-14/pt-12 leaves room for the absolute edit button. */}
-        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-0 pt-14 md:pt-12">
+        {/* Horizontal flow on lg+, vertical stack below.
+            Pushed to lg so contacts have room — at md the 3-col packing
+            compresses the contact column under the absolute edit button. */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-0 pt-12 sm:pt-14 lg:pt-12">
           {/* ── Block 1 — identity */}
-          <div className="flex items-center gap-4 min-w-0 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0">
             <Avatar
               name={trimmedAuth || me.name}
               id={authUser?.id ?? me.id}
@@ -138,17 +140,18 @@ export function ProfileCard({ me }: ProfileCardProps) {
               size="xl"
             />
             <div className="min-w-0">
-              <h1 className="font-display font-semibold text-2xl md:text-3xl text-ink-900 tracking-tight">
+              <h1 className="font-display font-semibold text-xl sm:text-2xl md:text-3xl text-ink-900 tracking-tight truncate">
                 {t("dash.greeting")}, {firstName}
               </h1>
-              <p className="text-ink-500 text-sm mt-1">
+              <p className="text-ink-500 text-sm mt-1 truncate">
                 {pickLocalized(me.city)} · {specialtiesLabel}
               </p>
             </div>
           </div>
 
-          {/* ── Block 2 — statuses, anchored next to identity (ml-12 on md+) */}
-          <div className="flex flex-col items-start gap-2 shrink-0 md:ml-12">
+          {/* ── Block 2 — statuses. Row layout on mobile so it doesn't
+              stack into 3 tall lines; column on lg with ml-12. */}
+          <div className="flex flex-row flex-wrap items-center gap-2 shrink-0 lg:flex-col lg:items-start lg:ml-12">
             <div className="inline-flex items-center gap-2 px-3 h-9 rounded-full bg-ink-50">
               <Star className="size-4 fill-saffron-400 text-saffron-400" />
               <span className="font-mono font-semibold text-ink-900">
@@ -167,25 +170,26 @@ export function ProfileCard({ me }: ProfileCardProps) {
             ) : null}
           </div>
 
-          {/* ── Block 3 — contacts, centred in the remaining space.
-              pr-44 on md+ keeps it clear of the absolute edit button. */}
+          {/* ── Block 3 — contacts. Single column on mobile (prevents the
+              icon+phone squeeze at 360px), 2-col from sm:, centred on lg.
+              pr-44 only on lg+ where the edit button is in the same row. */}
           {hasContacts ? (
-            <div className="min-w-0 md:flex-1 md:flex md:justify-center md:pl-10 md:pr-44">
-              <div className="w-full md:max-w-md flex flex-col gap-2">
+            <div className="min-w-0 lg:flex-1 lg:flex lg:justify-center lg:pl-10 lg:pr-44">
+              <div className="w-full lg:max-w-md flex flex-col gap-2">
                 {rows.map((row, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-2 gap-x-4 gap-y-2 items-center"
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 items-center"
                   >
                     {row[0] ? (
                       <ContactCell item={row[0]} />
                     ) : (
-                      <span aria-hidden />
+                      <span aria-hidden className="hidden sm:block" />
                     )}
                     {row[1] ? (
                       <ContactCell item={row[1]} />
                     ) : (
-                      <span aria-hidden />
+                      <span aria-hidden className="hidden sm:block" />
                     )}
                   </div>
                 ))}

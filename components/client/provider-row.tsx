@@ -106,7 +106,7 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
     >
-      <Card className="grid gap-4 p-3 md:grid-cols-[140px_1fr_180px] items-stretch hover:bg-bg transition-colors">
+      <Card className="grid gap-3 md:gap-4 p-3 grid-cols-[96px_1fr] md:grid-cols-[140px_1fr_180px] items-stretch hover:bg-bg transition-colors">
         <div className="relative">
           <Cover
             name={provider.name}
@@ -117,18 +117,18 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
           />
           <HeartButton
             providerId={provider.id}
-            className="absolute top-2 right-2"
+            className="absolute top-1.5 right-1.5 size-9 md:size-auto md:top-2 md:right-2"
           />
         </div>
 
-        <div className="flex flex-col gap-2 py-2 min-w-0">
-          <div className="flex items-center flex-wrap gap-2">
-            <h3 className="font-display font-semibold text-lg text-ink-900 leading-tight">
+        <div className="flex flex-col gap-1.5 md:gap-2 py-1 md:py-2 min-w-0">
+          <div className="flex items-start flex-wrap gap-x-2 gap-y-1 min-w-0">
+            <h3 className="font-display font-semibold text-base md:text-lg text-ink-900 leading-tight min-w-0 break-words">
               {provider.name}
             </h3>
             <span
               className={cn(
-                "inline-flex items-center gap-1 text-xs font-mono font-semibold",
+                "inline-flex items-center gap-1 text-[11px] md:text-xs font-mono font-semibold shrink-0",
                 isOpen ? "text-success-500" : "text-danger-500",
               )}
             >
@@ -137,17 +137,17 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
             </span>
           </div>
 
-          <p className="text-sm text-ink-500">{subtitle}</p>
+          <p className="text-xs md:text-sm text-ink-500 line-clamp-2">{subtitle}</p>
 
           {addressDetail ? (
-            <div className="flex items-center gap-1 text-sm text-ink-500 min-w-0">
+            <div className="hidden md:flex items-center gap-1 text-sm text-ink-500 min-w-0">
               <MapPin className="size-3.5 text-ink-400 shrink-0" />
               <span className="truncate">{addressDetail}</span>
             </div>
           ) : null}
 
           {tagChips.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 mt-1">
+            <div className="hidden md:flex flex-wrap gap-1.5 mt-1">
               {tagChips.map((c) => (
                 <span
                   key={c}
@@ -159,7 +159,7 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
             </div>
           ) : null}
 
-          <div className="mt-auto flex items-center flex-wrap gap-1.5 text-sm text-ink-500 pt-1">
+          <div className="mt-auto flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-xs md:text-sm text-ink-500 pt-1">
             <RatingStars value={provider.rating} size={14} />
             <span className="font-semibold text-ink-800">
               {provider.rating.toFixed(1)}
@@ -171,7 +171,33 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-col items-end justify-between py-2 gap-2 min-w-[170px]">
+        {/* Mobile-only price + actions row, sits below the image+meta block */}
+        <div className="col-span-2 flex flex-col gap-2.5 border-t border-border pt-3 md:hidden">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-mono font-semibold text-xl text-ink-900 leading-tight whitespace-nowrap">
+                {t("meta.minPriceSuffix")} {formatPrice(minPrice)}
+              </div>
+              <div className="text-[11px] text-ink-400">/ {priceUnit}</div>
+            </div>
+            <Link href={`/provider/${provider.slug}`} className="shrink-0">
+              <Button variant="ghost" size="sm" className="h-11 px-3 text-caspian-600">
+                {t("action.profile")}
+              </Button>
+            </Link>
+          </div>
+          <Button
+            variant="primary"
+            size="md"
+            className="w-full h-11"
+            onClick={() => onBook(provider)}
+          >
+            {t(availableToday ? "action.bookNow" : "action.book")}
+          </Button>
+        </div>
+
+        {/* Desktop-only right column with stacked price + buttons */}
+        <div className="hidden md:flex flex-col items-end justify-between py-2 gap-2 min-w-[170px]">
           <div className="text-right">
             <div className="font-mono font-semibold text-xl text-ink-900 whitespace-nowrap">
               {t("meta.minPriceSuffix")} {formatPrice(minPrice)}

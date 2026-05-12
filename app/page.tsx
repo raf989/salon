@@ -15,7 +15,12 @@ import { BookingModal } from "@/components/client/booking-modal";
 import { Card } from "@/components/ui/card";
 import { ALL_CITIES_ID, getCityById, getCityIdByName } from "@/lib/cities";
 import { useStore } from "@/lib/store";
-import { useAppointments, useProviders, useServices } from "@/lib/api/repo";
+import {
+  useAppointments,
+  useProvidersWithStatus,
+  useServices,
+} from "@/lib/api/repo";
+import { SkeletonProviderRow } from "@/components/ui/skeleton";
 import { hasFreeSlotOnDate } from "@/lib/availability";
 import { getTodayISO } from "@/lib/utils";
 import type {
@@ -129,7 +134,7 @@ function HomePageInner() {
   // Without the filter every client downloads every booking ever, which is
   // both wasteful and a privacy smell.
   const appointments = useAppointments({ date: getTodayISO() });
-  const providers = useProviders();
+  const { providers, loaded: providersLoaded } = useProvidersWithStatus();
   const services = useServices();
 
   // Advanced filter state owned by <SearchFilters />.
@@ -284,7 +289,7 @@ function HomePageInner() {
         searchValue={filters.search}
         onSearchChange={(v) => setFilters((f) => ({ ...f, search: v }))}
       />
-      <main className="mx-auto max-w-7xl px-4 md:px-6 pt-3 md:pt-4 pb-24 space-y-8">
+      <main className="mx-auto max-w-7xl px-3 md:px-6 pt-3 md:pt-4 pb-24 space-y-5 md:space-y-8">
         <SearchFilters
           value={{
             category: kindFilter ?? "all",
@@ -305,18 +310,18 @@ function HomePageInner() {
         />
 
         <section ref={resultsRef}>
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-3 md:mb-4 flex items-center justify-between gap-2 flex-wrap">
             <SortDropdown value={sort} onChange={setSort} />
             {isKindActive ? (
-              <div className="flex items-center gap-2 text-sm text-ink-500">
-                <span>
+              <div className="flex items-center gap-2 text-xs md:text-sm text-ink-500 min-w-0">
+                <span className="truncate">
                   {pickLocalized({ az: "Filtr", ru: "Фильтр" })}:{" "}
                   {kindFilter}
                 </span>
                 <button
                   type="button"
                   onClick={() => setKindFilter(null)}
-                  className="text-caspian-600 hover:underline font-medium"
+                  className="text-caspian-600 hover:underline font-medium shrink-0"
                 >
                   {pickLocalized({ az: "təmizlə", ru: "сбросить" })}
                 </button>
@@ -325,7 +330,13 @@ function HomePageInner() {
           </div>
 
           <div>
-            {filtered.length === 0 ? (
+            {!providersLoaded ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <SkeletonProviderRow key={i} />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
               <EmptyState />
             ) : (
               <div className="space-y-3">

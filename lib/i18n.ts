@@ -301,6 +301,10 @@ export const DICT = {
   "section.categories": { az: "Kateqoriyalar", ru: "Категории" },
   "section.about": { az: "Mənim haqqımda", ru: "О себе" },
   "section.priceList": { az: "Qiymət siyahısı", ru: "Прайс" },
+  "priceList.empty": {
+    az: "Hələ xidmət əlavə edilməyib.",
+    ru: "Услуги пока не добавлены.",
+  },
   "section.reviews": { az: "Rəylər", ru: "Отзывы" },
 
   // tier badges
@@ -406,6 +410,42 @@ export const DICT = {
   },
   "dash.profile.save": { az: "Yadda saxla", ru: "Сохранить" },
   "dash.profile.saved": { az: "Saxlanıldı", ru: "Сохранено" },
+  "dash.profile.avatar.change": { az: "Şəkli dəyiş", ru: "Изменить фото" },
+  "dash.profile.avatar.uploading": { az: "Yüklənir…", ru: "Загрузка…" },
+  "dash.profile.avatar.replace": {
+    az: "Şəkli dəyişmək üçün üzərinə basın",
+    ru: "Нажмите на фото, чтобы заменить",
+  },
+  "dash.profile.avatar.add": {
+    az: "Şəkil əlavə etmək üçün avatara basın",
+    ru: "Нажмите на аватар, чтобы добавить фото",
+  },
+  "dash.profile.section.name.sub": {
+    az: "Müştərilər sizi kataloqda və panelde belə görür",
+    ru: "Так клиенты видят вас в каталоге и на дашборде",
+  },
+  "dash.profile.user.fallback": { az: "İstifadəçi", ru: "Пользователь" },
+  "dash.profile.section.name.title": { az: "Ad", ru: "Имя" },
+  "dash.profile.section.contacts.title": {
+    az: "Əlaqə məlumatları",
+    ru: "Контактные данные",
+  },
+  "dash.profile.section.contacts.sub": {
+    az: "3 nömrəyə qədər və messencer/sosial şəbəkə hesabları",
+    ru: "До 3 номеров, плюс мессенджеры и соцсети",
+  },
+  "dash.profile.name.placeholder": {
+    az: "Ad və soyad",
+    ru: "Имя и фамилия",
+  },
+  "dash.profile.phone.add": {
+    az: "Yeni nömrə əlavə et",
+    ru: "Добавить номер",
+  },
+  "dash.profile.phone.remove": {
+    az: "Nömrəni sil",
+    ru: "Удалить номер",
+  },
 
   // tenders page
   "tenders.title": { az: "Tender meydançası", ru: "Тендерная площадка" },

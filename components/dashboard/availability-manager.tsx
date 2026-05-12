@@ -213,7 +213,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   const disabled = !isEditing;
 
   return (
-    <Card className="p-6">
+    <Card className="p-4 sm:p-6">
       {/* Top bar with Edit / Cancel toggle */}
       <div className="flex items-start justify-between gap-4 mb-1">
         <div>
@@ -228,6 +228,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
             size="sm"
             onClick={cancelEdit}
             disabled={saving}
+            className="min-h-11"
           >
             {t("dash.avail.cancelEdit")}
           </Button>
@@ -237,6 +238,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
             variant="outline"
             size="sm"
             onClick={enterEdit}
+            className="min-h-11"
           >
             <Pencil className="size-3.5" />
             {t("dash.avail.edit")}
@@ -300,7 +302,8 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
                 aria-pressed={active}
                 disabled={disabled}
                 className={cn(
-                  "h-10 px-4 rounded-[10px] text-sm font-medium border transition-colors",
+                  // h-11 (44px) meets the iOS/Android tap-target guideline.
+                  "h-11 min-w-11 px-4 rounded-[10px] text-sm font-medium border transition-colors",
                   active
                     ? "bg-caspian-500 text-white border-caspian-500"
                     : "bg-ink-50 text-ink-700 border-transparent hover:bg-ink-100",
@@ -333,23 +336,26 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.18 }}
-                className="inline-flex items-center gap-2 h-9 px-3 rounded-full bg-saffron-50 text-saffron-500 text-sm font-medium font-mono"
+                className="inline-flex items-center gap-1 h-11 sm:h-9 pl-3 pr-1 sm:pr-3 rounded-full bg-saffron-50 text-saffron-500 text-sm font-medium font-mono"
               >
                 {b.start} – {b.end}
                 <button
                   type="button"
                   onClick={() => removeBreak(i)}
                   aria-label={`${b.start} – ${b.end} ${t("dash.avail.breaks.removeAria")}`}
-                  className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
+                  className="ml-1 size-8 sm:size-5 grid place-items-center rounded-full opacity-70 hover:opacity-100 hover:bg-saffron-100 transition-all"
                 >
-                  <X className="size-3" />
+                  <X className="size-3.5 sm:size-3" />
                 </button>
               </motion.span>
             ))}
           </AnimatePresence>
         </div>
 
-        <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 mt-3">
+        {/* On narrow screens the add button drops to its own row so the
+            two time inputs keep their full width (otherwise the button
+            squeezes the end time to ~60px). */}
+        <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] items-end gap-2 mt-3">
           <input
             type="time"
             value={newBreakStart}
@@ -372,6 +378,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
               !newBreakEnd ||
               newBreakEnd <= newBreakStart
             }
+            className="col-span-2 sm:col-span-1 min-h-11"
           >
             {t("dash.avail.breaks.add")}
           </Button>
@@ -404,9 +411,21 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
         </div>
       </section>
 
-      {/* Bottom row — Save (visible only while editing) */}
+      {/* Bottom row — Save (visible only while editing).
+          On mobile the form is very tall — the Save action gets sticky-bottom
+          treatment so users don't have to scroll back to the top of the card
+          to commit. The negative margins cancel the Card's padding so the
+          sticky strip can hug the card edges, and safe-area padding stays
+          clear of the iOS home indicator. */}
       {isEditing ? (
-        <div className="border-t border-border pt-5 mt-5 flex items-center justify-end gap-3">
+        <div
+          className={cn(
+            "border-t border-border mt-5 flex items-center justify-end gap-3",
+            "pt-4 pb-4 px-4 -mx-4 -mb-4 sm:pt-5 sm:pb-0 sm:px-0 sm:mx-0 sm:mb-0",
+            "sticky bottom-0 z-20 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80 sm:static sm:bg-transparent sm:backdrop-blur-none",
+            "pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0",
+          )}
+        >
           <AnimatePresence mode="wait">
             {savedAt !== null ? (
               <motion.div
@@ -427,6 +446,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
             variant="primary"
             onClick={() => setConfirmOpen(true)}
             disabled={!isDirty || saving}
+            className="min-h-11 flex-1 sm:flex-none"
           >
             {t("dash.avail.save")}
           </Button>

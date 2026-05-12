@@ -102,7 +102,9 @@ export function StatusControl({ provider }: { provider: Stylist }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "inline-flex items-center gap-2 h-7 px-2.5 rounded-full text-[11px] font-semibold tracking-tight transition-colors",
+          // h-9 sm:h-7 — bigger tap target on mobile (36px > 28px) while
+          // keeping the compact desktop pill. Padding scales to match.
+          "inline-flex items-center gap-2 h-9 sm:h-7 px-3 sm:px-2.5 rounded-full text-xs sm:text-[11px] font-semibold tracking-tight transition-colors",
           tone.pill,
           busy && "opacity-60",
         )}
@@ -133,7 +135,7 @@ export function StatusControl({ provider }: { provider: Stylist }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 top-full mt-2 w-44 origin-top-left bg-surface border border-border rounded-xl shadow-[var(--sh-3)] p-1.5 z-[999]"
+            className="absolute left-0 top-full mt-2 w-48 sm:w-44 origin-top-left bg-surface border border-border rounded-xl shadow-[var(--sh-3)] p-1.5 z-[999]"
           >
             <Option
               label={t("dash.status.optionOpen")}
@@ -172,7 +174,7 @@ function Option({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "w-full flex items-center justify-between gap-2 px-3 h-9 rounded-lg text-sm transition-colors",
+        "w-full flex items-center justify-between gap-2 px-3 h-11 sm:h-9 rounded-lg text-sm transition-colors",
         active
           ? "bg-ink-50 text-ink-900 font-semibold"
           : "text-ink-700 hover:bg-ink-50",

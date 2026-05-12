@@ -8,20 +8,11 @@ export const DICT = {
   "brand.name": { az: "Vaxt", ru: "Vaxt" },
   "brand.homeAria": { az: "Vaxt ana səhifə", ru: "Vaxt — на главную" },
 
-  // header
-  "nav.explore": { az: "Kəşf et", ru: "Каталог" },
-  "nav.dashboard": { az: "Panel", ru: "Панель" },
-  "header.city": { az: "Bakı", ru: "Баку" },
-  "role.client": { az: "Müştəri", ru: "Клиент" },
-  "role.worker": { az: "Usta", ru: "Мастер" },
-
   // header / nav (Vaxt structure)
   "nav.catalog": { az: "Kataloq", ru: "Каталог" },
   "nav.tenders": { az: "Tenderlər", ru: "Тендеры" },
-  "nav.urgent": { az: "Yaxınlıqda təcili", ru: "Срочно рядом" },
   "nav.becomeProvider": { az: "Icraçı ol", ru: "Стать исполнителем" },
   "nav.login": { az: "Giriş", ru: "Вход" },
-  "nav.createListing": { az: "+ Elan", ru: "+ Объявление" },
 
   // hero
   "hero.eyebrow": {
@@ -37,27 +28,10 @@ export const DICT = {
     ru: "забронируй мгновенно",
   },
   "hero.title.after": { az: "", ru: "" },
-  "hero.subline": {
-    az: "Fotoqraflar, DJ-lər, restoranlar, barberlər və salonlar. Bir klik — və birbaşa WhatsApp-da yazırsan.",
-    ru: "Фотографы, диджеи, рестораны, барберы и салоны. Один клик — и ты пишешь напрямую в WhatsApp.",
-  },
   "hero.searchPlaceholder": {
     az: "Kimi axtarırıq? Fotoqraf, DJ, restoran…",
     ru: "Кого ищем? Фотограф, DJ, ресторан…",
   },
-  "hero.chip.todayFree": { az: "Bu gün boş", ru: "Свободны сегодня" },
-  "hero.chip.haircut": { az: "Saç kəsimi", ru: "Стрижка" },
-  "hero.chip.coloring": { az: "Boyama", ru: "Окрашивание" },
-  "hero.chip.beard": { az: "Saqqal", ru: "Борода" },
-  "hero.chip.rating": { az: "4.0+ reytinq", ru: "Рейтинг 4.0+" },
-  "hero.chip.urgentToday": { az: "Bu gün təcili", ru: "Срочно сегодня" },
-  "hero.chip.weddingTurnkey": { az: "Toy açar təslimi", ru: "Свадьба под ключ" },
-  "hero.chip.barberHome": { az: "Evdə barber", ru: "Барбер на дом" },
-  "hero.chip.corporate": { az: "Korporativ", ru: "Корпоратив" },
-  "hero.chip.kidsParty": { az: "Uşaq bayramı", ru: "Детский праздник" },
-  "hero.stats.usta": { az: "usta", ru: "мастер(ов)" },
-  "hero.stats.xidmət": { az: "xidmət", ru: "услуг" },
-  "hero.stats.rating": { az: "orta reytinq", ru: "средний рейтинг" },
 
   // filters
   "filters.searchPlaceholder": {
@@ -66,25 +40,6 @@ export const DICT = {
   },
   "filters.search.aria": { az: "Axtarış", ru: "Поиск" },
   "filters.search.button": { az: "Axtar", ru: "Найти" },
-  "filters.label.category": { az: "Kateqoriya", ru: "Категория" },
-  "filters.label.price": { az: "Qiymət", ru: "Цена" },
-  "filters.label.time": { az: "Vaxt", ru: "Время" },
-  "filters.label.rating": { az: "Reytinq", ru: "Рейтинг" },
-  "filters.option.all": { az: "Hamısı", ru: "Все" },
-  "filters.option.anyPrice": { az: "İstənilən qiymət", ru: "Любая цена" },
-  "filters.option.anyTime": { az: "İstənilən vaxt", ru: "Любое время" },
-  "filters.option.today": { az: "Bu gün", ru: "Сегодня" },
-  "filters.option.week": { az: "Bu həftə", ru: "На неделе" },
-  "filters.option.rating4": { az: "4.0+ reytinq", ru: "Рейтинг 4.0+" },
-  "filters.reset": { az: "Filtrləri sıfırla", ru: "Сбросить фильтры" },
-
-  // results meta
-  "results.foundIn": { az: "Bakı şəhərində", ru: "В Баку" },
-  "results.foundCount": { az: "usta tapıldı", ru: "мастеров найдено" },
-  "results.sort.recommended": { az: "Tövsiyə", ru: "Рекомендуем" },
-  "results.sort.rating": { az: "Reytinqə görə", ru: "По рейтингу" },
-  "results.sort.nearest": { az: "Ən yaxındakı", ru: "Ближайшие" },
-  "results.sort.cheapest": { az: "Ən sərfəli", ru: "Подешевле" },
 
   // Advanced filter card under hero
   "search.label.specialist": { az: "Mütəxəssis", ru: "Специалист" },
@@ -98,9 +53,6 @@ export const DICT = {
   "search.placeholder.district": { az: "Bütün rayonlar", ru: "Все районы" },
   "search.placeholder.priceFrom": { az: "min", ru: "от" },
   "search.placeholder.priceTo": { az: "max", ru: "до" },
-  "search.rating.any": { az: "İstənilən", ru: "Любой" },
-  "search.rating.4": { az: "4.0+", ru: "4.0+" },
-  "search.rating.45": { az: "4.5+", ru: "4.5+" },
   "search.sort.actuality": { az: "Aktuallığa görə", ru: "По актуальности" },
   "search.sort.rating": { az: "Reytinqə görə", ru: "По рейтингу" },
   "search.sort.cheap": { az: "Əvvəl ucuz", ru: "Сначала дешевле" },
@@ -118,9 +70,7 @@ export const DICT = {
   // stylist card
   "card.beauty": { az: "Gözəllik", ru: "Красота" },
   "card.todayFree": { az: "Bu gün boş", ru: "Свободен сегодня" },
-  "card.priceFrom": { az: "-dən", ru: " и выше" },
   "card.reviews": { az: "rəy", ru: "отзыв(ов)" },
-  "card.profile": { az: "Profil", ru: "Профиль" },
   "card.book": { az: "Bron et", ru: "Забронировать" },
   "card.favorite.aria": {
     az: "Sevimlilərə əlavə et",
@@ -297,10 +247,6 @@ export const DICT = {
 
   // sections
   "section.categories": { az: "Kateqoriyalar", ru: "Категории" },
-  "section.freeToday": { az: "Önə çıxanlar", ru: "Рекомендуем" },
-  "section.loadMore": { az: "Daha çox", ru: "Показать ещё" },
-  "section.allLink": { az: "Hamısı →", ru: "Все →" },
-  "section.discoverDemand": { az: "Tələb analitikası", ru: "Аналитика спроса" },
   "section.about": { az: "Mənim haqqımda", ru: "О себе" },
   "section.priceList": { az: "Qiymət siyahısı", ru: "Прайс" },
   "section.reviews": { az: "Rəylər", ru: "Отзывы" },
@@ -313,12 +259,7 @@ export const DICT = {
   "provider.verified": { az: "Doğrulandı", ru: "Проверенный" },
   "provider.freeToday": { az: "Bu gün boş", ru: "Свободна сегодня" },
   "provider.experienceYears": { az: "il təcrübə", ru: "лет опыта" },
-  "provider.respondsIn": {
-    az: "{n} dəq cavab verir",
-    ru: "отвечает за {n} мин",
-  },
   "provider.reviewsCount": { az: "{n} rəy", ru: "{n} отзывов" },
-  "provider.reliability": { az: "etibarlılıq", ru: "надёжность" },
   "provider.priceFrom": { az: "minimum", ru: "от" },
   "provider.bookOn": {
     az: "{date} tarixində bron et",
@@ -332,20 +273,13 @@ export const DICT = {
     az: "Seçilmişlərə əlavə edilib",
     ru: "Сохранили в избранное",
   },
-  "provider.topQueries": { az: "Top sorğular", ru: "Топ-запросы" },
-  "provider.responseSpeed": { az: "Cavab sürəti", ru: "Скорость ответа" },
   "provider.minutes": { az: "dəq", ru: "мин" },
   "provider.gallery": { az: "Qalereya", ru: "Галерея" },
 
   // card actions per kind
   "action.profile": { az: "Profilə bax", ru: "Посмотреть" },
   "action.book": { az: "Yazıl", ru: "Записаться" },
-  "action.bookTable": { az: "Yazıl", ru: "Записаться" },
-  "action.menu": { az: "Menyu", ru: "Меню" },
-  "action.demoSet": { az: "Demo-set", ru: "Демо-сет" },
-  "action.priceList": { az: "Qiymət", ru: "Прайс" },
   "action.bookNow": { az: "İndi yazıl", ru: "Записаться сейчас" },
-  "action.askInChat": { az: "Çatda soruş", ru: "Спросить в чате" },
 
   // card meta
   "meta.weddingPhotographer": {
@@ -365,15 +299,10 @@ export const DICT = {
     az: "Saç · saqqal · uşaq",
     ru: "Стрижка · борода · детская",
   },
-  "meta.dancehall": { az: "Zal", ru: "Зал" },
-  "meta.dishes": { az: "yemək", ru: "блюд" },
-  "meta.menuOf": { az: "Menyu", ru: "Меню" },
-  "meta.servicesCount": { az: "xidmət", ru: "услуг" },
   "meta.minPriceSuffix": { az: "minimum", ru: "от" },
 
   // common
   "common.city.baku": { az: "Bakı", ru: "Bakı" },
-  "common.dot": { az: "·", ru: "·" },
 
   // crumbs
   "crumbs.catalog": { az: "Kataloq", ru: "Каталог" },
@@ -426,32 +355,6 @@ export const DICT = {
   "dash.profile.save": { az: "Yadda saxla", ru: "Сохранить" },
   "dash.profile.saved": { az: "Saxlanıldı", ru: "Сохранено" },
 
-  // urgent page
-  "urgent.title": { az: "Yaxınlıqda təcili", ru: "Срочно рядом" },
-  "urgent.subtitle": {
-    az: "Sənə yaxın olub, indi sərbəst olan icraçılar. Bir kliklə zəng et.",
-    ru: "Исполнители рядом, готовые приехать прямо сейчас. Один клик — и звонок.",
-  },
-  "urgent.list.title": { az: "İndi sərbəst", ru: "Свободны прямо сейчас" },
-  "urgent.list.nearby": { az: "{n} yaxınlıqda", ru: "{n} рядом" },
-  "urgent.km": { az: "{n} km", ru: "{n} км" },
-  "urgent.eta": { az: "ETA {n} dəq", ru: "ETA {n} мин" },
-  "urgent.action.call": { az: "Zəng et", ru: "Вызвать" },
-  "urgent.action.profile": { az: "Profil", ru: "Профиль" },
-  "urgent.cluster": { az: "+{n} yaxınlıqda", ru: "+{n} рядом" },
-  "urgent.empty": { az: "Yaxınlıqda heç kim yoxdur", ru: "Никого рядом" },
-  "urgent.filters.kind": { az: "Peşə", ru: "Профессия" },
-  "urgent.filters.distance": { az: "Məsafə", ru: "Расстояние" },
-  "urgent.filters.budget": { az: "Büdcə", ru: "Бюджет" },
-  "urgent.filters.km1": { az: "1 km-ə qədər", ru: "до 1 км" },
-  "urgent.filters.km3": { az: "3 km-ə qədər", ru: "до 3 км" },
-  "urgent.filters.km5": { az: "5 km-ə qədər", ru: "до 5 км" },
-  "urgent.filters.kmAny": { az: "İstənilən", ru: "Любое" },
-  "urgent.filters.budget50": { az: "50 ₼-ə qədər", ru: "до 50 ₼" },
-  "urgent.filters.budget100": { az: "100 ₼-ə qədər", ru: "до 100 ₼" },
-  "urgent.filters.budget200": { az: "200 ₼-ə qədər", ru: "до 200 ₼" },
-  "urgent.filters.budgetAny": { az: "İstənilən qiymət", ru: "Любая цена" },
-
   // tenders page
   "tenders.title": { az: "Tender meydançası", ru: "Тендерная площадка" },
   "tenders.subtitle": {
@@ -459,7 +362,6 @@ export const DICT = {
     ru: "Опишите заказ — исполнители сами найдут вас и предложат цену.",
   },
   "tenders.create": { az: "Tender yarat", ru: "Создать тендер" },
-  "tenders.howItWorks": { az: "Necə işləyir", ru: "Как это работает" },
   "tenders.featured": { az: "Aktual tender", ru: "Активный тендер" },
   "tenders.allTenders": { az: "Bütün tenderlər", ru: "Все тендеры" },
   "tenders.tenderBadge": { az: "Tender", ru: "Тендер" },
@@ -495,6 +397,44 @@ export const DICT = {
     ru: "Опишите запрос в двух строках — за час придёт 5–7 предложений.",
   },
   "tenders.cta.button": { az: "Tender yarat", ru: "Создать тендер" },
+
+  // tenders — submit bid modal
+  "tenders.bid.title": { az: "Təklif göndər", ru: "Прислать ставку" },
+  "tenders.bid.price": { az: "Qiymət (₼)", ru: "Цена (₼)" },
+  "tenders.bid.note": { az: "Qeyd", ru: "Ваш комментарий" },
+  "tenders.bid.submit": { az: "Göndər", ru: "Отправить" },
+  "tenders.bid.submitting": { az: "Göndərilir…", ru: "Отправляем…" },
+  "tenders.bid.success": { az: "Təklif göndərildi", ru: "Ставка отправлена" },
+
+  // tenders — all bids modal
+  "tenders.allBids.title": { az: "Bütün təkliflər", ru: "Все ставки" },
+
+  // tenders — create tender modal
+  "tenders.create.title": { az: "Tender yarat", ru: "Создать тендер" },
+  "tenders.create.field.title": { az: "Başlıq", ru: "Заголовок" },
+  "tenders.create.field.description": { az: "Təsvir", ru: "Описание" },
+  "tenders.create.field.kind": { az: "Peşə", ru: "Профессия" },
+  "tenders.create.field.tier": { az: "Kateqoriya", ru: "Категория" },
+  "tenders.create.field.budget": { az: "Büdcə (₼)", ru: "Бюджет (₼)" },
+  "tenders.create.field.deadline": { az: "Son tarix", ru: "Дедлайн" },
+  "tenders.create.field.district": { az: "Rayon", ru: "Район" },
+  "tenders.create.field.tags": {
+    az: "Teqlər (vergüllə)",
+    ru: "Теги (через запятую)",
+  },
+  "tenders.create.submit": { az: "Yerləşdir", ru: "Опубликовать" },
+  "tenders.create.notLoggedIn": {
+    az: "Tender yaratmaq üçün daxil olun",
+    ru: "Войдите, чтобы создать тендер",
+  },
+
+  // reviews
+  "reviews.leave": { az: "Rəy yaz", ru: "Оставить отзыв" },
+  "reviews.empty": { az: "Hələ rəy yoxdur", ru: "Отзывов пока нет" },
+  "reviews.field.author": { az: "Adınız", ru: "Ваше имя" },
+  "reviews.field.rating": { az: "Reytinq", ru: "Оценка" },
+  "reviews.field.text": { az: "Rəy mətni", ru: "Текст отзыва" },
+  "reviews.submit": { az: "Göndər", ru: "Отправить" },
 
   // month abbrev (Jan=0)
   "month.short.0": { az: "yan", ru: "янв" },

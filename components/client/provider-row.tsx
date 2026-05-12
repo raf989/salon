@@ -63,10 +63,11 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
   const priceUnit = pickLocalized(provider.priceUnit ?? PRICE_UNIT_FALLBACK);
 
   const subtitleKey = SUBTITLE_KEY_BY_KIND[provider.kind];
+  // Restaurants fall through to KIND_LABELS — the previous hard-coded
+  // "180 guests" line was data-fabricated and identical for every restaurant,
+  // so the localised kind label ("Restoran"/"Ресторан") + city + experience
+  // years are a more honest subtitle.
   const subtitleBase = (() => {
-    if (provider.kind === "restaurant") {
-      return t("meta.banquetsUpTo").replace("{n}", "180");
-    }
     if (subtitleKey) return t(subtitleKey);
     return pickLocalized(KIND_LABELS[provider.kind]);
   })();
@@ -206,7 +207,7 @@ function RowActions({
       >
         {t(availableToday ? "action.bookNow" : "action.book")}
       </Button>
-      <Link href={`/provider/${provider.id}`} className="w-full">
+      <Link href={`/provider/${provider.slug}`} className="w-full">
         <Button variant="outline" size="sm" className="w-full">
           {t("action.profile")}
         </Button>

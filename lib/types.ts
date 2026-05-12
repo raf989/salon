@@ -80,6 +80,7 @@ export type Service = {
 
 export type Stylist = {
   id: string;
+  slug: string;
   name: string;
   bio: Localized;
   rating: number;
@@ -89,6 +90,12 @@ export type Stylist = {
   serviceIds: string[];
   workingHours: { start: string; end: string };
   breaks: { start: string; end: string }[];
+  /**
+   * Weekday indices (0=Sunday..6=Saturday) the provider is active on.
+   * `undefined` means "all days active" — backwards-compatible with rows that
+   * pre-date the column.
+   */
+  activeDays?: number[];
   city: Localized;
   kind: ProviderKind;
   tier: ProviderTier;
@@ -103,6 +110,7 @@ export type Stylist = {
   /** Contact channels — surfaced on the dashboard only when present. */
   phones?: string[]; // up to 3
   whatsapp?: string;
+  telegram?: string;
   tiktok?: string;
   instagram?: string;
   /**
@@ -191,9 +199,13 @@ export type ProviderEditPatch = {
   avatar?: string;
   workingHours?: { start: string; end: string };
   breaks?: { start: string; end: string }[];
+  // `null` means "explicitly clear" (treat as all days active), `undefined`
+  // means "don't touch".
+  activeDays?: number[] | null;
   // Socials: `null` means "explicitly clear", `undefined` means "don't touch".
   phones?: string[];
   whatsapp?: string | null;
+  telegram?: string | null;
   instagram?: string | null;
   tiktok?: string | null;
   manualStatus?: "open" | "closed" | "break" | null;

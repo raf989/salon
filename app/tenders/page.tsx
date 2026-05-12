@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { useTenders } from "@/lib/api/repo";
+import { useStore } from "@/lib/store";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Crumbs } from "@/components/ui/crumbs";
@@ -11,6 +13,7 @@ import { TenderCard } from "@/components/tenders/tender-card";
 import { TenderCardCompact } from "@/components/tenders/tender-card-compact";
 import { BidsPanel } from "@/components/tenders/bids-panel";
 import { CreateTenderCta } from "@/components/tenders/create-tender-cta";
+import { CreateTenderModal } from "@/components/tenders/create-tender-modal";
 
 type FilterKey = "all" | "event" | "beauty" | "mine";
 
@@ -21,20 +24,31 @@ const FILTER_KEYS: ReadonlyArray<FilterKey> = [
   "mine",
 ];
 
-const MINE_AUTHOR = "Aytən S.";
-
 export default function TendersPage() {
   const { t } = useT();
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [createOpen, setCreateOpen] = useState(false);
   const tenders = useTenders();
+
+  // Resolve the current user's display name from the persisted store. Used
+  // to scope the "Мои" filter. Same hydration guard as <Header /> — the
+  // persisted auth state isn't available during SSR, so we read null until
+  // the client has mounted to avoid SSR/CSR mismatch.
+  const currentUserName = useStore(
+    (s) => s.users.find((u) => u.id === s.sessionUserId)?.name ?? null,
+  );
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const mineAuthor = hydrated ? currentUserName : null;
 
   const filtered = useMemo(() => {
     if (filter === "all") return tenders;
     if (filter === "mine") {
-      return tenders.filter((tender) => tender.authorName === MINE_AUTHOR);
+      if (!mineAuthor) return [];
+      return tenders.filter((tender) => tender.authorName === mineAuthor);
     }
     return tenders.filter((tender) => tender.tier === filter);
-  }, [filter, tenders]);
+  }, [filter, tenders, mineAuthor]);
 
   const [featured, ...rest] = filtered;
 
@@ -58,8 +72,6 @@ export default function TendersPage() {
         </p>
       </header>
 
-      <CreateTenderCta />
-
       <div className="flex flex-wrap items-center gap-2 mt-8 mb-6">
         {FILTER_KEYS.map((key) => {
           const active = filter === key;
@@ -81,6 +93,14 @@ export default function TendersPage() {
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="ml-auto inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-semibold bg-caspian-500 text-white hover:bg-caspian-600 transition-colors"
+        >
+          <Plus className="size-4" strokeWidth={2} />
+          {t("tenders.create.title")}
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -109,6 +129,15 @@ export default function TendersPage() {
           ) : null}
         </>
       )}
+
+      <div className="mt-12">
+        <CreateTenderCta />
+      </div>
+
+      <CreateTenderModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
     </main>
   );
 }

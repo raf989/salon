@@ -11,40 +11,10 @@ import { ProfileHero } from "@/components/provider/profile-hero";
 import { Reviews } from "@/components/provider/reviews";
 import { StickyBooking } from "@/components/provider/sticky-booking";
 import { useT } from "@/lib/i18n";
-import { useAppointments, useProviderWithStatus } from "@/lib/api/repo";
+import { useAppointments, useProviderBySlugWithStatus } from "@/lib/api/repo";
+import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
 import { KIND_PLURAL, type Provider } from "@/lib/types";
 import { getTodayISO } from "@/lib/utils";
-
-const SLOT_MIN = 30;
-
-function toMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function fromMinutes(total: number): string {
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${h < 10 ? `0${h}` : h}:${m < 10 ? `0${m}` : m}`;
-}
-
-function generateSlots(start: string, end: string): string[] {
-  const slots: string[] = [];
-  const startMin = toMinutes(start);
-  const endMin = toMinutes(end);
-  for (let t = startMin; t + SLOT_MIN <= endMin; t += SLOT_MIN) {
-    slots.push(fromMinutes(t));
-  }
-  return slots;
-}
-
-function isInBreak(
-  time: string,
-  breaks: { start: string; end: string }[],
-): boolean {
-  const t = toMinutes(time);
-  return breaks.some((b) => t >= toMinutes(b.start) && t < toMinutes(b.end));
-}
 
 export default function ProviderPage({
   params,
@@ -57,9 +27,15 @@ export default function ProviderPage({
 
 function ProviderPageInner({ id }: { id: string }) {
   const { t, pickLocalized } = useT();
-  const { provider, loaded } = useProviderWithStatus(id);
+  // The folder is still [id] for URL stability, but the value is treated as
+  // a slug — UUIDs aren't shareable.
+  const { provider, loaded } = useProviderBySlugWithStatus(id);
   const [booking, setBooking] = useState<Provider | null>(null);
-  const appointments = useAppointments({ stylistId: id });
+  // Appointments need the real provider id; derive it once provider resolves.
+  const apptId = provider?.id;
+  const appointments = useAppointments(
+    apptId ? { stylistId: apptId } : undefined,
+  );
   const todayISO = getTodayISO();
 
   const availableToday = useMemo<boolean>(() => {

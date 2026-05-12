@@ -54,9 +54,16 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   const [breaks, setBreaks] = useState<Break[]>(me.breaks);
   const [newBreakStart, setNewBreakStart] = useState<string>("");
   const [newBreakEnd, setNewBreakEnd] = useState<string>("");
-  const [activeDays, setActiveDays] = useState<boolean[]>(() =>
-    Array.from({ length: 7 }, () => true),
-  );
+  // `me.activeDays` is an array of weekday-dict indices (0=Sun..6=Sat) the
+  // provider is active on. Absent / undefined means "all days active" so the
+  // toggle row defaults to fully on.
+  const [activeDays, setActiveDays] = useState<boolean[]>(() => {
+    if (me.activeDays === undefined) {
+      return Array.from({ length: 7 }, () => true);
+    }
+    const set = new Set(me.activeDays);
+    return WEEKDAY_DICT_INDICES.map((dictIdx) => set.has(dictIdx));
+  });
   const [city, setCity] = useState<string>(initialCity);
   const [address, setAddress] = useState<string>(initialAddress);
 
@@ -69,6 +76,12 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
     setBreaks(me.breaks);
     setCity(me.city ? pickLocalized(me.city) : "");
     setAddress(me.district ? pickLocalized(me.district) : "");
+    if (me.activeDays === undefined) {
+      setActiveDays(Array.from({ length: 7 }, () => true));
+    } else {
+      const set = new Set(me.activeDays);
+      setActiveDays(WEEKDAY_DICT_INDICES.map((dictIdx) => set.has(dictIdx)));
+    }
   }, [me, isEditing, pickLocalized]);
 
   useEffect(() => {
@@ -77,12 +90,25 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
     return () => window.clearTimeout(timer);
   }, [savedAt]);
 
+  // Snapshot of the saved active-days as a boolean[7] in visible-row order so
+  // the dirty check can do a positional compare.
+  const savedActiveDays = useMemo<boolean[]>(() => {
+    if (me.activeDays === undefined) {
+      return Array.from({ length: 7 }, () => true);
+    }
+    const set = new Set(me.activeDays);
+    return WEEKDAY_DICT_INDICES.map((dictIdx) => set.has(dictIdx));
+  }, [me.activeDays]);
+
   const isDirty = useMemo(() => {
     if (start !== me.workingHours.start) return true;
     if (end !== me.workingHours.end) return true;
     if (!breaksEqual(breaks, me.breaks)) return true;
     if (city.trim() !== initialCity) return true;
     if (address.trim() !== initialAddress) return true;
+    for (let i = 0; i < 7; i++) {
+      if (activeDays[i] !== savedActiveDays[i]) return true;
+    }
     return false;
   }, [
     start,
@@ -90,6 +116,8 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
     breaks,
     city,
     address,
+    activeDays,
+    savedActiveDays,
     me.workingHours.start,
     me.workingHours.end,
     me.breaks,
@@ -105,6 +133,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
     setBreaks(me.breaks);
     setCity(initialCity);
     setAddress(initialAddress);
+    setActiveDays(savedActiveDays);
     setNewBreakStart("");
     setNewBreakEnd("");
     setErrorMsg(null);
@@ -135,9 +164,17 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
     setErrorMsg(null);
     const trimmedCity = city.trim();
     const trimmedAddress = address.trim();
+    // Convert the visible-row boolean[7] back to an array of dict indices
+    // (0=Sun..6=Sat). Always pass the explicit array — null/undefined would
+    // mean "all days active" and we want to faithfully persist whatever the
+    // user toggled.
+    const activeDaysPayload = WEEKDAY_DICT_INDICES.filter(
+      (_, i) => activeDays[i],
+    );
     const payload = {
       workingHours: { start, end },
       breaks,
+      activeDays: activeDaysPayload,
       city: trimmedCity
         ? normalizeCity({ az: trimmedCity, ru: trimmedCity })
         : undefined,

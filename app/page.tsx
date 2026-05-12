@@ -1,13 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { SearchX } from "lucide-react";
 import { Hero } from "@/components/client/hero";
 import { ProviderRow } from "@/components/client/provider-row";
-import {
-  DEFAULT_FILTERS,
-  type Filters as FiltersValue,
-} from "@/components/client/filters";
 import {
   SearchFilters,
   SortDropdown,
@@ -19,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { ALL_CITIES_ID, getCityById, getCityIdByName } from "@/lib/cities";
 import { useStore } from "@/lib/store";
 import { useAppointments, useProviders, useServices } from "@/lib/api/repo";
+import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
 import { getTodayISO } from "@/lib/utils";
 import type {
   Localized,
@@ -28,7 +26,22 @@ import type {
 } from "@/lib/types";
 import { useT } from "@/lib/i18n";
 
-const SLOT_MIN = 30;
+type FiltersValue = { search: string };
+const DEFAULT_FILTERS: FiltersValue = { search: "" };
+
+const VALID_KINDS: ReadonlySet<ProviderKind> = new Set<ProviderKind>([
+  "photographer",
+  "dj",
+  "restaurant",
+  "host",
+  "barber",
+  "salon",
+  "makeup",
+]);
+
+function isProviderKind(v: string | null): v is ProviderKind {
+  return v !== null && VALID_KINDS.has(v as ProviderKind);
+}
 
 function minServicePrice(p: Provider, services: Service[]): number {
   let min = Number.POSITIVE_INFINITY;
@@ -81,42 +94,26 @@ function applySearchFilters(
   });
 }
 
-function toMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function fromMinutes(total: number): string {
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${h < 10 ? `0${h}` : h}:${m < 10 ? `0${m}` : m}`;
-}
-
-function generateSlots(start: string, end: string): string[] {
-  const slots: string[] = [];
-  const startMin = toMinutes(start);
-  const endMin = toMinutes(end);
-  for (let t = startMin; t + SLOT_MIN <= endMin; t += SLOT_MIN) {
-    slots.push(fromMinutes(t));
-  }
-  return slots;
-}
-
-function isInBreak(
-  time: string,
-  breaks: { start: string; end: string }[],
-): boolean {
-  const t = toMinutes(time);
-  return breaks.some((b) => t >= toMinutes(b.start) && t < toMinutes(b.end));
-}
-
 export default function HomePage() {
   const { pickLocalized, lang } = useT();
+  const searchParams = useSearchParams();
+  // Initialise the kind filter from `?kind=` (e.g. the breadcrumb on the
+  // provider page deep-links here). Read-only — typing a new filter doesn't
+  // push back to the URL.
+  const initialKind = (() => {
+    const raw = searchParams?.get("kind") ?? null;
+    return isProviderKind(raw) ? raw : null;
+  })();
   const [filters, setFilters] = useState<FiltersValue>(DEFAULT_FILTERS);
-  const [kindFilter, setKindFilter] = useState<ProviderKind | null>(null);
+  const [kindFilter, setKindFilter] = useState<ProviderKind | null>(initialKind);
   const [booking, setBooking] = useState<Provider | null>(null);
   const cityId = useStore((s) => s.cityId);
   const setCityId = useStore((s) => s.setCityId);
+  // TODO: this fetches every appointment for every provider just so we can
+  // compute today's availability badge per card (n+1-ish — actually 1 query
+  // for all rows). AppointmentsQuery currently only accepts
+  // { stylistId, clientName }; once a `date` filter is added in
+  // lib/api/repo.ts, narrow this to `{ date: todayISO }`.
   const appointments = useAppointments();
   const providers = useProviders();
   const services = useServices();

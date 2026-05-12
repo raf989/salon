@@ -23,8 +23,16 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vaxt — Premium görüş platforması",
-  description: "Şəhərinizin ən yaxşı stilistləri ilə görüş təyin edin.",
+  title: {
+    default: "Vaxt — uyğun vaxtı seç, sürətli rezerv et",
+    template: "%s · Vaxt",
+  },
+  description:
+    "Fotoqraflar, DJ-lər, restoranlar, barberlər və salonlar. Bir klik — və birbaşa WhatsApp-da yazırsan.",
+  openGraph: {
+    siteName: "Vaxt",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

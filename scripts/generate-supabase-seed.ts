@@ -71,7 +71,7 @@ lines.push("");
 lines.push("-- providers ----------------------------------------------------------");
 lines.push(
   `insert into providers (
-    id, name, bio, rating, reviews_count, specialties, price_range,
+    id, slug, name, bio, rating, reviews_count, specialties, price_range,
     service_ids, working_hours, breaks, city, kind, tier,
     price_unit, response_mins, experience_years, district, gallery, avatar, verified
   ) values`,
@@ -80,6 +80,7 @@ lines.push(
   PROVIDERS.map((p) =>
     row([
       p.id,
+      p.slug,
       p.name,
       p.bio,
       p.rating,

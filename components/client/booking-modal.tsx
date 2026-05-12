@@ -23,6 +23,7 @@ import {
   useAppointments,
   useServices,
 } from "@/lib/api/repo";
+import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
 import {
   cn,
   formatDate,
@@ -47,7 +48,6 @@ type Props = {
 
 type Step = "select" | "success";
 
-const SLOT_MIN = 30;
 const VISIBLE_WINDOW_DAYS = 60;
 
 const CATEGORY_ICONS: Partial<Record<ServiceCategory, typeof Scissors>> = {
@@ -56,35 +56,6 @@ const CATEGORY_ICONS: Partial<Record<ServiceCategory, typeof Scissors>> = {
   coloring: Palette,
   styling: Wind,
 };
-
-function toMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function fromMinutes(total: number): string {
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${h < 10 ? `0${h}` : h}:${m < 10 ? `0${m}` : m}`;
-}
-
-function generateSlots(start: string, end: string): string[] {
-  const slots: string[] = [];
-  const startMin = toMinutes(start);
-  const endMin = toMinutes(end);
-  for (let t = startMin; t + SLOT_MIN <= endMin; t += SLOT_MIN) {
-    slots.push(fromMinutes(t));
-  }
-  return slots;
-}
-
-function isInBreak(
-  time: string,
-  breaks: { start: string; end: string }[],
-): boolean {
-  const t = toMinutes(time);
-  return breaks.some((b) => t >= toMinutes(b.start) && t < toMinutes(b.end));
-}
 
 export function BookingModal({ stylist, open, onClose }: Props) {
   return (
@@ -127,6 +98,10 @@ function BookingFlow({
   );
   const [clientName, setClientName] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
+  // Surface backend failures from createAppointment so the user isn't stuck
+  // watching the button read "Подтверждаем…" forever after e.g. a network
+  // drop or RLS denial. Cleared whenever the user changes any selection.
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const selectedService =
     services.find((s) => s.id === selectedServiceId) ?? null;
@@ -179,9 +154,13 @@ function BookingFlow({
     selectedServiceId !== null &&
     clientName.trim().length > 0;
 
+  const errorLabel =
+    lang === "ru" ? "Не получилось сохранить" : "Yadda saxlaya bilmədik";
+
   const handleConfirm = async () => {
     if (!ready || !selectedTime || !selectedServiceId || submitting) return;
     setSubmitting(true);
+    setErrorMsg(null);
     try {
       await createAppointment({
         stylistId: stylist.id,
@@ -191,9 +170,21 @@ function BookingFlow({
         time: selectedTime,
       });
       setStep("success");
-    } finally {
+    } catch (err) {
+      // Don't advance to success on failure — show inline error and let the
+      // user retry. The optional-chained `.message` keeps us safe against
+      // non-Error throws (Supabase sometimes throws plain objects).
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : "";
+      setErrorMsg(message ? `${errorLabel}: ${message}` : errorLabel);
       setSubmitting(false);
+      return;
     }
+    setSubmitting(false);
   };
 
   if (step === "success") {
@@ -330,25 +321,35 @@ function BookingFlow({
       </div>
 
       {/* Footer bar */}
-      <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-5">
-        {summary ? (
-          <span className="font-mono text-sm text-ink-600 truncate">
-            {summary}
-          </span>
-        ) : (
-          <span className="text-sm text-ink-400">
-            {t("booking.pickPrompt")}
-          </span>
-        )}
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={handleConfirm}
-          disabled={!ready || submitting}
-          aria-label={t("booking.confirm")}
-        >
-          {submitting ? t("booking.confirming") : t("booking.confirm")}
-        </Button>
+      <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5">
+        {errorMsg ? (
+          <p
+            role="alert"
+            className="text-sm font-medium text-danger-500"
+          >
+            {errorMsg}
+          </p>
+        ) : null}
+        <div className="flex items-center justify-between gap-4">
+          {summary ? (
+            <span className="font-mono text-sm text-ink-600 truncate">
+              {summary}
+            </span>
+          ) : (
+            <span className="text-sm text-ink-400">
+              {t("booking.pickPrompt")}
+            </span>
+          )}
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={handleConfirm}
+            disabled={!ready || submitting}
+            aria-label={t("booking.confirm")}
+          >
+            {submitting ? t("booking.confirming") : t("booking.confirm")}
+          </Button>
+        </div>
       </div>
     </div>
   );

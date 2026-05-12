@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useT, type DictKey } from "@/lib/i18n";
 import { formatDate, formatPrice } from "@/lib/utils";
 import type { Tender } from "@/lib/types";
+import { SubmitBidModal } from "@/components/tenders/submit-bid-modal";
 
 type Props = { tender: Tender };
 
@@ -13,6 +15,7 @@ const MAX_TAGS = 3;
 
 export function TenderCardCompact({ tender }: Props) {
   const { t, lang, pickLocalized } = useT();
+  const [bidOpen, setBidOpen] = useState(false);
 
   const tierKey = `tier.${tender.tier}` as DictKey;
   const bidsLabel = t("tenders.bidsCount").replace(
@@ -60,9 +63,19 @@ export function TenderCardCompact({ tender }: Props) {
         ))}
       </div>
 
-      <Button variant="outline" size="sm" className="w-full mt-2">
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full mt-2"
+        onClick={() => setBidOpen(true)}
+      >
         {t("tenders.action.bid")}
       </Button>
+      <SubmitBidModal
+        tender={tender}
+        open={bidOpen}
+        onClose={() => setBidOpen(false)}
+      />
     </Card>
   );
 }

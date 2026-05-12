@@ -113,6 +113,7 @@ function useAsyncWithStatus<T>(
 
 type ProviderRow = {
   id: string;
+  slug: string;
   name: string;
   bio: { az: string; ru: string };
   rating: number;
@@ -145,8 +146,10 @@ type ProviderEditRow = {
   avatar: string | null;
   working_hours: { start: string; end: string } | null;
   breaks: { start: string; end: string }[] | null;
+  active_days: number[] | null;
   phones: string[] | null;
   whatsapp: string | null;
+  telegram: string | null;
   instagram: string | null;
   tiktok: string | null;
   manual_status: "open" | "closed" | "break" | null;
@@ -155,6 +158,7 @@ type ProviderEditRow = {
 function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
   const base: Provider = {
     id: row.id,
+    slug: row.slug,
     name: row.name,
     bio: row.bio,
     rating: Number(row.rating),
@@ -187,8 +191,10 @@ function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
     avatar: edit.avatar ?? base.avatar,
     workingHours: edit.working_hours ?? base.workingHours,
     breaks: edit.breaks ?? base.breaks,
+    activeDays: edit.active_days ?? base.activeDays,
     phones: edit.phones ?? base.phones,
     whatsapp: edit.whatsapp ?? base.whatsapp,
+    telegram: edit.telegram ?? base.telegram,
     instagram: edit.instagram ?? base.instagram,
     tiktok: edit.tiktok ?? base.tiktok,
     manualStatus: edit.manual_status ?? base.manualStatus,
@@ -433,6 +439,44 @@ export async function getProvider(id: string): Promise<Provider | null> {
   );
 }
 
+export async function getProviderBySlug(
+  slug: string,
+): Promise<Provider | null> {
+  const pRes = await supabase
+    .from("providers")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (pRes.error) throw asError(pRes.error, "getProviderBySlug");
+  if (!pRes.data) return null;
+  const provider = pRes.data as ProviderRow;
+  const eRes = await supabase
+    .from("provider_edits")
+    .select("*")
+    .eq("provider_id", provider.id)
+    .maybeSingle();
+  if (eRes.error) throw asError(eRes.error, "getProviderBySlug:edit");
+  return rowToProvider(
+    provider,
+    (eRes.data as ProviderEditRow | null) ?? undefined,
+  );
+}
+
+// Same as useProviderWithStatus, but queries by slug instead of id.
+// Pretty-URL provider pages route through this so /provider/<slug> can be
+// resolved without first knowing the underlying uuid.
+export function useProviderBySlugWithStatus(
+  slug: string | undefined,
+): { provider: Provider | null; loaded: boolean } {
+  const v = useVersion("providers") + useVersion("providerEdits");
+  const fetcher = useCallback(async () => {
+    if (!slug) return null;
+    return getProviderBySlug(slug);
+  }, [slug]);
+  const { data, loaded } = useAsyncWithStatus(fetcher, [slug, v], null);
+  return { provider: data, loaded };
+}
+
 /**
  * Subscribe to any change on `provider_edits` and bump the local cache so
  * dependent hooks (`useProvider`, `useProviders`) refetch. Mount this in
@@ -460,46 +504,53 @@ export async function updateProvider(
   id: string,
   patch: ProviderEditPatch,
 ): Promise<Provider> {
-  // Pull the current overlay so a partial patch from one screen doesn't
-  // clobber fields that another screen owns.
-  const existingRes = await supabase
+  // Build a column-level patch containing ONLY the keys the caller actually
+  // sent. `undefined` means "don't touch"; `null` is forwarded verbatim and
+  // explicitly clears the column. This makes concurrent writes from disjoint
+  // screens (e.g. StatusControl + AvailabilityManager) safe at the row level:
+  // Postgres serializes the UPDATE but each call only touches its own columns.
+  const patchRow: Record<string, unknown> = {};
+  if (patch.name !== undefined) patchRow.name = patch.name;
+  if (patch.bio !== undefined) patchRow.bio = patch.bio;
+  if (patch.city !== undefined) patchRow.city = patch.city;
+  if (patch.district !== undefined) patchRow.district = patch.district;
+  if (patch.experienceYears !== undefined)
+    patchRow.experience_years = patch.experienceYears;
+  if (patch.gallery !== undefined) patchRow.gallery = patch.gallery;
+  if (patch.avatar !== undefined) patchRow.avatar = patch.avatar;
+  if (patch.workingHours !== undefined)
+    patchRow.working_hours = patch.workingHours;
+  if (patch.breaks !== undefined) patchRow.breaks = patch.breaks;
+  if (patch.activeDays !== undefined) patchRow.active_days = patch.activeDays;
+  if (patch.phones !== undefined) patchRow.phones = patch.phones;
+  if (patch.whatsapp !== undefined) patchRow.whatsapp = patch.whatsapp;
+  if (patch.telegram !== undefined) patchRow.telegram = patch.telegram;
+  if (patch.instagram !== undefined) patchRow.instagram = patch.instagram;
+  if (patch.tiktok !== undefined) patchRow.tiktok = patch.tiktok;
+  if (patch.manualStatus !== undefined)
+    patchRow.manual_status = patch.manualStatus;
+  patchRow.updated_at = new Date().toISOString();
+
+  // Try to UPDATE the existing overlay first. If a row exists this is atomic
+  // — only the columns in patchRow are written, every other column keeps its
+  // current value regardless of what a concurrent writer is doing.
+  const updateRes = await supabase
     .from("provider_edits")
-    .select("*")
+    .update(patchRow)
     .eq("provider_id", id)
-    .maybeSingle();
-  if (existingRes.error) throw asError(existingRes.error, "updateProvider:read");
-  const existing = (existingRes.data as ProviderEditRow | null) ?? null;
+    .select();
+  if (updateRes.error) throw asError(updateRes.error, "updateProvider:update");
 
-  // `patch.X === undefined` means "don't touch this field".
-  // `patch.X === null` means "explicitly clear it" (needed for socials).
-  // Anything else is the new value.
-  const keep = <T,>(
-    patchVal: T | null | undefined,
-    existingVal: T | null | undefined,
-  ): T | null => (patchVal === undefined ? (existingVal ?? null) : patchVal);
+  // No row updated → overlay doesn't exist yet. Insert a fresh one with just
+  // the provider_id plus the supplied patch columns. Any unspecified column
+  // stays NULL, which rowToProvider() reads as "fall back to base".
+  if (!updateRes.data || updateRes.data.length === 0) {
+    const insertRes = await supabase
+      .from("provider_edits")
+      .insert({ provider_id: id, ...patchRow });
+    if (insertRes.error) throw asError(insertRes.error, "updateProvider:insert");
+  }
 
-  const row = {
-    provider_id: id,
-    name: keep(patch.name, existing?.name),
-    bio: keep(patch.bio, existing?.bio),
-    city: keep(patch.city, existing?.city),
-    district: keep(patch.district, existing?.district),
-    experience_years: keep(patch.experienceYears, existing?.experience_years),
-    gallery: keep(patch.gallery, existing?.gallery),
-    avatar: keep(patch.avatar, existing?.avatar),
-    working_hours: keep(patch.workingHours, existing?.working_hours),
-    breaks: keep(patch.breaks, existing?.breaks),
-    phones: keep(patch.phones, existing?.phones),
-    whatsapp: keep(patch.whatsapp, existing?.whatsapp),
-    instagram: keep(patch.instagram, existing?.instagram),
-    tiktok: keep(patch.tiktok, existing?.tiktok),
-    manual_status: keep(patch.manualStatus, existing?.manual_status),
-    updated_at: new Date().toISOString(),
-  };
-  const { error } = await supabase
-    .from("provider_edits")
-    .upsert(row, { onConflict: "provider_id" });
-  if (error) throw asError(error, "updateProvider:upsert");
   useVersions.getState().bump("providerEdits");
   const updated = await getProvider(id);
   if (!updated) throw new Error(`Provider not found after update: ${id}`);

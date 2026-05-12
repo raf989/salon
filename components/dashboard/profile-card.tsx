@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode, SVGProps } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -14,6 +14,11 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  InstagramIcon,
+  TelegramIcon,
+  TikTokIcon,
+} from "@/components/ui/social-icons";
 import { StatusControl } from "@/components/dashboard/status-control";
 import { useProviderEditsRealtime } from "@/lib/api/repo";
 import { useT } from "@/lib/i18n";
@@ -24,65 +29,42 @@ export type ProfileCardProps = {
   me: Stylist;
 };
 
-type ChannelKind = "phone" | "whatsapp" | "instagram" | "tiktok";
+type ChannelKind =
+  | "phone"
+  | "whatsapp"
+  | "telegram"
+  | "instagram"
+  | "tiktok";
 type ContactItem = { kind: ChannelKind; value: string };
 type ContactRow = [ContactItem | null, ContactItem | null];
 
 /**
- * Pairing rules:
- *  3 phones → [P1, WA] / [P2, IG] / [P3, TT]
- *  2 phones → [P1, IG] / [P2, TT] / [WA, _]
- *  1 phone  → [P1, IG] / [WA, TT]
- *  0 phones → vertical stack of whatever socials exist.
- *
- * Empty socials leave their cell blank — the inner 2-col grid keeps the
- * layout aligned.
+ * Build a flat list of all contact items in a stable order
+ *   phones (up to 3) → whatsapp → telegram → instagram → tiktok
+ * then fold into rows of two. Empty socials are simply omitted; the inner
+ * 2-col grid keeps cells aligned even if the last row is half-empty.
  */
 function buildContactRows(
   phones: string[],
   whatsapp?: string,
+  telegram?: string,
   instagram?: string,
   tiktok?: string,
 ): ContactRow[] {
-  const cleanPhones = phones.filter((p) => p && p.trim());
-  const phoneItem = (i: number): ContactItem | null =>
-    cleanPhones[i] ? { kind: "phone", value: cleanPhones[i] } : null;
-  const wa: ContactItem | null = whatsapp
-    ? { kind: "whatsapp", value: whatsapp }
-    : null;
-  const ig: ContactItem | null = instagram
-    ? { kind: "instagram", value: instagram }
-    : null;
-  const tt: ContactItem | null = tiktok
-    ? { kind: "tiktok", value: tiktok }
-    : null;
+  const cells: ContactItem[] = [];
+  phones
+    .filter((p) => p && p.trim())
+    .slice(0, 3)
+    .forEach((p) => cells.push({ kind: "phone", value: p }));
+  if (whatsapp) cells.push({ kind: "whatsapp", value: whatsapp });
+  if (telegram) cells.push({ kind: "telegram", value: telegram });
+  if (instagram) cells.push({ kind: "instagram", value: instagram });
+  if (tiktok) cells.push({ kind: "tiktok", value: tiktok });
 
-  const n = cleanPhones.length;
-
-  if (n >= 3) {
-    return [
-      [phoneItem(0), wa],
-      [phoneItem(1), ig],
-      [phoneItem(2), tt],
-    ];
-  }
-  if (n === 2) {
-    const rows: ContactRow[] = [
-      [phoneItem(0), ig],
-      [phoneItem(1), tt],
-    ];
-    if (wa) rows.push([wa, null]);
-    return rows;
-  }
-  if (n === 1) {
-    const rows: ContactRow[] = [[phoneItem(0), ig]];
-    if (wa || tt) rows.push([wa, tt]);
-    return rows;
-  }
   const rows: ContactRow[] = [];
-  if (wa) rows.push([wa, null]);
-  if (ig) rows.push([ig, null]);
-  if (tt) rows.push([tt, null]);
+  for (let i = 0; i < cells.length; i += 2) {
+    rows.push([cells[i] ?? null, cells[i + 1] ?? null]);
+  }
   return rows;
 }
 
@@ -107,9 +89,16 @@ export function ProfileCard({ me }: ProfileCardProps) {
     .join(" · ");
   const verifiedLabel = lang === "ru" ? "Подтверждён" : "Doğrulandı";
 
+  // Telegram falls back to a phone-based deep link when the provider hasn't
+  // set a username — the link still opens a chat as long as that number is
+  // registered with Telegram.
+  const telegramValue =
+    me.telegram || me.whatsapp || me.phones?.[0] || undefined;
+
   const rows = buildContactRows(
     me.phones ?? [],
     me.whatsapp,
+    telegramValue,
     me.instagram,
     me.tiktok,
   );
@@ -253,6 +242,8 @@ function hrefForItem(item: ContactItem): string | null {
   switch (item.kind) {
     case "whatsapp":
       return whatsappUrl(item.value);
+    case "telegram":
+      return telegramUrl(item.value);
     case "instagram":
       return instagramUrl(item.value);
     case "tiktok":
@@ -261,6 +252,21 @@ function hrefForItem(item: ContactItem): string | null {
       // Phones stay non-clickable — change to `tel:` if it ever needs to dial.
       return null;
   }
+}
+
+function telegramUrl(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  // Phone-style input (starts with `+` or contains 10+ digits) becomes a
+  // phone-deeplink so the link still works for users without a public handle.
+  const digits = raw.replace(/\D/g, "");
+  if (raw.startsWith("+") || digits.length >= 10) {
+    return digits ? `https://t.me/+${digits}` : null;
+  }
+  const user = stripHandle(raw)
+    .replace(/^https?:\/\/(www\.)?t\.me\//i, "")
+    .replace(/\/+$/, "");
+  return user ? `https://t.me/${encodeURIComponent(user)}` : null;
 }
 
 function instagramUrl(handle: string): string | null {
@@ -292,6 +298,8 @@ function iconForKind(kind: ChannelKind): ReactNode {
       return <Phone className="size-3.5" />;
     case "whatsapp":
       return <MessageCircle className="size-3.5" />;
+    case "telegram":
+      return <TelegramIcon />;
     case "instagram":
       return <InstagramIcon />;
     case "tiktok":
@@ -299,36 +307,3 @@ function iconForKind(kind: ChannelKind): ReactNode {
   }
 }
 
-function InstagramIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-3.5"
-      aria-hidden
-      {...props}
-    >
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function TikTokIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="size-3.5"
-      aria-hidden
-      {...props}
-    >
-      <path d="M19.6 7.7a5.7 5.7 0 0 1-3.7-1.4 5.6 5.6 0 0 1-1.8-3.1h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V10a5.6 5.6 0 0 0-.8-.1 5.6 5.6 0 1 0 5.6 5.6V9.4a8.6 8.6 0 0 0 5.5 1.9V8.4c-0.3 0-.7-.1-1 .1V7.7Z" />
-    </svg>
-  );
-}

@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/crumbs";
 import { GalleryUploader } from "@/components/dashboard/gallery-uploader";
+import { TelegramIcon as SharedTelegramIcon } from "@/components/ui/social-icons";
 import { updateProvider, useProvider, useProviders } from "@/lib/api/repo";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -80,7 +81,8 @@ function ProfileEditor({ me }: { me: Stylist }) {
   const updateCurrentUser = useStore((s) => s.updateCurrentUser);
   const initialName = authUser?.name?.trim() ?? "";
   const [name, setName] = useState<string>(initialName);
-  const [bio, setBio] = useState<string>(me.bio[lang] ?? "");
+  const [bioAz, setBioAz] = useState<string>(me.bio?.az ?? "");
+  const [bioRu, setBioRu] = useState<string>(me.bio?.ru ?? "");
   const [years, setYears] = useState<string>(
     me.experienceYears !== undefined ? String(me.experienceYears) : "",
   );
@@ -95,6 +97,7 @@ function ProfileEditor({ me }: { me: Stylist }) {
   const [whatsapp, setWhatsapp] = useState<string>(
     stripCountryCodeAndFormat(me.whatsapp),
   );
+  const [telegram, setTelegram] = useState<string>(me.telegram ?? "");
   const [instagram, setInstagram] = useState<string>(me.instagram ?? "");
   const [tiktok, setTiktok] = useState<string>(me.tiktok ?? "");
 
@@ -131,11 +134,11 @@ function ProfileEditor({ me }: { me: Stylist }) {
     setErrorMsg(null);
     try {
       const yearsNum = years.trim() ? Number(years) : undefined;
-      const bioVal = bio.trim();
       const cleanedPhones = phones
         .map((p) => composeE164(p))
         .filter((v): v is string => v !== null);
       const wa = composeE164(whatsapp);
+      const tg = telegram.trim() || null;
       const ig = instagram.trim() || null;
       const tt = tiktok.trim() || null;
 
@@ -147,13 +150,14 @@ function ProfileEditor({ me }: { me: Stylist }) {
       }
       await updateProvider(me.id, {
         name: trimmedName || undefined,
-        bio: { az: bioVal, ru: bioVal },
+        bio: { az: bioAz.trim(), ru: bioRu.trim() },
         experienceYears:
           yearsNum && !Number.isNaN(yearsNum) ? yearsNum : undefined,
         gallery,
         avatar,
         phones: cleanedPhones,
         whatsapp: wa,
+        telegram: tg,
         instagram: ig,
         tiktok: tt,
       });
@@ -271,13 +275,34 @@ function ProfileEditor({ me }: { me: Stylist }) {
           title={t("dash.profile.section.bio.title")}
           subtitle={t("dash.profile.section.bio.sub")}
         >
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder={t("dash.profile.bio.placeholder")}
-            rows={5}
-            className="w-full bg-surface border border-border-strong rounded-[10px] px-4 py-3 text-ink-800 placeholder:text-ink-400 hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] transition-colors resize-y leading-relaxed"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="block text-[11px] uppercase tracking-wider font-semibold text-ink-500 mb-1.5">
+                {t("dash.profile.lang.az")}
+              </span>
+              <textarea
+                value={bioAz}
+                onChange={(e) => setBioAz(e.target.value)}
+                placeholder={t("dash.profile.bio.placeholder")}
+                rows={5}
+                aria-label={t("dash.profile.lang.az")}
+                className="w-full bg-surface border border-border-strong rounded-[10px] px-4 py-3 text-ink-800 placeholder:text-ink-400 hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] transition-colors resize-y leading-relaxed"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-[11px] uppercase tracking-wider font-semibold text-ink-500 mb-1.5">
+                {t("dash.profile.lang.ru")}
+              </span>
+              <textarea
+                value={bioRu}
+                onChange={(e) => setBioRu(e.target.value)}
+                placeholder={t("dash.profile.bio.placeholder")}
+                rows={5}
+                aria-label={t("dash.profile.lang.ru")}
+                className="w-full bg-surface border border-border-strong rounded-[10px] px-4 py-3 text-ink-800 placeholder:text-ink-400 hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] transition-colors resize-y leading-relaxed"
+              />
+            </label>
+          </div>
         </Section>
 
         <Section
@@ -339,8 +364,14 @@ function ProfileEditor({ me }: { me: Stylist }) {
               <span aria-hidden className="size-11 shrink-0" />
             </div>
 
-            {/* RIGHT column — Instagram + TikTok */}
+            {/* RIGHT column — Telegram + Instagram + TikTok */}
             <div className="flex flex-col gap-2">
+              <Input
+                value={telegram}
+                onChange={(e) => setTelegram(e.target.value)}
+                placeholder="Telegram (@username)"
+                icon={<SharedTelegramIcon />}
+              />
               <Input
                 value={instagram}
                 onChange={(e) => setInstagram(e.target.value)}

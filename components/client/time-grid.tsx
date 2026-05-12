@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Check, Lock } from "lucide-react";
 import { useAppointments } from "@/lib/api/repo";
+import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
 import { cn, getTodayISO } from "@/lib/utils";
 import type { Stylist } from "@/lib/types";
 import { useT } from "@/lib/i18n";
@@ -13,37 +14,6 @@ type Props = {
   selectedTime: string | null;
   onSelect: (time: string) => void;
 };
-
-const SLOT_MIN = 30;
-
-function toMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function fromMinutes(total: number): string {
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${h < 10 ? `0${h}` : h}:${m < 10 ? `0${m}` : m}`;
-}
-
-function generateSlots(start: string, end: string): string[] {
-  const slots: string[] = [];
-  const startMin = toMinutes(start);
-  const endMin = toMinutes(end);
-  for (let t = startMin; t + SLOT_MIN <= endMin; t += SLOT_MIN) {
-    slots.push(fromMinutes(t));
-  }
-  return slots;
-}
-
-function isInBreak(
-  time: string,
-  breaks: { start: string; end: string }[],
-): boolean {
-  const t = toMinutes(time);
-  return breaks.some((b) => t >= toMinutes(b.start) && t < toMinutes(b.end));
-}
 
 export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
   const { t } = useT();

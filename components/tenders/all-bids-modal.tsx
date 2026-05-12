@@ -1,17 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, Star } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Star } from "lucide-react";
+import { Dialog } from "@/components/ui/dialog";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
-import { formatPrice, cn } from "@/lib/utils";
+import { useTender } from "@/lib/api/repo";
+import { cn, formatPrice } from "@/lib/utils";
 import type { Tender, TenderBid, TenderBidBadge } from "@/lib/types";
-import { AllBidsModal } from "@/components/tenders/all-bids-modal";
 
-type Props = { tender: Tender };
+type Props = {
+  tender: Tender;
+  open: boolean;
+  onClose: () => void;
+};
+
+// NOTE: repo doesn't expose useTenderBids — we resubscribe to the parent tender
+// (which cascades bid updates through the `tenders` resource version) and read
+// `.bids` off it. Falls back to the prop's snapshot if the live one drops.
+export function AllBidsModal({ tender, open, onClose }: Props) {
+  const { t } = useT();
+  const live = useTender(tender.id);
+  const bids = live?.bids ?? tender.bids;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("tenders.allBids.title")}
+      className="max-w-2xl"
+    >
+      <div className="max-h-[70vh] overflow-y-auto pr-1">
+        {bids.length === 0 ? (
+          <p className="text-ink-500 text-sm py-6 text-center">
+            {t("tenders.empty")}
+          </p>
+        ) : (
+          <div className="flex flex-col">
+            {bids.map((bid, i) => (
+              <BidRow key={bid.id} bid={bid} isFirst={i === 0} />
+            ))}
+          </div>
+        )}
+      </div>
+    </Dialog>
+  );
+}
 
 function BidBadge({
   kind,
@@ -22,16 +56,11 @@ function BidBadge({
   rating?: number;
   label: string;
 }) {
-  if (kind === "verified") {
-    return <Badge variant="verified">{label}</Badge>;
-  }
-  if (kind === "topEvent") {
-    return <Badge variant="event">{label}</Badge>;
-  }
+  if (kind === "verified") return <Badge variant="verified">{label}</Badge>;
+  if (kind === "topEvent") return <Badge variant="event">{label}</Badge>;
   if (kind === "fastResponse") {
     return <Badge variant="warning-soft">{label}</Badge>;
   }
-  // rating
   return (
     <Badge variant="success-soft">
       <Star className="size-3 fill-current" strokeWidth={0} />
@@ -83,47 +112,5 @@ function BidRow({ bid, isFirst }: { bid: TenderBid; isFirst: boolean }) {
         </div>
       </div>
     </div>
-  );
-}
-
-const VISIBLE_BIDS = 3;
-
-export function BidsPanel({ tender }: Props) {
-  const { t } = useT();
-  const [allOpen, setAllOpen] = useState(false);
-
-  const visible = tender.bids.slice(0, VISIBLE_BIDS);
-  const hasMore = tender.bids.length > VISIBLE_BIDS;
-
-  return (
-    <Card className="p-5 flex flex-col">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500">
-        {t("tenders.bidPanel.title")}
-      </div>
-
-      <div className="mt-3">
-        {visible.map((bid, i) => (
-          <BidRow key={bid.id} bid={bid} isFirst={i === 0} />
-        ))}
-      </div>
-
-      {hasMore ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full mt-4 justify-center"
-          onClick={() => setAllOpen(true)}
-        >
-          {t("tenders.action.viewAll")}
-          <ArrowRight className="size-4" strokeWidth={1.7} />
-        </Button>
-      ) : null}
-
-      <AllBidsModal
-        tender={tender}
-        open={allOpen}
-        onClose={() => setAllOpen(false)}
-      />
-    </Card>
   );
 }

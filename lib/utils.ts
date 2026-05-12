@@ -138,12 +138,9 @@ export function getProviderCoverInitials(
 ): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (kind === "dj") return "DJ";
-  if (kind === "restaurant") {
-    if (parts.length >= 2) {
-      const last = parts[parts.length - 1];
-      return `${last[0]}&C`.toUpperCase();
-    }
-  }
+  // Restaurants previously rendered "<lastInitial>&C" (e.g. "Ч&C") which read
+  // as visual noise. Fall through to the standard initials path so the cover
+  // shows real letters from the venue name instead.
   if (kind === "photographer" || kind === "host") {
     if (parts.length >= 2) {
       return `${parts[0][0]}.${parts[parts.length - 1][0]}.`.toUpperCase();

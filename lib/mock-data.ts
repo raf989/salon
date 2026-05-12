@@ -134,6 +134,7 @@ export const SERVICES: Service[] = [
 export const STYLISTS: Stylist[] = [
   {
     id: "u1",
+    slug: "elvin-memmedov",
     name: "Elvin Məmmədov",
     bio: {
       az: "10 ildən artıq təcrübəli kişi ustası. Klassik və müasir kəsimlərdə ixtisaslaşıb.",
@@ -163,6 +164,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u2",
+    slug: "aysel-huseynova",
     name: "Aysel Hüseynova",
     bio: {
       az: "Boyama və balayaj üzrə sertifikatlı master. Avropa məktəbinin məzunu.",
@@ -193,6 +195,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u3",
+    slug: "resad-quliyev",
     name: "Rəşad Quliyev",
     bio: {
       az: "Barber-shop sahibi. Saqqal forması və klassik briç ustası.",
@@ -215,6 +218,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u4",
+    slug: "lale-eliyeva",
     name: "Lalə Əliyeva",
     bio: {
       az: "Toy və xüsusi günlər üçün saç düzümü mütəxəssisi. Səbirli və diqqətli.",
@@ -237,6 +241,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u5",
+    slug: "tural-bayramov",
     name: "Tural Bayramov",
     bio: {
       az: "Sürətli, sərfəli və keyfiyyətli xidmət. Uşaq kəsimlərində yaxşı.",
@@ -259,6 +264,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u6",
+    slug: "nigar-rehimova",
     name: "Nigar Rəhimova",
     bio: {
       az: "Keratin və düzləşdirmə prosedurları üzrə peşəkar. Yumşaq və təbii nəticə.",
@@ -282,6 +288,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u7",
+    slug: "cavid-ismayilov",
     name: "Cavid İsmayılov",
     bio: {
       az: "Müasir trendləri izləyən gənc barber. Fade və texturalı kəsimlərdə güclü.",
@@ -304,6 +311,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u8",
+    slug: "sebine-kerimova",
     name: "Səbinə Kərimova",
     bio: {
       az: "Boyama studiyasının baş ustası. Rəng nəzəriyyəsində dərin biliklər.",
@@ -327,6 +335,7 @@ export const STYLISTS: Stylist[] = [
   // Event-tier providers
   {
     id: "u9",
+    slug: "aysel-kerimova",
     name: "Aysel Kərimova",
     bio: {
       az: "Toy və lovestory çəkilişlərində ixtisaslaşmış fotoqraf. 7 il təcrübə.",
@@ -357,6 +366,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u10",
+    slug: "rauf-veliyev",
     name: "Rauf Vəliyev",
     bio: {
       az: "Toy aparıcısı. Azərbaycan və rus dillərində aparır. 8 il təcrübə.",
@@ -385,6 +395,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u11",
+    slug: "dj-nihad",
     name: "DJ Nihad",
     bio: {
       az: "Toy və korporativ tədbirlər üçün DJ. House, deep, milli mahnılar.",
@@ -414,6 +425,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u12",
+    slug: "restoran-cinar",
     name: "Restoran Çinar",
     bio: {
       az: "Banket zalı. 250 qonağa qədər. Milli və Avropa mətbəxi.",
@@ -444,6 +456,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u13",
+    slug: "senan-quliyev",
     name: "Sənan Quliyev",
     bio: {
       az: "Event və ailə çəkilişləri. Reportaj fotoqrafı.",
@@ -472,6 +485,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u14",
+    slug: "dj-aytac",
     name: "DJ Aytac",
     bio: {
       az: "Private və korporativ tədbirlər. Deep, techno və retro setlər.",
@@ -500,6 +514,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u15",
+    slug: "restoran-sirvansah",
     name: "Restoran Şirvanşah",
     bio: {
       az: "Premium banket zalı. 400 qonağa qədər. VIP xidmət.",
@@ -531,6 +546,7 @@ export const STYLISTS: Stylist[] = [
   },
   {
     id: "u16",
+    slug: "rauf-aslanov",
     name: "Rauf Aslanov",
     bio: {
       az: "Toy və korporativ tədbirlərin aparıcısı. Yumoristik üslub.",

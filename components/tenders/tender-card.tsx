@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bookmark, MapPin } from "lucide-react";
 import { useT, type DictKey } from "@/lib/i18n";
@@ -7,6 +8,7 @@ import type { Tender } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice, getTodayISO } from "@/lib/utils";
+import { SubmitBidModal } from "@/components/tenders/submit-bid-modal";
 
 type Props = { tender: Tender };
 
@@ -36,6 +38,7 @@ function computeMinutesAgo(openedAt: string, id: string): number {
 
 export function TenderCard({ tender }: Props) {
   const { t, pickLocalized } = useT();
+  const [bidOpen, setBidOpen] = useState(false);
 
   const tierKey = `tier.${tender.tier}` as DictKey;
   const tierBadge = `${t("tenders.tenderBadge")} · ${t(tierKey)}`;
@@ -99,7 +102,11 @@ export function TenderCard({ tender }: Props) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mt-6">
-          <Button variant="primary" size="lg">
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => setBidOpen(true)}
+          >
             {t("tenders.action.bid")}
           </Button>
           <Button variant="outline">
@@ -108,6 +115,11 @@ export function TenderCard({ tender }: Props) {
           </Button>
         </div>
       </div>
+      <SubmitBidModal
+        tender={tender}
+        open={bidOpen}
+        onClose={() => setBidOpen(false)}
+      />
     </motion.div>
   );
 }

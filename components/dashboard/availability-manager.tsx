@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { updateProvider } from "@/lib/api/repo";
+import { normalizeCity } from "@/lib/cities";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { Stylist } from "@/lib/types";
@@ -137,7 +138,9 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
     const payload = {
       workingHours: { start, end },
       breaks,
-      city: trimmedCity ? { az: trimmedCity, ru: trimmedCity } : undefined,
+      city: trimmedCity
+        ? normalizeCity({ az: trimmedCity, ru: trimmedCity })
+        : undefined,
       district: trimmedAddress
         ? { az: trimmedAddress, ru: trimmedAddress }
         : undefined,

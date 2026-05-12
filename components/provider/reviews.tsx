@@ -64,8 +64,11 @@ export function Reviews({ provider }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
     >
-      <h2 className="font-display font-semibold text-xl text-ink-800 mb-3">
+      <h2 className="font-display font-semibold text-xl text-ink-800 mb-3 flex items-baseline gap-2">
         {t("section.reviews")}
+        <span className="font-sans font-medium text-base text-ink-400">
+          {provider.reviewsCount}
+        </span>
       </h2>
 
       <div className="flex flex-col">

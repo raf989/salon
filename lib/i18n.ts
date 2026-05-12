@@ -303,7 +303,7 @@ export const DICT = {
   "section.discoverDemand": { az: "Tələb analitikası", ru: "Аналитика спроса" },
   "section.about": { az: "Mənim haqqımda", ru: "О себе" },
   "section.priceList": { az: "Qiymət siyahısı", ru: "Прайс" },
-  "section.reviews": { az: "Rəylər 2.0", ru: "Отзывы 2.0" },
+  "section.reviews": { az: "Rəylər", ru: "Отзывы" },
 
   // tier badges
   "tier.event": { az: "Tədbir", ru: "Мероприятия" },

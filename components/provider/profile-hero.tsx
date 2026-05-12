@@ -72,10 +72,6 @@ export function ProfileHero({ provider, availableToday }: Props) {
             ·
           </span>
           <span>{reviewsText}</span>
-          <span aria-hidden className="text-ink-300">
-            ·
-          </span>
-          <span>{t("provider.reliability")} 99%</span>
         </div>
       </div>
     </motion.section>

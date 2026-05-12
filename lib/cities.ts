@@ -54,3 +54,22 @@ const CITY_ID_BY_NAME = new Map<string, string>(
 export function getCityIdByName(name: Localized): string | null {
   return CITY_ID_BY_NAME.get(name.az) ?? CITY_ID_BY_NAME.get(name.ru) ?? null;
 }
+
+// Some providers were saved with the same string in both az and ru
+// (e.g. user typed "Gəncə" and the editor stored {az:"Gəncə", ru:"Gəncə"}).
+// Look the value up against the known city list and, if found, return the
+// canonical bilingual record. Falls back to the original Localized.
+const CITY_BY_LOWER_NAME = new Map<string, City>(
+  CITIES.flatMap((c) => [
+    [c.name.az.toLowerCase(), c],
+    [c.name.ru.toLowerCase(), c],
+  ]),
+);
+
+export function normalizeCity(input: Localized): Localized {
+  const az = CITY_BY_LOWER_NAME.get((input.az ?? "").trim().toLowerCase());
+  if (az) return az.name;
+  const ru = CITY_BY_LOWER_NAME.get((input.ru ?? "").trim().toLowerCase());
+  if (ru) return ru.name;
+  return input;
+}

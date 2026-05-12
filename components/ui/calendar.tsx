@@ -228,7 +228,7 @@ export function Calendar({
             {t("calendar.legend.free")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-[repeating-linear-gradient(45deg,var(--ink-50)_0_3px,var(--ink-100)_3px_6px)]" />
+            <span className="h-3 w-3 rounded-sm bg-pomegranate-500" />
             {t("calendar.legend.busy")}
           </span>
           <span className="inline-flex items-center gap-1.5">

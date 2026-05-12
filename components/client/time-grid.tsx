@@ -87,7 +87,7 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
           <span className="text-ink-500">{t("time.legend.selected")}</span>
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-[4px] bg-ink-50 opacity-60" />
+          <span className="w-3 h-3 rounded-[4px] bg-pomegranate-500" />
           <span className="text-ink-500">{t("time.legend.taken")}</span>
         </span>
       </div>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { create } from "zustand";
 import { supabase } from "./supabase";
+import { normalizeCity } from "../cities";
 import type {
   Appointment,
   CreateAppointmentInput,
@@ -163,7 +164,7 @@ function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
     serviceIds: row.service_ids,
     workingHours: row.working_hours,
     breaks: row.breaks,
-    city: row.city,
+    city: normalizeCity(row.city),
     kind: row.kind as Provider["kind"],
     tier: row.tier as Provider["tier"],
     priceUnit: row.price_unit ?? undefined,
@@ -179,7 +180,7 @@ function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provider {
     ...base,
     name: edit.name ?? base.name,
     bio: edit.bio ?? base.bio,
-    city: edit.city ?? base.city,
+    city: edit.city ? normalizeCity(edit.city) : base.city,
     district: edit.district ?? base.district,
     experienceYears: edit.experience_years ?? base.experienceYears,
     gallery: edit.gallery ?? base.gallery,

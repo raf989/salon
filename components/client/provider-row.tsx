@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MapPin } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Cover } from "@/components/ui/cover";
 import { RatingStars } from "@/components/ui/rating-stars";
-import { ProviderStatus } from "@/components/client/provider-status";
 import { useServices } from "@/lib/api/repo";
+import { useNow } from "@/lib/use-now";
+import { cn } from "@/lib/utils";
+
+function toMin(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
 import {
   CATEGORY_LABELS,
   KIND_LABELS,
@@ -37,6 +43,19 @@ const SUBTITLE_KEY_BY_KIND: Partial<Record<ProviderKind, DictKey>> = {
 export function ProviderRow({ provider, onBook, availableToday }: Props) {
   const { t, pickLocalized } = useT();
   const allServices = useServices();
+  // Pure time-vs-hours check. We deliberately ignore manualStatus here —
+  // this pill shows whether the displayed range covers "now", not whether
+  // the provider has admin-closed themselves.
+  const now = useNow();
+  const isOpen = (() => {
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const start = toMin(provider.workingHours.start);
+    const end = toMin(provider.workingHours.end);
+    if (nowMin < start || nowMin >= end) return false;
+    return !provider.breaks.some(
+      (b) => nowMin >= toMin(b.start) && nowMin < toMin(b.end),
+    );
+  })();
 
   const services = allServices.filter((s) => provider.serviceIds.includes(s.id));
   const minPrice =
@@ -99,7 +118,15 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
             <h3 className="font-display font-semibold text-lg text-ink-900 leading-tight">
               {provider.name}
             </h3>
-            <ProviderStatus provider={provider} />
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-xs font-mono font-semibold",
+                isOpen ? "text-success-500" : "text-danger-500",
+              )}
+            >
+              <Clock className="size-3.5" />
+              {provider.workingHours.start}–{provider.workingHours.end}
+            </span>
           </div>
 
           <p className="text-sm text-ink-500">{subtitle}</p>

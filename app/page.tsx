@@ -1,40 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { Hero } from "@/components/client/hero";
-import { TodayFreeSection } from "@/components/client/today-free-section";
 import { ProviderRow } from "@/components/client/provider-row";
 import {
-  Filters,
   DEFAULT_FILTERS,
   type Filters as FiltersValue,
 } from "@/components/client/filters";
+import {
+  SearchFilters,
+  SortDropdown,
+  type SearchFiltersValue,
+  type SortKey,
+} from "@/components/client/search-filters";
 import { BookingModal } from "@/components/client/booking-modal";
 import { Card } from "@/components/ui/card";
-import { SectionHeader } from "@/components/ui/section-header";
-import { getCityIdByName, getCityById } from "@/lib/cities";
+import { ALL_CITIES_ID, getCityById, getCityIdByName } from "@/lib/cities";
 import { useStore } from "@/lib/store";
 import { useAppointments, useProviders, useServices } from "@/lib/api/repo";
-import { cn, getDateISO, getTodayISO } from "@/lib/utils";
+import { getTodayISO } from "@/lib/utils";
 import type {
   Localized,
   Provider,
   ProviderKind,
   Service,
 } from "@/lib/types";
-import { useT, type DictKey } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 
 const SLOT_MIN = 30;
-const FEATURED_PAGE_SIZE = 4;
-
-type SortKey = "trust" | "cheap" | "freeToday";
-
-const SORT_OPTIONS: ReadonlyArray<{ key: SortKey; labelKey: DictKey }> = [
-  { key: "trust", labelKey: "results.sort.recommended" },
-  { key: "cheap", labelKey: "results.sort.cheapest" },
-  { key: "freeToday", labelKey: "filters.option.today" },
-];
 
 function minServicePrice(p: Provider, services: Service[]): number {
   let min = Number.POSITIVE_INFINITY;
@@ -62,15 +56,18 @@ function applySearchFilters(
 ): Provider[] {
   const q = criteria.search.trim().toLowerCase();
 
+  // Branches are ordered alphabetically by their criterion label so the
+  // chain is trivially scannable; all are AND-composed, order has no
+  // semantic effect.
   return providers.filter((p) => {
-    // 1. Category (strict equality on ProviderKind).
+    // category — strict equality on ProviderKind.
     if (criteria.kind !== null && p.kind !== criteria.kind) return false;
 
-    // 2. City — "all" is a sentinel meaning "show every city".
+    // city — "all" is a sentinel meaning "show every city".
     if (criteria.cityId !== "all" && getCityIdByName(p.city) !== criteria.cityId)
       return false;
 
-    // 3. Text — over name + bio + service names of the surviving provider.
+    // text — matches name, bio or any of the provider's service names.
     if (q) {
       const inName = p.name.toLowerCase().includes(q);
       const inBio = pickLocalized(p.bio).toLowerCase().includes(q);
@@ -114,23 +111,58 @@ function isInBreak(
 }
 
 export default function HomePage() {
-  const { t, pickLocalized, lang } = useT();
+  const { pickLocalized, lang } = useT();
   const [filters, setFilters] = useState<FiltersValue>(DEFAULT_FILTERS);
   const [kindFilter, setKindFilter] = useState<ProviderKind | null>(null);
   const [booking, setBooking] = useState<Provider | null>(null);
-  const [sort, setSort] = useState<SortKey>("trust");
   const cityId = useStore((s) => s.cityId);
+  const setCityId = useStore((s) => s.setCityId);
   const appointments = useAppointments();
   const providers = useProviders();
   const services = useServices();
 
+  // Advanced filter state owned by <SearchFilters />.
+  const [districtFilter, setDistrictFilter] = useState<string>("all");
+  const [priceMin, setPriceMin] = useState<string>("");
+  const [priceMax, setPriceMax] = useState<string>("");
+  const [sort, setSort] = useState<SortKey>("actuality");
+
+  // District selection is meaningless once the city changes — reset it.
+  useEffect(() => {
+    setDistrictFilter("all");
+  }, [cityId]);
+
+  const resultsRef = useRef<HTMLElement>(null);
+  const scrollToResults = () => {
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const todayISO = getTodayISO();
-  const cityIsAll = cityId === "all";
-  const cityName = cityIsAll
-    ? lang === "ru"
-      ? "Все города"
-      : "Bütün şəhərlər"
-    : pickLocalized(getCityById(cityId).name);
+
+  // ── Derive the district list for the currently picked city.
+  //    Strips "City, " prefix so the dropdown shows just "Nəsimi" etc.
+  const districtsForCity = useMemo(() => {
+    if (cityId === ALL_CITIES_ID) return [];
+    const cityObj = getCityById(cityId);
+    const cityNames = [cityObj.name.az, cityObj.name.ru];
+    const set = new Set<string>();
+    for (const p of providers) {
+      if (getCityIdByName(p.city) !== cityId) continue;
+      if (!p.district) continue;
+      const full = pickLocalized(p.district).trim();
+      let detail = full;
+      for (const c of cityNames) {
+        if (full.toLowerCase().startsWith(c.toLowerCase() + ",")) {
+          detail = full.slice(c.length + 1).trim();
+          break;
+        }
+      }
+      if (detail) set.add(detail);
+    }
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, lang, { sensitivity: "base" }),
+    );
+  }, [providers, cityId, pickLocalized, lang]);
 
   const hasFreeSlotOnDate = useCallback(
     (p: Provider, date: string): boolean => {
@@ -166,51 +198,7 @@ export default function HomePage() {
     return map;
   }, [providers, hasFreeSlotOnDate, todayISO]);
 
-  // Full list of providers eligible for the "Önə çıxanlar" section.
-  // The counter shows this length; the rendered slice is governed by
-  // `featuredVisibleCount` below.
-  const featuredAll = useMemo(() => {
-    const base = applySearchFilters(
-      providers,
-      { cityId, kind: kindFilter, search: filters.search },
-      services,
-      pickLocalized,
-    );
-    return base.filter((p) => availabilityMap[p.id]);
-  }, [
-    providers,
-    services,
-    cityId,
-    kindFilter,
-    filters.search,
-    pickLocalized,
-    availabilityMap,
-  ]);
-
-  const [featuredVisibleCount, setFeaturedVisibleCount] = useState(
-    FEATURED_PAGE_SIZE,
-  );
-
-  // Whenever the user changes a filter, reset pagination so the next list
-  // starts from the first FEATURED_PAGE_SIZE items.
-  useEffect(() => {
-    setFeaturedVisibleCount(FEATURED_PAGE_SIZE);
-  }, [cityId, kindFilter, filters.search]);
-
-  const featuredVisible = useMemo(
-    () => featuredAll.slice(0, featuredVisibleCount),
-    [featuredAll, featuredVisibleCount],
-  );
-  const canLoadMoreFeatured = featuredVisibleCount < featuredAll.length;
-
   const filtered = useMemo(() => {
-    const hasFreeSlotInWeek = (p: Provider): boolean => {
-      for (let i = 0; i < 7; i++) {
-        if (hasFreeSlotOnDate(p, getDateISO(i))) return true;
-      }
-      return false;
-    };
-
     // Stage 0 — chain filter: category → city → text.
     const base = applySearchFilters(
       providers,
@@ -219,29 +207,44 @@ export default function HomePage() {
       pickLocalized,
     );
 
-    // Stage 1 — secondary filters from the <Filters /> card.
+    const priceMinN = priceMin === "" ? null : Number(priceMin);
+    const priceMaxN = priceMax === "" ? null : Number(priceMax);
+
+    // Stage 1 — advanced filters from <SearchFilters />. Branches listed
+    // alphabetically by criterion label. All AND-composed.
     const matched = base.filter((p) => {
-      if (
-        filters.category !== "all" &&
-        !p.specialties.includes(filters.category)
-      )
-        return false;
-      if (filters.price !== "all" && p.priceRange !== filters.price)
-        return false;
-      if (filters.minRating === 4 && p.rating < 4) return false;
-      if (
-        filters.availability === "today" &&
-        !hasFreeSlotOnDate(p, todayISO)
-      )
-        return false;
-      if (filters.availability === "week" && !hasFreeSlotInWeek(p))
-        return false;
+      // district — match by stripped district detail within the current city.
+      if (districtFilter !== "all") {
+        if (!p.district) return false;
+        const cityObj = getCityById(cityId);
+        const full = pickLocalized(p.district).trim();
+        let detail = full;
+        for (const c of [cityObj.name.az, cityObj.name.ru]) {
+          if (full.toLowerCase().startsWith(c.toLowerCase() + ",")) {
+            detail = full.slice(c.length + 1).trim();
+            break;
+          }
+        }
+        if (detail !== districtFilter) return false;
+      }
+      // price — provider's cheapest service must fall in [priceMin..priceMax].
+      if (priceMinN !== null || priceMaxN !== null) {
+        const pMin = minServicePrice(p, services);
+        if (!Number.isFinite(pMin)) return false;
+        if (priceMinN !== null && pMin < priceMinN) return false;
+        if (priceMaxN !== null && pMin > priceMaxN) return false;
+      }
       return true;
     });
 
+    // Stage 2 — sort. Branches alphabetical by SortKey value.
     const sorted = [...matched];
-    if (sort === "trust") {
+    if (sort === "actuality") {
+      // "Available today first" then rating desc, then reviewsCount.
       sorted.sort((a, b) => {
+        const fa = availabilityMap[a.id] ? 1 : 0;
+        const fb = availabilityMap[b.id] ? 1 : 0;
+        if (fa !== fb) return fb - fa;
         if (b.rating !== a.rating) return b.rating - a.rating;
         return b.reviewsCount - a.reviewsCount;
       });
@@ -252,25 +255,38 @@ export default function HomePage() {
         if (pa !== pb) return pa - pb;
         return b.rating - a.rating;
       });
-    } else if (sort === "freeToday") {
+    } else if (sort === "expensive") {
       sorted.sort((a, b) => {
-        const fa = availabilityMap[a.id] ? 1 : 0;
-        const fb = availabilityMap[b.id] ? 1 : 0;
-        if (fa !== fb) return fb - fa;
+        const pa = minServicePrice(a, services);
+        const pb = minServicePrice(b, services);
+        if (pa !== pb) return pb - pa;
         return b.rating - a.rating;
+      });
+    } else if (sort === "popular") {
+      sorted.sort((a, b) => {
+        if (b.reviewsCount !== a.reviewsCount)
+          return b.reviewsCount - a.reviewsCount;
+        return b.rating - a.rating;
+      });
+    } else {
+      // "rating": rating desc, reviewsCount as tiebreaker.
+      sorted.sort((a, b) => {
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        return b.reviewsCount - a.reviewsCount;
       });
     }
     return sorted;
   }, [
     providers,
     services,
-    filters,
+    filters.search,
     cityId,
     kindFilter,
-    hasFreeSlotOnDate,
-    todayISO,
-    pickLocalized,
+    districtFilter,
+    priceMin,
+    priceMax,
     sort,
+    pickLocalized,
     availabilityMap,
   ]);
 
@@ -281,73 +297,48 @@ export default function HomePage() {
       <Hero
         searchValue={filters.search}
         onSearchChange={(v) => setFilters((f) => ({ ...f, search: v }))}
-        kindFilter={kindFilter}
-        onKindChange={setKindFilter}
       />
-      <main className="mx-auto max-w-7xl px-4 md:px-6 pt-10 md:pt-16 pb-24 space-y-12">
-        <section>
-          <SectionHeader
-            title={`${t("section.freeToday")} (${featuredAll.length})`}
-          />
-          <TodayFreeSection
-            providers={featuredVisible}
-            canLoadMore={canLoadMoreFeatured}
-            onLoadMore={() =>
-              setFeaturedVisibleCount((c) => c + FEATURED_PAGE_SIZE)
-            }
-          />
-        </section>
+      <main className="mx-auto max-w-7xl px-4 md:px-6 pt-3 md:pt-4 pb-24 space-y-8">
+        <SearchFilters
+          value={{
+            category: kindFilter ?? "all",
+            cityId,
+            districtId: districtFilter,
+            priceMin,
+            priceMax,
+          }}
+          onChange={(next: SearchFiltersValue) => {
+            setKindFilter(next.category === "all" ? null : next.category);
+            if (next.cityId !== cityId) setCityId(next.cityId);
+            setDistrictFilter(next.districtId);
+            setPriceMin(next.priceMin);
+            setPriceMax(next.priceMax);
+          }}
+          districts={districtsForCity}
+          onShow={scrollToResults}
+        />
 
-        <section>
-          {isKindActive ? (
-            <div className="mb-3 flex items-center gap-2 text-sm text-ink-500">
-              <span>
-                {pickLocalized({ az: "Filtr", ru: "Фильтр" })}: {kindFilter}
-              </span>
-              <button
-                type="button"
-                onClick={() => setKindFilter(null)}
-                className="text-caspian-600 hover:underline font-medium"
-              >
-                {pickLocalized({ az: "təmizlə", ru: "сбросить" })}
-              </button>
-            </div>
-          ) : null}
-          <Filters value={filters} onChange={setFilters} />
-
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <span className="font-mono text-xs text-ink-500">
-              {cityIsAll
-                ? cityName
-                : lang === "ru"
-                  ? `В ${cityName}`
-                  : `${cityName} şəhərində`}{" "}
-              {filtered.length} {t("results.foundCount")}
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {SORT_OPTIONS.map((opt) => {
-                const active = sort === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setSort(opt.key)}
-                    aria-pressed={active}
-                    className={cn(
-                      "h-7 px-2.5 rounded-full text-xs font-medium border border-transparent transition-colors",
-                      active
-                        ? "bg-ink-900 text-ink-0"
-                        : "bg-ink-50 text-ink-700 hover:bg-ink-100",
-                    )}
-                  >
-                    {t(opt.labelKey)}
-                  </button>
-                );
-              })}
-            </div>
+        <section ref={resultsRef}>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <SortDropdown value={sort} onChange={setSort} />
+            {isKindActive ? (
+              <div className="flex items-center gap-2 text-sm text-ink-500">
+                <span>
+                  {pickLocalized({ az: "Filtr", ru: "Фильтр" })}:{" "}
+                  {kindFilter}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setKindFilter(null)}
+                  className="text-caspian-600 hover:underline font-medium"
+                >
+                  {pickLocalized({ az: "təmizlə", ru: "сбросить" })}
+                </button>
+              </div>
+            ) : null}
           </div>
 
-          <div className="mt-4">
+          <div>
             {filtered.length === 0 ? (
               <EmptyState />
             ) : (

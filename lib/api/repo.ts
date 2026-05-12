@@ -82,6 +82,32 @@ function useAsync<T>(
   return data;
 }
 
+// Same as useAsync, but also surfaces whether the first fetch has resolved.
+// Use this when "data is null" needs to mean "not found" vs "still loading".
+function useAsyncWithStatus<T>(
+  fetcher: () => Promise<T>,
+  deps: unknown[],
+  initial: T,
+): { data: T; loaded: boolean } {
+  const [data, setData] = useState<T>(initial);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setLoaded(false);
+    fetcher().then((result) => {
+      if (!cancelled) {
+        setData(result);
+        setLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return { data, loaded };
+}
+
 // ---- row → entity mappers ---------------------------------------------------
 
 type ProviderRow = {
@@ -302,12 +328,19 @@ function applyClientFilters(
   f?: ProviderFilters,
 ): Provider[] {
   if (!f) return list;
+  // Branches are ordered alphabetically by criterion label. All checks are
+  // AND-composed so ordering has no semantic effect.
   return list.filter((p) => {
-    if (f.kind && p.kind !== f.kind) return false;
-    if (f.tier && p.tier !== f.tier) return false;
+    // category — provider must list this service category as a specialty.
     if (f.category && !p.specialties.includes(f.category)) return false;
-    if (f.priceRange && p.priceRange !== f.priceRange) return false;
+    // kind — strict equality on ProviderKind.
+    if (f.kind && p.kind !== f.kind) return false;
+    // minRating — drop anything below the threshold.
     if (f.minRating !== undefined && p.rating < f.minRating) return false;
+    // priceRange — strict equality on the price tier.
+    if (f.priceRange && p.priceRange !== f.priceRange) return false;
+    // tier — strict equality on ProviderTier.
+    if (f.tier && p.tier !== f.tier) return false;
     return true;
   });
 }
@@ -343,6 +376,35 @@ export function useProvider(id: string | undefined): Provider | null {
     );
   }, [id]);
   return useAsync(fetcher, [id, v], null);
+}
+
+// Same as useProvider, but also reports whether the first fetch has resolved.
+// Pages should use this to distinguish "loading" from "actually missing"
+// before they call notFound().
+export function useProviderWithStatus(
+  id: string | undefined,
+): { provider: Provider | null; loaded: boolean } {
+  const v = useVersion("providers") + useVersion("providerEdits");
+  const fetcher = useCallback(async () => {
+    if (!id) return null;
+    const [pRes, eRes] = await Promise.all([
+      supabase.from("providers").select("*").eq("id", id).maybeSingle(),
+      supabase
+        .from("provider_edits")
+        .select("*")
+        .eq("provider_id", id)
+        .maybeSingle(),
+    ]);
+    if (pRes.error) throw asError(pRes.error, "getProvider");
+    if (eRes.error) throw asError(eRes.error, "getProviderEdit");
+    if (!pRes.data) return null;
+    return rowToProvider(
+      pRes.data as ProviderRow,
+      (eRes.data as ProviderEditRow | null) ?? undefined,
+    );
+  }, [id]);
+  const { data, loaded } = useAsyncWithStatus(fetcher, [id, v], null);
+  return { provider: data, loaded };
 }
 
 export async function listProviders(
@@ -485,8 +547,11 @@ async function fetchAppointments(
   query?: AppointmentsQuery,
 ): Promise<Appointment[]> {
   let q = supabase.from("appointments").select("*").order("date").order("time");
-  if (query?.stylistId) q = q.eq("stylist_id", query.stylistId);
+  // Branches ordered alphabetically by criterion label.
+  // clientName — exact match on the client_name column.
   if (query?.clientName) q = q.eq("client_name", query.clientName);
+  // stylistId — exact match on the stylist_id column.
+  if (query?.stylistId) q = q.eq("stylist_id", query.stylistId);
   const { data, error } = await q;
   if (error) throw asError(error, "listAppointments");
   return (data as Parameters<typeof rowToAppointment>[0][]).map(rowToAppointment);

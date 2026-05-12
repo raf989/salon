@@ -27,11 +27,6 @@ export function ProfileHero({ provider, availableToday }: Props) {
     );
   }
   sublineParts.push(district);
-  if (provider.responseMins !== undefined) {
-    sublineParts.push(
-      t("provider.respondsIn").replace("{n}", String(provider.responseMins)),
-    );
-  }
 
   const reviewsText = t("provider.reviewsCount").replace(
     "{n}",

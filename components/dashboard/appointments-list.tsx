@@ -45,9 +45,10 @@ function deriveDisplayStatus(
   appt: Appointment,
   nowMs: number,
 ): DisplayStatus {
-  // Persisted terminal states win.
-  if (appt.status === "completed") return "completed";
+  // Persisted terminal states win, listed alphabetically — only one can
+  // match the strict equality, so order has no semantic effect.
   if (appt.status === "cancelled") return "cancelled";
+  if (appt.status === "completed") return "completed";
   if (appt.status === "no_show") return "no_show";
 
   const diffMin = (nowMs - apptStartTime(appt)) / 60_000;

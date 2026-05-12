@@ -5,14 +5,13 @@ import { notFound } from "next/navigation";
 import { BookingModal } from "@/components/client/booking-modal";
 import { Crumbs } from "@/components/ui/crumbs";
 import { AboutSection } from "@/components/provider/about-section";
-import { DemandAnalytics } from "@/components/provider/demand-analytics";
 import { GalleryGrid } from "@/components/provider/gallery-grid";
 import { PriceList } from "@/components/provider/price-list";
 import { ProfileHero } from "@/components/provider/profile-hero";
 import { Reviews } from "@/components/provider/reviews";
 import { StickyBooking } from "@/components/provider/sticky-booking";
 import { useT } from "@/lib/i18n";
-import { useAppointments, useProvider, useProviders } from "@/lib/api/repo";
+import { useAppointments, useProviderWithStatus } from "@/lib/api/repo";
 import { KIND_PLURAL, type Provider } from "@/lib/types";
 import { getTodayISO } from "@/lib/utils";
 
@@ -58,8 +57,7 @@ export default function ProviderPage({
 
 function ProviderPageInner({ id }: { id: string }) {
   const { t, pickLocalized } = useT();
-  const allProviders = useProviders();
-  const provider = useProvider(id);
+  const { provider, loaded } = useProviderWithStatus(id);
   const [booking, setBooking] = useState<Provider | null>(null);
   const appointments = useAppointments({ stylistId: id });
   const todayISO = getTodayISO();
@@ -90,8 +88,9 @@ function ProviderPageInner({ id }: { id: string }) {
     });
   }, [provider, appointments, todayISO]);
 
-  const exists = allProviders.some((p) => p.id === id);
-  if (!exists) notFound();
+  // Distinguish "still fetching" from "fetched, definitively absent" so the
+  // page doesn't 404 on the first render before Supabase replies.
+  if (loaded && !provider) notFound();
   if (!provider) return null;
 
   return (
@@ -121,7 +120,6 @@ function ProviderPageInner({ id }: { id: string }) {
             provider={provider}
             onOpenBooking={() => setBooking(provider)}
           />
-          <DemandAnalytics provider={provider} />
         </aside>
       </div>
 

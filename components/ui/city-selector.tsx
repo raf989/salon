@@ -22,16 +22,24 @@ export function CitySelector({
 
   const current = getCityById(cityId);
 
-  const options = useMemo(
-    () => [
+  // City list is sorted alphabetically by the current language so the
+  // collation matches what the user sees (AZ Latin vs RU Cyrillic differ).
+  // The "Hamısı / Все" row stays pinned to the top of the menu.
+  const options = useMemo(() => {
+    const cityOptions = CITIES.map((c) => ({
+      value: c.id,
+      label: pickLocalized(c.name),
+    })).sort((a, b) =>
+      a.label.localeCompare(b.label, lang, { sensitivity: "base" }),
+    );
+    return [
       {
         value: ALL_CITIES_ID,
         label: lang === "ru" ? "Все" : "Hamısı",
       },
-      ...CITIES.map((c) => ({ value: c.id, label: pickLocalized(c.name) })),
-    ],
-    [lang, pickLocalized],
-  );
+      ...cityOptions,
+    ];
+  }, [lang, pickLocalized]);
 
   return (
     <SelectMenu

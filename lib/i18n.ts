@@ -25,8 +25,8 @@ export const DICT = {
 
   // hero
   "hero.eyebrow": {
-    az: "Event və Beauty · Azərbaycan",
-    ru: "Event и Beauty · Азербайджан",
+    az: "Tədbir və Gözəllik · Azərbaycan",
+    ru: "Мероприятия и красота · Азербайджан",
   },
   "hero.title.before": {
     az: "Ən uyğun vaxtı seç,",
@@ -85,13 +85,38 @@ export const DICT = {
   "results.sort.rating": { az: "Reytinqə görə", ru: "По рейтингу" },
   "results.sort.nearest": { az: "Ən yaxındakı", ru: "Ближайшие" },
   "results.sort.cheapest": { az: "Ən sərfəli", ru: "Подешевле" },
+
+  // Advanced filter card under hero
+  "search.label.specialist": { az: "Mütəxəssis", ru: "Специалист" },
+  "search.label.city": { az: "Şəhər", ru: "Город" },
+  "search.label.district": { az: "Rayon", ru: "Район" },
+  "search.label.rating": { az: "Reytinq", ru: "Рейтинг" },
+  "search.label.price": { az: "Qiymət (₼)", ru: "Цена (₼)" },
+  "search.label.sort": { az: "Sıralama", ru: "Сортировка" },
+  "search.placeholder.specialist": { az: "İstənilən", ru: "Любой" },
+  "search.placeholder.city": { az: "Bütün şəhərlər", ru: "Все города" },
+  "search.placeholder.district": { az: "Bütün rayonlar", ru: "Все районы" },
+  "search.placeholder.priceFrom": { az: "min", ru: "от" },
+  "search.placeholder.priceTo": { az: "max", ru: "до" },
+  "search.rating.any": { az: "İstənilən", ru: "Любой" },
+  "search.rating.4": { az: "4.0+", ru: "4.0+" },
+  "search.rating.45": { az: "4.5+", ru: "4.5+" },
+  "search.sort.actuality": { az: "Aktuallığa görə", ru: "По актуальности" },
+  "search.sort.rating": { az: "Reytinqə görə", ru: "По рейтингу" },
+  "search.sort.cheap": { az: "Əvvəl ucuz", ru: "Сначала дешевле" },
+  "search.sort.expensive": { az: "Əvvəl bahalı", ru: "Сначала дороже" },
+  "search.sort.popular": { az: "Populyarlığa görə", ru: "По популярности" },
+  "search.action.show": {
+    az: "Mütəxəssisləri göstər",
+    ru: "Показать специалистов",
+  },
   "results.empty": {
     az: "Heç bir nəticə tapılmadı. Filtrləri dəyişməyi sınayın.",
     ru: "Ничего не найдено. Попробуйте изменить фильтры.",
   },
 
   // stylist card
-  "card.beauty": { az: "Beauty", ru: "Beauty" },
+  "card.beauty": { az: "Gözəllik", ru: "Красота" },
   "card.todayFree": { az: "Bu gün boş", ru: "Свободен сегодня" },
   "card.priceFrom": { az: "-dən", ru: " и выше" },
   "card.reviews": { az: "rəy", ru: "отзыв(ов)" },
@@ -281,8 +306,8 @@ export const DICT = {
   "section.reviews": { az: "Rəylər 2.0", ru: "Отзывы 2.0" },
 
   // tier badges
-  "tier.event": { az: "Event", ru: "Event" },
-  "tier.beauty": { az: "Beauty", ru: "Beauty" },
+  "tier.event": { az: "Tədbir", ru: "Мероприятия" },
+  "tier.beauty": { az: "Gözəllik", ru: "Красота" },
 
   // provider page
   "provider.verified": { az: "Doğrulandı", ru: "Проверенный" },
@@ -314,12 +339,12 @@ export const DICT = {
 
   // card actions per kind
   "action.profile": { az: "Profilə bax", ru: "Посмотреть" },
-  "action.book": { az: "Bron et", ru: "Забронировать" },
-  "action.bookTable": { az: "Stol bron et", ru: "Забронировать стол" },
+  "action.book": { az: "Yazıl", ru: "Записаться" },
+  "action.bookTable": { az: "Yazıl", ru: "Записаться" },
   "action.menu": { az: "Menyu", ru: "Меню" },
   "action.demoSet": { az: "Demo-set", ru: "Демо-сет" },
   "action.priceList": { az: "Qiymət", ru: "Прайс" },
-  "action.bookNow": { az: "İndi qeydiyyatdan keç", ru: "Записаться сейчас" },
+  "action.bookNow": { az: "İndi yazıl", ru: "Записаться сейчас" },
   "action.askInChat": { az: "Çatda soruş", ru: "Спросить в чате" },
 
   // card meta
@@ -454,8 +479,8 @@ export const DICT = {
   "tenders.action.save": { az: "Yadda saxla", ru: "Сохранить" },
   "tenders.action.viewAll": { az: "Hamısına bax", ru: "Все ставки" },
   "tenders.filters.all": { az: "Hamısı", ru: "Все" },
-  "tenders.filters.event": { az: "Event", ru: "Event" },
-  "tenders.filters.beauty": { az: "Beauty", ru: "Beauty" },
+  "tenders.filters.event": { az: "Tədbir", ru: "Мероприятия" },
+  "tenders.filters.beauty": { az: "Gözəllik", ru: "Красота" },
   "tenders.filters.mine": { az: "Mənim", ru: "Мои" },
   "tenders.empty": { az: "Hələ tender yoxdur.", ru: "Тендеров пока нет." },
   "tenders.bidBadge.verified": { az: "Doğrulandı", ru: "Проверенный" },

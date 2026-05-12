@@ -7,14 +7,15 @@ function toMin(t: string): number {
 
 /**
  * Compute the live availability status from current time, working hours,
- * breaks and a manual override.
+ * breaks and a manual override. Branches listed alphabetically by the
+ * value they match.
  *
- *  - `manualStatus === "closed"`   → forces "closed" (red).
- *  - `manualStatus === "break"`    → forces "break"  (orange).
+ *  - `manualStatus === "break"`     → forces "break"  (orange).
+ *  - `manualStatus === "closed"`    → forces "closed" (red).
  *  - `manualStatus === "open"`/null → follow time logic below.
- *  - inside a break window         → "break"  (orange).
- *  - within working hours          → "open"   (green).
- *  - otherwise                     → "closed" (red).
+ *  - inside a break window          → "break"  (orange).
+ *  - outside working hours          → "closed" (red).
+ *  - within working hours           → "open"   (green).
  *
  * Manual "open" does NOT force-open outside working hours — it just clears
  * any previous override and lets the time logic kick back in.
@@ -25,8 +26,9 @@ export function getStatus(
   breaks: { start: string; end: string }[] | null | undefined,
   manualStatus: "open" | "closed" | "break" | null | undefined,
 ): DerivedStatus {
-  if (manualStatus === "closed") return "closed";
+  // Manual overrides listed alphabetically — only one can match.
   if (manualStatus === "break") return "break";
+  if (manualStatus === "closed") return "closed";
 
   if (!workingHours) return "closed";
 

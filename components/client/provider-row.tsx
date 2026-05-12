@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MapPin, MessageCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Cover } from "@/components/ui/cover";
@@ -76,10 +75,6 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
     return d;
   })();
 
-  const respondsLine = provider.responseMins
-    ? t("provider.respondsIn").replace("{n}", String(provider.responseMins))
-    : null;
-
   const tagChips = provider.specialties.slice(0, 3);
 
   return (
@@ -88,7 +83,7 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
     >
-      <Card className="grid gap-5 p-3 md:grid-cols-[200px_1fr_180px] items-stretch hover:bg-bg transition-colors">
+      <Card className="grid gap-4 p-3 md:grid-cols-[140px_1fr_180px] items-stretch hover:bg-bg transition-colors">
         <div className="relative">
           <Cover
             name={provider.name}
@@ -105,41 +100,16 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
               {provider.name}
             </h3>
             <ProviderStatus provider={provider} />
-            {provider.verified ? (
-              <Badge variant="verified">{t("provider.verified")}</Badge>
-            ) : null}
-            <Badge variant={provider.tier === "event" ? "event" : "beauty"}>
-              {t(provider.tier === "event" ? "tier.event" : "tier.beauty")}
-            </Badge>
           </div>
 
           <p className="text-sm text-ink-500">{subtitle}</p>
 
-          <div className="flex items-center flex-wrap gap-1.5 text-sm text-ink-500">
-            <RatingStars value={provider.rating} size={14} />
-            <span className="font-semibold text-ink-800">
-              {provider.rating.toFixed(1)}
-            </span>
-            <Dot />
-            <span>
-              {provider.reviewsCount} {t("card.reviews")}
-            </span>
-            {respondsLine ? (
-              <>
-                <Dot />
-                <span>{respondsLine}</span>
-              </>
-            ) : null}
-            {addressDetail ? (
-              <>
-                <Dot />
-                <span className="inline-flex items-center gap-1 text-ink-500 min-w-0">
-                  <MapPin className="size-3.5 text-ink-400 shrink-0" />
-                  <span className="truncate">{addressDetail}</span>
-                </span>
-              </>
-            ) : null}
-          </div>
+          {addressDetail ? (
+            <div className="flex items-center gap-1 text-sm text-ink-500 min-w-0">
+              <MapPin className="size-3.5 text-ink-400 shrink-0" />
+              <span className="truncate">{addressDetail}</span>
+            </div>
+          ) : null}
 
           {tagChips.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 mt-1">
@@ -153,6 +123,17 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
               ))}
             </div>
           ) : null}
+
+          <div className="mt-auto flex items-center flex-wrap gap-1.5 text-sm text-ink-500 pt-1">
+            <RatingStars value={provider.rating} size={14} />
+            <span className="font-semibold text-ink-800">
+              {provider.rating.toFixed(1)}
+            </span>
+            <Dot />
+            <span>
+              {provider.reviewsCount} {t("card.reviews")}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col items-end justify-between py-2 gap-2 min-w-[170px]">
@@ -188,74 +169,21 @@ function RowActions({
 }) {
   const { t } = useT();
 
-  const primary = (() => {
-    switch (provider.kind) {
-      case "restaurant":
-        return (
-          <Button
-            variant="primary"
-            size="sm"
-            className="w-full"
-            onClick={() => onBook(provider)}
-          >
-            {t("action.bookTable")}
-          </Button>
-        );
-      case "dj":
-        return (
-          <Button variant="whatsapp" size="sm" className="w-full">
-            <MessageCircle size={14} strokeWidth={1.8} />
-            WhatsApp
-          </Button>
-        );
-      case "barber":
-      case "salon":
-      case "makeup":
-        return availableToday ? (
-          <Button
-            variant="urgent"
-            size="sm"
-            className="w-full"
-            onClick={() => onBook(provider)}
-          >
-            {t("action.bookNow")}
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            size="sm"
-            className="w-full"
-            onClick={() => onBook(provider)}
-          >
-            {t("action.book")}
-          </Button>
-        );
-      default:
-        return (
-          <Button
-            variant="primary"
-            size="sm"
-            className="w-full"
-            onClick={() => onBook(provider)}
-          >
-            {t("action.book")}
-          </Button>
-        );
-    }
-  })();
-
-  const secondary = provider.kind === "dj" ? null : (
-    <Link href={`/provider/${provider.id}`} className="w-full">
-      <Button variant="outline" size="sm" className="w-full">
-        {t("action.profile")}
-      </Button>
-    </Link>
-  );
-
   return (
     <div className="flex flex-col gap-2 w-full">
-      {primary}
-      {secondary}
+      <Button
+        variant="primary"
+        size="sm"
+        className="w-full"
+        onClick={() => onBook(provider)}
+      >
+        {t(availableToday ? "action.bookNow" : "action.book")}
+      </Button>
+      <Link href={`/provider/${provider.id}`} className="w-full">
+        <Button variant="outline" size="sm" className="w-full">
+          {t("action.profile")}
+        </Button>
+      </Link>
     </div>
   );
 }

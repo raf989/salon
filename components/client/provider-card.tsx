@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MessageCircle, Utensils } from "lucide-react";
+import { Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -245,103 +245,21 @@ function CardActions({
   const { t } = useT();
   const profileHref = `/provider/${provider.id}`;
 
-  switch (provider.kind) {
-    case "photographer":
-      return (
-        <div className="flex gap-2 mt-auto">
-          <Link href={profileHref} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full">
-              {t("action.profile")}
-            </Button>
-          </Link>
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1"
-            onClick={() => onBook(provider)}
-          >
-            {t("action.book")}
-          </Button>
-        </div>
-      );
-    case "dj":
-      return (
-        <div className="flex gap-2 mt-auto">
-          <Button variant="outline" size="sm" className="flex-1">
-            {t("action.demoSet")}
-          </Button>
-          <Button variant="whatsapp" size="sm" className="flex-1">
-            <MessageCircle size={14} strokeWidth={1.8} />
-            WhatsApp
-          </Button>
-        </div>
-      );
-    case "restaurant":
-      return (
-        <div className="flex gap-2 mt-auto">
-          <Button variant="outline" size="sm" className="flex-1">
-            {t("action.menu")}
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1"
-            onClick={() => onBook(provider)}
-          >
-            {t("action.bookTable")}
-          </Button>
-        </div>
-      );
-    case "host":
-      return (
-        <div className="flex gap-2 mt-auto">
-          <Link href={profileHref} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full">
-              {t("action.profile")}
-            </Button>
-          </Link>
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1"
-            onClick={() => onBook(provider)}
-          >
-            {t("action.book")}
-          </Button>
-        </div>
-      );
-    case "barber":
-    case "salon":
-    case "makeup": {
-      const useUrgent = availableToday;
-      return (
-        <div className="flex gap-2 mt-auto">
-          <Button variant="outline" size="sm" className="flex-1">
-            {t("action.priceList")}
-          </Button>
-          {useUrgent ? (
-            <Button
-              variant="urgent"
-              size="sm"
-              className="flex-1"
-              onClick={() => onBook(provider)}
-            >
-              {t("action.bookNow")}
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              className="flex-1"
-              onClick={() => onBook(provider)}
-            >
-              {t("action.book")}
-            </Button>
-          )}
-        </div>
-      );
-    }
-    default:
-      return null;
-  }
+  return (
+    <div className="flex gap-2 mt-auto">
+      <Link href={profileHref} className="flex-1">
+        <Button variant="outline" size="sm" className="w-full">
+          {t("action.profile")}
+        </Button>
+      </Link>
+      <Button
+        variant="primary"
+        size="sm"
+        className="flex-1"
+        onClick={() => onBook(provider)}
+      >
+        {t(availableToday ? "action.bookNow" : "action.book")}
+      </Button>
+    </div>
+  );
 }

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
-import { submitBid } from "@/lib/api/repo";
+import { submitBid, useProviders } from "@/lib/api/repo";
 import { formatPrice } from "@/lib/utils";
 import type { Tender } from "@/lib/types";
 
@@ -45,6 +45,11 @@ function SubmitBidForm({
   const currentUser = useStore(
     (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
   );
+  // Pull "my" avatar from the same place the dashboard does — providers[0]
+  // is what /dashboard treats as the current user until real auth↔provider
+  // linkage exists. We snapshot the URL onto the bid so cards can show a
+  // photo even though tender_bids has no FK back to providers.
+  const myAvatar = useProviders()[0]?.avatar;
 
   const [price, setPrice] = useState<string>("");
   const [note, setNote] = useState<string>("");
@@ -76,6 +81,7 @@ function SubmitBidForm({
         providerId: "",
         authorUserId: currentUser?.id,
         providerName: providerName.trim(),
+        providerAvatar: myAvatar,
         price: priceNumber,
         note: { az: note.trim(), ru: note.trim() },
         badges: [],

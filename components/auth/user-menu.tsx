@@ -61,7 +61,12 @@ export function UserMenu({ user }: Props) {
           open && "bg-ink-50",
         )}
       >
-        <Avatar size="sm" name={user.name} id={user.id} />
+        <Avatar
+          size="sm"
+          name={user.name}
+          id={user.id}
+          imageUrl={meProvider?.avatar}
+        />
         <span className="hidden md:inline text-sm font-medium text-ink-800">
           {user.name}
         </span>

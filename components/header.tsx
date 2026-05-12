@@ -312,7 +312,12 @@ function MobileAuthSection({
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-3 px-3 py-2">
-        <Avatar size="sm" name={user.name} id={user.id} />
+        <Avatar
+          size="sm"
+          name={user.name}
+          id={user.id}
+          imageUrl={meProvider?.avatar}
+        />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-ink-900 truncate">
             {user.name}

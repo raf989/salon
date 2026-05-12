@@ -242,6 +242,7 @@ function rowToBid(row: {
   provider_id: string | null;
   author_user_id?: string | null;
   provider_name: string;
+  provider_avatar?: string | null;
   price: number;
   note: { az: string; ru: string };
   badges: string[];
@@ -253,6 +254,7 @@ function rowToBid(row: {
     providerId: row.provider_id ?? "",
     authorUserId: row.author_user_id ?? undefined,
     providerName: row.provider_name,
+    providerAvatar: row.provider_avatar ?? undefined,
     price: Number(row.price),
     note: row.note,
     badges: row.badges as TenderBid["badges"],
@@ -881,6 +883,7 @@ export async function submitBid(
     provider_id: input.providerId || null,
     author_user_id: input.authorUserId ?? null,
     provider_name: input.providerName,
+    provider_avatar: input.providerAvatar ?? null,
     price: input.price,
     note: input.note,
     badges: input.badges,

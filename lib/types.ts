@@ -148,6 +148,9 @@ export type TenderBid = {
    *  providerId, which is the FK to the `providers` table. */
   authorUserId?: string;
   providerName: string;
+  /** Optional avatar URL captured at submit time so the bid card can show
+   *  a real photo instead of the gradient placeholder. */
+  providerAvatar?: string;
   price: number;
   note: Localized;
   badges: TenderBidBadge[];

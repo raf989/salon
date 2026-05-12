@@ -132,7 +132,12 @@ function BidRow({ bid, tender }: MyBid) {
       </div>
 
       <div className="flex items-start gap-3">
-        <Avatar name={bid.providerName} id={bid.id} size="sm" />
+        <Avatar
+          name={bid.providerName}
+          id={bid.id}
+          imageUrl={bid.providerAvatar}
+          size="sm"
+        />
         <p className="text-sm text-ink-500 leading-relaxed line-clamp-3 flex-1">
           {pickLocalized(bid.note)}
         </p>

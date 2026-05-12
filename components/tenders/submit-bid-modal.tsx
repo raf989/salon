@@ -69,7 +69,12 @@ function SubmitBidForm({
     setError(null);
     try {
       await submitBid(tender.id, {
-        providerId: currentUser?.id ?? "",
+        // Auth user IDs (`users` table) aren't the same as `providers.id` —
+        // the FK on tender_bids.provider_id only accepts rows from `providers`.
+        // We keep providerId empty (→ NULL) and stash the local auth user id
+        // in `authorUserId` so "my bids" UI can resolve later.
+        providerId: "",
+        authorUserId: currentUser?.id,
         providerName: providerName.trim(),
         price: priceNumber,
         note: { az: note.trim(), ru: note.trim() },

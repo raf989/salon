@@ -6,15 +6,12 @@ import { Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Cover } from "@/components/ui/cover";
+import { HeartButton } from "@/components/ui/heart-button";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { useServices } from "@/lib/api/repo";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
-
-function toMin(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
+import { isWithinHours, toMinutes } from "@/lib/slots";
 import {
   CATEGORY_LABELS,
   KIND_LABELS,
@@ -49,11 +46,17 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
   const now = useNow();
   const isOpen = (() => {
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    const start = toMin(provider.workingHours.start);
-    const end = toMin(provider.workingHours.end);
-    if (nowMin < start || nowMin >= end) return false;
+    if (
+      !isWithinHours(
+        nowMin,
+        provider.workingHours.start,
+        provider.workingHours.end,
+      )
+    ) {
+      return false;
+    }
     return !provider.breaks.some(
-      (b) => nowMin >= toMin(b.start) && nowMin < toMin(b.end),
+      (b) => nowMin >= toMinutes(b.start) && nowMin < toMinutes(b.end),
     );
   })();
 
@@ -111,6 +114,10 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
             kind={provider.kind}
             aspect="1"
             className="rounded-xl"
+          />
+          <HeartButton
+            providerId={provider.id}
+            className="absolute top-2 right-2"
           />
         </div>
 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useT } from "@/lib/i18n";
 import { useTender } from "@/lib/api/repo";
 import { cn, formatPrice } from "@/lib/utils";
+import { BidAuthorActions } from "@/components/tenders/bid-author-actions";
 import type { Tender, TenderBid, TenderBidBadge } from "@/lib/types";
 
 type Props = {
@@ -38,7 +39,12 @@ export function AllBidsModal({ tender, open, onClose }: Props) {
         ) : (
           <div className="flex flex-col">
             {bids.map((bid, i) => (
-              <BidRow key={bid.id} bid={bid} isFirst={i === 0} />
+              <BidRow
+                key={bid.id}
+                bid={bid}
+                tender={live ?? tender}
+                isFirst={i === 0}
+              />
             ))}
           </div>
         )}
@@ -69,7 +75,15 @@ function BidBadge({
   );
 }
 
-function BidRow({ bid, isFirst }: { bid: TenderBid; isFirst: boolean }) {
+function BidRow({
+  bid,
+  isFirst,
+  tender,
+}: {
+  bid: TenderBid;
+  isFirst: boolean;
+  tender: Tender;
+}) {
   const { t, pickLocalized } = useT();
 
   const labelFor = (kind: TenderBidBadge): string => {
@@ -108,6 +122,9 @@ function BidRow({ bid, isFirst }: { bid: TenderBid; isFirst: boolean }) {
                 label={labelFor(kind)}
               />
             ))}
+          </div>
+          <div className="mt-2">
+            <BidAuthorActions bid={bid} tender={tender} />
           </div>
         </div>
       </div>

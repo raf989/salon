@@ -139,14 +139,23 @@ export type TenderBidBadge =
   | "fastResponse"
   | "rating";
 
+export type TenderBidStatus = "pending" | "accepted" | "rejected";
+
 export type TenderBid = {
   id: string;
   providerId: string;
+  /** Auth user (localStorage) who submitted this bid. Separate from
+   *  providerId, which is the FK to the `providers` table. */
+  authorUserId?: string;
   providerName: string;
   price: number;
   note: Localized;
   badges: TenderBidBadge[];
   rating?: number;
+  /** Lifecycle: missing / undefined collapses to "pending" at the display
+   *  surface. DB-backed bids always have a value (column has a `default`).
+   *  Mock-data seeded bids omit the field. */
+  status?: TenderBidStatus;
 };
 
 export type UserRole = "client" | "provider";
@@ -171,8 +180,11 @@ export type Tender = {
   description: Localized;
   budgetMin: number;
   budgetMax: number;
-  deadline: string; // YYYY-MM-DD
+  deadline: string; // YYYY-MM-DD — last day bids can be submitted
   openedAt: string; // YYYY-MM-DD
+  /** When the service should actually be performed. */
+  eventDate?: string; // YYYY-MM-DD
+  eventTime?: string; // HH:MM (optional within the day)
   tags: Localized[];
   bidsCount: number;
   bids: TenderBid[];
@@ -226,6 +238,8 @@ export type CreateAppointmentInput = Omit<Appointment, "id" | "status"> & {
 
 export type CreateTenderInput = Omit<Tender, "id" | "openedAt" | "bidsCount" | "bids">;
 
+// Status is already optional on TenderBid (the DB column has
+// `default 'pending'`), so `Omit<… , "id">` is fine.
 export type CreateBidInput = Omit<TenderBid, "id">;
 
 export type CreateReviewInput = {

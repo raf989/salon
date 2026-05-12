@@ -1,9 +1,6 @@
-export type DerivedStatus = "open" | "closed" | "break";
+import { isWithinHours, toMinutes } from "./slots";
 
-function toMin(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
+export type DerivedStatus = "open" | "closed" | "break";
 
 /**
  * Compute the live availability status from current time, working hours,
@@ -33,13 +30,15 @@ export function getStatus(
   if (!workingHours) return "closed";
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const startMin = toMin(workingHours.start);
-  const endMin = toMin(workingHours.end);
 
-  if (nowMin < startMin || nowMin >= endMin) return "closed";
+  if (!isWithinHours(nowMin, workingHours.start, workingHours.end)) {
+    return "closed";
+  }
 
   for (const b of breaks ?? []) {
-    if (nowMin >= toMin(b.start) && nowMin < toMin(b.end)) return "break";
+    if (nowMin >= toMinutes(b.start) && nowMin < toMinutes(b.end)) {
+      return "break";
+    }
   }
 
   return "open";

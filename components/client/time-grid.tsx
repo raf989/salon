@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Check, Lock } from "lucide-react";
 import { useAppointments } from "@/lib/api/repo";
-import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
+import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
 import { cn, getTodayISO } from "@/lib/utils";
 import type { Stylist } from "@/lib/types";
 import { useT } from "@/lib/i18n";
@@ -66,7 +66,9 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
         {slots.map((time) => {
           const inBreak = isInBreak(time, stylist.breaks);
           const taken = takenTimes.has(time);
-          const past = isToday && toMinutes(time) <= nowMinutes;
+          const past =
+            isToday &&
+            isSlotPast(toMinutes(time), nowMinutes, stylist.workingHours.start);
           const disabled = inBreak || taken || past;
           const selected = selectedTime === time;
 

@@ -754,7 +754,8 @@ export const TENDERS: readonly Tender[] = [
     tags: [
       { az: "Korporativ", ru: "Корпоратив" },
       { az: "4 saat", ru: "4 часа" },
-      { az: "House · retro", ru: "House · ретро" },
+      { az: "House", ru: "House" },
+      { az: "Retro", ru: "Ретро" },
     ],
     bidsCount: 2,
     bids: [

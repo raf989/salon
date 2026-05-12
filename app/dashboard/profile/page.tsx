@@ -21,6 +21,7 @@ import { Crumbs } from "@/components/ui/crumbs";
 import { GalleryUploader } from "@/components/dashboard/gallery-uploader";
 import { TelegramIcon as SharedTelegramIcon } from "@/components/ui/social-icons";
 import { updateProvider, useProvider, useProviders } from "@/lib/api/repo";
+import { deleteImage, uploadImage } from "@/lib/api/storage";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { Stylist } from "@/lib/types";
@@ -104,13 +105,44 @@ function ProfileEditor({ me }: { me: Stylist }) {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarFile = (file: File | null | undefined) => {
+  const handleAvatarFile = async (file: File | null | undefined) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setAvatar(reader.result as string);
-    reader.readAsDataURL(file);
+    setAvatarError(null);
+    setAvatarUploading(true);
+    const previous = avatar;
+    try {
+      const url = await uploadImage(file, "avatar", me.id);
+      setAvatar(url);
+      // Persist to the DB immediately — otherwise reloading the page before
+      // the user hits the main Save button loses the upload and orphans the
+      // file in Storage. updateProvider does a column-scoped UPDATE, so it
+      // won't clobber other unsaved form state.
+      await updateProvider(me.id, { avatar: url });
+      // Fire-and-forget cleanup of the prior Supabase-hosted avatar so the
+      // bucket doesn't fill up with orphans. Skip external/data URLs.
+      if (previous && previous.startsWith("https://")) {
+        void deleteImage(previous).catch((err) => {
+          // eslint-disable-next-line no-console
+          console.warn("[ProfileEditor.handleAvatarFile] cleanup failed", err);
+        });
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[ProfileEditor.handleAvatarFile] upload failed", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : JSON.stringify(err);
+      setAvatarError(message);
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const updatePhone = (idx: number, raw: string) => {
@@ -211,7 +243,8 @@ function ProfileEditor({ me }: { me: Stylist }) {
         <button
           type="button"
           onClick={() => avatarFileRef.current?.click()}
-          className="relative group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          disabled={avatarUploading}
+          className="relative group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed"
           aria-label={lang === "ru" ? "Изменить фото" : "Şəkli dəyiş"}
         >
           <Avatar
@@ -220,8 +253,19 @@ function ProfileEditor({ me }: { me: Stylist }) {
             imageUrl={avatar}
             size="lg"
           />
-          <span className="absolute inset-0 rounded-full bg-ink-900/55 grid place-items-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
-            <Camera className="size-5" />
+          <span
+            className={cn(
+              "absolute inset-0 rounded-full bg-ink-900/55 grid place-items-center text-white transition-opacity",
+              avatarUploading
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100",
+            )}
+          >
+            {avatarUploading ? (
+              <span className="size-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            ) : (
+              <Camera className="size-5" />
+            )}
           </span>
         </button>
         <div className="min-w-0">
@@ -231,14 +275,21 @@ function ProfileEditor({ me }: { me: Stylist }) {
               (lang === "ru" ? "Пользователь" : "İstifadəçi")}
           </h2>
           <p className="text-sm text-ink-500 truncate">
-            {avatar
+            {avatarUploading
               ? lang === "ru"
-                ? "Нажмите на фото, чтобы заменить"
-                : "Şəkli dəyişmək üçün üzərinə basın"
-              : lang === "ru"
-                ? "Нажмите на аватар, чтобы добавить фото"
-                : "Şəkil əlavə etmək üçün avatara basın"}
+                ? "Загрузка…"
+                : "Yüklənir…"
+              : avatar
+                ? lang === "ru"
+                  ? "Нажмите на фото, чтобы заменить"
+                  : "Şəkli dəyişmək üçün üzərinə basın"
+                : lang === "ru"
+                  ? "Нажмите на аватар, чтобы добавить фото"
+                  : "Şəkil əlavə etmək üçün avatara basın"}
           </p>
+          {avatarError ? (
+            <p className="text-xs text-pomegranate-500 mt-1">{avatarError}</p>
+          ) : null}
         </div>
         <input
           ref={avatarFileRef}
@@ -246,7 +297,7 @@ function ProfileEditor({ me }: { me: Stylist }) {
           accept="image/*"
           className="hidden"
           onChange={(e) => {
-            handleAvatarFile(e.target.files?.[0]);
+            void handleAvatarFile(e.target.files?.[0]);
             e.target.value = "";
           }}
         />
@@ -392,7 +443,11 @@ function ProfileEditor({ me }: { me: Stylist }) {
           title={t("dash.profile.section.gallery.title")}
           subtitle={t("dash.profile.section.gallery.sub")}
         >
-          <GalleryUploader value={gallery} onChange={setGallery} />
+          <GalleryUploader
+            value={gallery}
+            onChange={setGallery}
+            providerId={me.id}
+          />
         </Section>
       </div>
 

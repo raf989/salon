@@ -12,7 +12,7 @@ import { Reviews } from "@/components/provider/reviews";
 import { StickyBooking } from "@/components/provider/sticky-booking";
 import { useT } from "@/lib/i18n";
 import { useAppointments, useProviderBySlugWithStatus } from "@/lib/api/repo";
-import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
+import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
 import { KIND_PLURAL, type Provider } from "@/lib/types";
 import { getTodayISO } from "@/lib/utils";
 
@@ -59,7 +59,8 @@ function ProviderPageInner({ id }: { id: string }) {
     return slots.some((time) => {
       if (isInBreak(time, provider.breaks)) return false;
       if (taken.has(time)) return false;
-      if (toMinutes(time) <= nowMinutes) return false;
+      if (isSlotPast(toMinutes(time), nowMinutes, provider.workingHours.start))
+        return false;
       return true;
     });
   }, [provider, appointments, todayISO]);

@@ -30,6 +30,16 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: "nav.tenders",
     match: (p) => p.startsWith("/tenders"),
   },
+  {
+    href: "/favorites",
+    labelKey: "nav.favorites",
+    match: (p) => p.startsWith("/favorites"),
+  },
+  {
+    href: "/my-bids",
+    labelKey: "nav.myBids",
+    match: (p) => p.startsWith("/my-bids"),
+  },
 ];
 
 export function Header() {

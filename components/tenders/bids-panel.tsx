@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n";
 import { formatPrice, cn } from "@/lib/utils";
 import type { Tender, TenderBid, TenderBidBadge } from "@/lib/types";
 import { AllBidsModal } from "@/components/tenders/all-bids-modal";
+import { BidAuthorActions } from "@/components/tenders/bid-author-actions";
 
 type Props = { tender: Tender };
 
@@ -40,7 +41,15 @@ function BidBadge({
   );
 }
 
-function BidRow({ bid, isFirst }: { bid: TenderBid; isFirst: boolean }) {
+function BidRow({
+  bid,
+  isFirst,
+  tender,
+}: {
+  bid: TenderBid;
+  isFirst: boolean;
+  tender: Tender;
+}) {
   const { t, pickLocalized } = useT();
 
   const labelFor = (kind: TenderBidBadge): string => {
@@ -80,6 +89,9 @@ function BidRow({ bid, isFirst }: { bid: TenderBid; isFirst: boolean }) {
               />
             ))}
           </div>
+          <div className="mt-2">
+            <BidAuthorActions bid={bid} tender={tender} />
+          </div>
         </div>
       </div>
     </div>
@@ -103,7 +115,7 @@ export function BidsPanel({ tender }: Props) {
 
       <div className="mt-3">
         {visible.map((bid, i) => (
-          <BidRow key={bid.id} bid={bid} isFirst={i === 0} />
+          <BidRow key={bid.id} bid={bid} tender={tender} isFirst={i === 0} />
         ))}
       </div>
 

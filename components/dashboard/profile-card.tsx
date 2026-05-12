@@ -89,16 +89,14 @@ export function ProfileCard({ me }: ProfileCardProps) {
     .join(" · ");
   const verifiedLabel = lang === "ru" ? "Подтверждён" : "Doğrulandı";
 
-  // Telegram falls back to a phone-based deep link when the provider hasn't
-  // set a username — the link still opens a chat as long as that number is
-  // registered with Telegram.
-  const telegramValue =
-    me.telegram || me.whatsapp || me.phones?.[0] || undefined;
-
+  // Show Telegram on the dashboard only when the provider has entered an
+  // explicit handle. The phone-based deep link still works for the public
+  // profile (`/provider/<slug>`); this pane is the user's own contact
+  // overview so we want to display their actual username.
   const rows = buildContactRows(
     me.phones ?? [],
     me.whatsapp,
-    telegramValue,
+    me.telegram,
     me.instagram,
     me.tiktok,
   );

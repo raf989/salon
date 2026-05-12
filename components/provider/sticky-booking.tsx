@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/social-icons";
 import { useT } from "@/lib/i18n";
 import { useAppointments, useServices } from "@/lib/api/repo";
-import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
+import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
 import type { Provider } from "@/lib/types";
 import { formatDate, formatPrice, getDateISO, getTodayISO } from "@/lib/utils";
 
@@ -111,7 +111,12 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
       const hasFree = slots.some((time) => {
         if (isInBreak(time, provider.breaks)) return false;
         if (taken.has(time)) return false;
-        if (isToday && toMinutes(time) <= nowMinutes) return false;
+        if (
+          isToday &&
+          isSlotPast(toMinutes(time), nowMinutes, provider.workingHours.start)
+        ) {
+          return false;
+        }
         return true;
       });
       return hasFree ? "free" : "busy";
@@ -188,7 +193,10 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
       </Button>
 
       {hasAnyContact ? (
-        <div className="grid grid-cols-2 gap-2">
+        // CSS Grid auto-fit picks the column count based on available width:
+        //   1 button → full row, 2 → 1×2 / 2×1, 4 → 2×2.
+        // Each column is at least 130px so labels don't truncate.
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2">
           {waHref ? (
             <ContactLinkButton variant="whatsapp" href={waHref}>
               <MessageCircle size={16} /> {t("contact.whatsapp")}
@@ -252,7 +260,7 @@ function ContactLinkButton({
       target="_blank"
       rel="noopener noreferrer"
       className={
-        "inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold tracking-tight transition-colors h-10 px-5 text-sm flex-1 whitespace-nowrap " +
+        "inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold tracking-tight transition-colors h-10 px-5 text-sm whitespace-nowrap " +
         CONTACT_CLASSES[variant]
       }
     >

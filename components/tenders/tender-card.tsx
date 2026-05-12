@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bookmark, MapPin } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { useT, type DictKey } from "@/lib/i18n";
 import type { Tender } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPrice, getTodayISO } from "@/lib/utils";
+import { formatDate, formatPrice, getTodayISO } from "@/lib/utils";
 import { SubmitBidModal } from "@/components/tenders/submit-bid-modal";
+import { FavoriteToggle } from "@/components/tenders/favorite-toggle";
 
 type Props = { tender: Tender };
 
@@ -37,7 +38,7 @@ function computeMinutesAgo(openedAt: string, id: string): number {
 }
 
 export function TenderCard({ tender }: Props) {
-  const { t, pickLocalized } = useT();
+  const { t, lang, pickLocalized } = useT();
   const [bidOpen, setBidOpen] = useState(false);
 
   const tierKey = `tier.${tender.tier}` as DictKey;
@@ -85,6 +86,13 @@ export function TenderCard({ tender }: Props) {
             <MapPin className="size-3.5 text-ink-400" strokeWidth={1.7} />
             {pickLocalized(tender.district)}
           </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="size-3.5 text-ink-400" strokeWidth={1.7} />
+            <span className="text-ink-700">
+              {formatDate(tender.eventDate ?? tender.deadline, lang)}
+              {tender.eventTime ? ` · ${tender.eventTime}` : null}
+            </span>
+          </span>
           <span>
             {t("tenders.author")}: {tender.authorName}
           </span>
@@ -109,10 +117,7 @@ export function TenderCard({ tender }: Props) {
           >
             {t("tenders.action.bid")}
           </Button>
-          <Button variant="outline">
-            <Bookmark className="size-4" strokeWidth={1.7} />
-            {t("tenders.action.save")}
-          </Button>
+          <FavoriteToggle tenderId={tender.id} />
         </div>
       </div>
       <SubmitBidModal

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SearchX } from "lucide-react";
 import { Hero } from "@/components/client/hero";
@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { ALL_CITIES_ID, getCityById, getCityIdByName } from "@/lib/cities";
 import { useStore } from "@/lib/store";
 import { useAppointments, useProviders, useServices } from "@/lib/api/repo";
-import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
+import { hasFreeSlotOnDate } from "@/lib/availability";
 import { getTodayISO } from "@/lib/utils";
 import type {
   Localized,
@@ -94,7 +94,18 @@ function applySearchFilters(
   });
 }
 
+// Next.js requires any component reading `useSearchParams()` to sit inside
+// a Suspense boundary, otherwise the static prerender bails. Default export
+// is the wrapper; the real body lives in `HomePageInner`.
 export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageInner />
+    </Suspense>
+  );
+}
+
+function HomePageInner() {
   const { pickLocalized, lang } = useT();
   const searchParams = useSearchParams();
   // Initialise the kind filter from `?kind=` (e.g. the breadcrumb on the
@@ -114,7 +125,10 @@ export default function HomePage() {
   // for all rows). AppointmentsQuery currently only accepts
   // { stylistId, clientName }; once a `date` filter is added in
   // lib/api/repo.ts, narrow this to `{ date: todayISO }`.
-  const appointments = useAppointments();
+  // Catalog only needs today's appointments — for the availability badge.
+  // Without the filter every client downloads every booking ever, which is
+  // both wasteful and a privacy smell.
+  const appointments = useAppointments({ date: getTodayISO() });
   const providers = useProviders();
   const services = useServices();
 
@@ -161,39 +175,14 @@ export default function HomePage() {
     );
   }, [providers, cityId, pickLocalized, lang]);
 
-  const hasFreeSlotOnDate = useCallback(
-    (p: Provider, date: string): boolean => {
-      const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      const slots = generateSlots(p.workingHours.start, p.workingHours.end);
-      const isToday = date === todayISO;
-      const taken = new Set(
-        appointments
-          .filter(
-            (a) =>
-              a.stylistId === p.id &&
-              a.date === date &&
-              a.status !== "cancelled",
-          )
-          .map((a) => a.time),
-      );
-      return slots.some((time) => {
-        if (isInBreak(time, p.breaks)) return false;
-        if (taken.has(time)) return false;
-        if (isToday && toMinutes(time) <= nowMinutes) return false;
-        return true;
-      });
-    },
-    [appointments, todayISO],
-  );
-
   const availabilityMap = useMemo(() => {
+    const now = new Date();
     const map: Record<string, boolean> = {};
     for (const p of providers) {
-      map[p.id] = hasFreeSlotOnDate(p, todayISO);
+      map[p.id] = hasFreeSlotOnDate(p, todayISO, appointments, todayISO, now);
     }
     return map;
-  }, [providers, hasFreeSlotOnDate, todayISO]);
+  }, [providers, appointments, todayISO]);
 
   const filtered = useMemo(() => {
     // Stage 0 — chain filter: category → city → text.

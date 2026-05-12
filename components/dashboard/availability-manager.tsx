@@ -37,10 +37,13 @@ function breaksEqual(a: Break[], b: Break[]): boolean {
 }
 
 export function AvailabilityManager({ me }: AvailabilityManagerProps) {
-  const { t, pickLocalized } = useT();
+  const { t, lang } = useT();
 
-  const initialCity = me.city ? pickLocalized(me.city) : "";
-  const initialAddress = me.district ? pickLocalized(me.district) : "";
+  // Read localized strings via `lang` (stable string) rather than the
+  // `pickLocalized` function — that function is a fresh reference every
+  // render, which would re-fire the sync-effect into an infinite loop.
+  const initialCity = me.city ? me.city[lang] : "";
+  const initialAddress = me.district ? me.district[lang] : "";
 
   const [isEditing, setIsEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -68,21 +71,22 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   const [address, setAddress] = useState<string>(initialAddress);
 
   // Sync local state with `me` when not editing — e.g. after another screen
-  // updates the same provider.
+  // updates the same provider. Deps are primitive/stable (no function refs)
+  // so the effect doesn't re-fire on every render.
   useEffect(() => {
     if (isEditing) return;
     setStart(me.workingHours.start);
     setEnd(me.workingHours.end);
     setBreaks(me.breaks);
-    setCity(me.city ? pickLocalized(me.city) : "");
-    setAddress(me.district ? pickLocalized(me.district) : "");
+    setCity(me.city ? me.city[lang] : "");
+    setAddress(me.district ? me.district[lang] : "");
     if (me.activeDays === undefined) {
       setActiveDays(Array.from({ length: 7 }, () => true));
     } else {
       const set = new Set(me.activeDays);
       setActiveDays(WEEKDAY_DICT_INDICES.map((dictIdx) => set.has(dictIdx)));
     }
-  }, [me, isEditing, pickLocalized]);
+  }, [me, isEditing, lang]);
 
   useEffect(() => {
     if (savedAt === null) return;
@@ -141,16 +145,18 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   };
 
   const addBreak = () => {
-    if (!isEditing) return;
     if (!newBreakStart || !newBreakEnd) return;
     if (newBreakEnd <= newBreakStart) return;
+    // Auto-enter edit mode so the Save button surfaces and the sync-effect
+    // doesn't immediately overwrite the new break with the persisted state.
+    if (!isEditing) setIsEditing(true);
     setBreaks((prev) => [...prev, { start: newBreakStart, end: newBreakEnd }]);
     setNewBreakStart("");
     setNewBreakEnd("");
   };
 
   const removeBreak = (idx: number) => {
-    if (!isEditing) return;
+    if (!isEditing) setIsEditing(true);
     setBreaks((prev) => prev.filter((_, i) => i !== idx));
   };
 
@@ -330,50 +336,46 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
                 className="inline-flex items-center gap-2 h-9 px-3 rounded-full bg-saffron-50 text-saffron-500 text-sm font-medium font-mono"
               >
                 {b.start} – {b.end}
-                {isEditing ? (
-                  <button
-                    type="button"
-                    onClick={() => removeBreak(i)}
-                    aria-label={`${b.start} – ${b.end} ${t("dash.avail.breaks.removeAria")}`}
-                    className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
-                  >
-                    <X className="size-3" />
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => removeBreak(i)}
+                  aria-label={`${b.start} – ${b.end} ${t("dash.avail.breaks.removeAria")}`}
+                  className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <X className="size-3" />
+                </button>
               </motion.span>
             ))}
           </AnimatePresence>
         </div>
 
-        {isEditing ? (
-          <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 mt-3">
-            <input
-              type="time"
-              value={newBreakStart}
-              onChange={(e) => setNewBreakStart(e.target.value)}
-              className={TIME_INPUT_CLASS}
-            />
-            <input
-              type="time"
-              value={newBreakEnd}
-              onChange={(e) => setNewBreakEnd(e.target.value)}
-              className={TIME_INPUT_CLASS}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addBreak}
-              disabled={
-                !newBreakStart ||
-                !newBreakEnd ||
-                newBreakEnd <= newBreakStart
-              }
-            >
-              {t("dash.avail.breaks.add")}
-            </Button>
-          </div>
-        ) : null}
+        <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 mt-3">
+          <input
+            type="time"
+            value={newBreakStart}
+            onChange={(e) => setNewBreakStart(e.target.value)}
+            className={TIME_INPUT_CLASS}
+          />
+          <input
+            type="time"
+            value={newBreakEnd}
+            onChange={(e) => setNewBreakEnd(e.target.value)}
+            className={TIME_INPUT_CLASS}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addBreak}
+            disabled={
+              !newBreakStart ||
+              !newBreakEnd ||
+              newBreakEnd <= newBreakStart
+            }
+          >
+            {t("dash.avail.breaks.add")}
+          </Button>
+        </div>
       </section>
 
       {/* Section 4 — Location & address */}

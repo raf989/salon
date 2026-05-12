@@ -11,6 +11,58 @@ export const DICT = {
   // header / nav (Vaxt structure)
   "nav.catalog": { az: "Kataloq", ru: "Каталог" },
   "nav.tenders": { az: "Tenderlər", ru: "Тендеры" },
+  "nav.favorites": { az: "Seçilmişlər", ru: "Избранное" },
+  "nav.myBids": { az: "Mənim təkliflərim", ru: "Мои ставки" },
+
+  // my-bids page
+  "myBids.title": { az: "Mənim təkliflərim", ru: "Мои ставки" },
+  "myBids.subtitle": {
+    az: "Sənin göndərdiyin təkliflərin tarixi.",
+    ru: "История твоих предложений на тендеры.",
+  },
+  "myBids.empty.title": {
+    az: "Hələ təklif göndərməmisən",
+    ru: "Пока нет ни одной ставки",
+  },
+  "myBids.empty.sub": {
+    az: "Tender səhifəsində «Təklif göndər» düyməsini bas — buraya qayıt­acaq.",
+    ru: "Откройте тендер и нажмите «Прислать ставку» — она появится здесь.",
+  },
+  "myBids.empty.notLoggedIn": {
+    az: "Təkliflərini görmək üçün daxil ol.",
+    ru: "Войдите, чтобы увидеть свои ставки.",
+  },
+  "myBids.goToTender": { az: "Tendərə bax", ru: "К тендеру" },
+  "myBids.withdraw": { az: "Geri al", ru: "Отозвать" },
+  "myBids.withdraw.confirm": {
+    az: "Təklifi geri almaq istəyirsiniz?",
+    ru: "Отозвать ставку?",
+  },
+  "myBids.withdraw.confirmYes": { az: "Bəli, geri al", ru: "Да, отозвать" },
+  "myBids.withdraw.confirmNo": { az: "İmtina", ru: "Отмена" },
+
+  // bid status (pending / accepted / rejected)
+  "bid.status.pending": { az: "Gözləyir", ru: "Ожидает" },
+  "bid.status.accepted": { az: "Qəbul edildi", ru: "Принято" },
+  "bid.status.rejected": { az: "Rədd edildi", ru: "Отклонено" },
+  "bid.accept": { az: "Qəbul et", ru: "Принять" },
+  "bid.reject": { az: "Rədd et", ru: "Отклонить" },
+  "bid.unaccept": { az: "Qərardan imtina", ru: "Сбросить" },
+
+  // favorites page
+  "favorites.title": { az: "Seçilmişlər", ru: "Избранное" },
+  "favorites.subtitle": {
+    az: "Saxladığın icraçılar və tenderlər burada.",
+    ru: "Сохранённые исполнители и тендеры в одном месте.",
+  },
+  "favorites.section.providers": { az: "İcraçılar", ru: "Исполнители" },
+  "favorites.section.tenders": { az: "Tenderlər", ru: "Тендеры" },
+  "favorites.section.myBids": { az: "Mənim təkliflərim", ru: "Мои ставки" },
+  "favorites.empty.title": { az: "Hələ heç nə yoxdur", ru: "Пока пусто" },
+  "favorites.empty.sub": {
+    az: "Kataloqdan və ya tenderlərdən ürək / əlfəcin nişanı ilə əlavə et.",
+    ru: "Добавляй сердечком в каталоге и закладкой на тендерах.",
+  },
   "nav.becomeProvider": { az: "Icraçı ol", ru: "Стать исполнителем" },
   "nav.login": { az: "Giriş", ru: "Вход" },
 
@@ -372,6 +424,7 @@ export const DICT = {
   "tenders.bidsCount": { az: "{n} təklif", ru: "{n} ставки" },
   "tenders.budget": { az: "Büdcə", ru: "Бюджет" },
   "tenders.deadline": { az: "Son tarix", ru: "Дедлайн" },
+  "tenders.eventDate": { az: "Tarix", ru: "Дата" },
   "tenders.author": { az: "Müştəri", ru: "Заказчик" },
   "tenders.bidPanel.title": {
     az: "İcraçı təklifləri",
@@ -417,6 +470,14 @@ export const DICT = {
   "tenders.create.field.tier": { az: "Kateqoriya", ru: "Категория" },
   "tenders.create.field.budget": { az: "Büdcə (₼)", ru: "Бюджет (₼)" },
   "tenders.create.field.deadline": { az: "Son tarix", ru: "Дедлайн" },
+  "tenders.create.field.eventDate": {
+    az: "Tədbir tarixi",
+    ru: "Дата мероприятия",
+  },
+  "tenders.create.field.eventTime": {
+    az: "Tədbir vaxtı",
+    ru: "Время мероприятия",
+  },
   "tenders.create.field.district": { az: "Rayon", ru: "Район" },
   "tenders.create.field.tags": {
     az: "Teqlər (vergüllə)",

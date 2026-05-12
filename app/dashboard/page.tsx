@@ -6,11 +6,14 @@ import { ProfileCard } from "@/components/dashboard/profile-card";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import {
   useAppointments,
+  useAppointmentsRealtime,
   useProvider,
   useProviders,
 } from "@/lib/api/repo";
 
 export default function DashboardPage() {
+  // Live-refresh the appointment list when a client books / cancels.
+  useAppointmentsRealtime();
   const providers = useProviders();
   const meId = providers[0]?.id;
   const me = useProvider(meId);

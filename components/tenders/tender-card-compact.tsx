@@ -8,6 +8,7 @@ import { useT, type DictKey } from "@/lib/i18n";
 import { formatDate, formatPrice } from "@/lib/utils";
 import type { Tender } from "@/lib/types";
 import { SubmitBidModal } from "@/components/tenders/submit-bid-modal";
+import { FavoriteToggle } from "@/components/tenders/favorite-toggle";
 
 type Props = { tender: Tender };
 
@@ -45,9 +46,10 @@ export function TenderCardCompact({ tender }: Props) {
         </span>
         <span className="text-ink-300">·</span>
         <span>
-          {t("tenders.deadline")}:{" "}
+          {t("tenders.eventDate")}:{" "}
           <span className="text-ink-700">
-            {formatDate(tender.deadline, lang)}
+            {formatDate(tender.eventDate ?? tender.deadline, lang)}
+            {tender.eventTime ? ` · ${tender.eventTime}` : null}
           </span>
         </span>
       </div>
@@ -63,14 +65,17 @@ export function TenderCardCompact({ tender }: Props) {
         ))}
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full mt-2"
-        onClick={() => setBidOpen(true)}
-      >
-        {t("tenders.action.bid")}
-      </Button>
+      <div className="flex items-center gap-2 mt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={() => setBidOpen(true)}
+        >
+          {t("tenders.action.bid")}
+        </Button>
+        <FavoriteToggle tenderId={tender.id} iconOnly />
+      </div>
       <SubmitBidModal
         tender={tender}
         open={bidOpen}

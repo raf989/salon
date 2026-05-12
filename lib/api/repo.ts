@@ -240,20 +240,24 @@ function rowToAppointment(row: {
 function rowToBid(row: {
   id: string;
   provider_id: string | null;
+  author_user_id?: string | null;
   provider_name: string;
   price: number;
   note: { az: string; ru: string };
   badges: string[];
   rating: number | null;
+  status?: string | null;
 }): TenderBid {
   return {
     id: row.id,
     providerId: row.provider_id ?? "",
+    authorUserId: row.author_user_id ?? undefined,
     providerName: row.provider_name,
     price: Number(row.price),
     note: row.note,
     badges: row.badges as TenderBid["badges"],
     rating: row.rating === null ? undefined : Number(row.rating),
+    status: (row.status as TenderBid["status"]) ?? "pending",
   };
 }
 
@@ -268,6 +272,8 @@ function rowToTender(
     budget_max: number;
     deadline: string;
     opened_at: string;
+    event_date?: string | null;
+    event_time?: string | null;
     tags: { az: string; ru: string }[];
     author_name: string;
     district: { az: string; ru: string };
@@ -284,6 +290,8 @@ function rowToTender(
     budgetMax: Number(row.budget_max),
     deadline: row.deadline,
     openedAt: row.opened_at,
+    eventDate: row.event_date ?? undefined,
+    eventTime: row.event_time ?? undefined,
     tags: row.tags,
     bidsCount: bids.length,
     bids,
@@ -593,6 +601,9 @@ export async function listServices(): Promise<Service[]> {
 type AppointmentsQuery = {
   stylistId?: string;
   clientName?: string;
+  /** Filter to a single ISO date "YYYY-MM-DD" — used by the catalog
+   *  availability check to avoid pulling every appointment for every provider. */
+  date?: string;
 };
 
 async function fetchAppointments(
@@ -602,6 +613,8 @@ async function fetchAppointments(
   // Branches ordered alphabetically by criterion label.
   // clientName — exact match on the client_name column.
   if (query?.clientName) q = q.eq("client_name", query.clientName);
+  // date — exact match on the date column (YYYY-MM-DD).
+  if (query?.date) q = q.eq("date", query.date);
   // stylistId — exact match on the stylist_id column.
   if (query?.stylistId) q = q.eq("stylist_id", query.stylistId);
   const { data, error } = await q;
@@ -613,11 +626,64 @@ export function useAppointments(query?: AppointmentsQuery): Appointment[] {
   const v = useVersion("appointments");
   const stylistId = query?.stylistId;
   const clientName = query?.clientName;
+  const date = query?.date;
   return useAsync(
     () => fetchAppointments(query),
-    [v, stylistId, clientName],
+    [v, stylistId, clientName, date],
     [] as Appointment[],
   );
+}
+
+/**
+ * Subscribe to any change on `appointments` and bump the version so
+ * `useAppointments()` refetches. Mount on dashboard / catalog pages that
+ * need live booking updates.
+ */
+export function useAppointmentsRealtime(): void {
+  useEffect(() => {
+    const channel = supabase
+      .channel("appointments_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "appointments" },
+        () => {
+          useVersions.getState().bump("appointments");
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+}
+
+/**
+ * Subscribe to any change on `tenders` or `tender_bids`. Both bump the
+ * `tenders` version so `useTenders()` / `useTender()` refetch.
+ */
+export function useTendersRealtime(): void {
+  useEffect(() => {
+    const channel = supabase
+      .channel("tenders_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tenders" },
+        () => {
+          useVersions.getState().bump("tenders");
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tender_bids" },
+        () => {
+          useVersions.getState().bump("tenders");
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 }
 
 export async function listAppointments(
@@ -744,6 +810,31 @@ export function useTender(id: string | undefined): Tender | null {
   }, [id, tenders]);
 }
 
+export type MyBid = { bid: TenderBid; tender: Tender };
+
+/**
+ * All bids submitted by `authorUserId` paired with the parent tender. Uses
+ * the existing `useTenders()` cache — no extra fetch.
+ */
+export function useMyBids(authorUserId: string | undefined): MyBid[] {
+  const tenders = useTenders();
+  return useMemo(() => {
+    if (!authorUserId) return [];
+    const out: MyBid[] = [];
+    for (const tender of tenders) {
+      for (const bid of tender.bids) {
+        if (bid.authorUserId === authorUserId) {
+          out.push({ bid, tender });
+        }
+      }
+    }
+    // Newest first — bid IDs are `b_<timestamp>_<rand>`, so reverse-lex sort
+    // approximates insertion order.
+    out.sort((a, b) => b.bid.id.localeCompare(a.bid.id));
+    return out;
+  }, [tenders, authorUserId]);
+}
+
 export async function listTenders(): Promise<Tender[]> {
   return fetchTenders();
 }
@@ -764,6 +855,8 @@ export async function createTender(input: CreateTenderInput): Promise<Tender> {
     budget_max: input.budgetMax,
     deadline: input.deadline,
     opened_at: new Date().toISOString().slice(0, 10),
+    event_date: input.eventDate ?? null,
+    event_time: input.eventTime ?? null,
     tags: input.tags,
     author_name: input.authorName,
     district: input.district,
@@ -786,6 +879,7 @@ export async function submitBid(
     id: makeId("b"),
     tender_id: tenderId,
     provider_id: input.providerId || null,
+    author_user_id: input.authorUserId ?? null,
     provider_name: input.providerName,
     price: input.price,
     note: input.note,
@@ -800,6 +894,37 @@ export async function submitBid(
   if (error) throw asError(error, "submitBid");
   useVersions.getState().bump("tenders");
   return rowToBid(data as Parameters<typeof rowToBid>[0]);
+}
+
+/**
+ * Delete a bid by id. The bidder uses this to retract a pending offer; the
+ * tender author can also remove unwanted bids. RLS-wide for the prototype
+ * — when real auth lands, restrict to `author_user_id = auth.uid()` or to
+ * the parent tender's author.
+ */
+export async function deleteBid(bidId: string): Promise<void> {
+  const { error } = await supabase
+    .from("tender_bids")
+    .delete()
+    .eq("id", bidId);
+  if (error) throw asError(error, "deleteBid");
+  useVersions.getState().bump("tenders");
+}
+
+/**
+ * Tender-author action: accept / reject a bid. `pending` lets the author
+ * "un-decide" again without deleting.
+ */
+export async function updateBidStatus(
+  bidId: string,
+  status: "pending" | "accepted" | "rejected",
+): Promise<void> {
+  const { error } = await supabase
+    .from("tender_bids")
+    .update({ status })
+    .eq("id", bidId);
+  if (error) throw asError(error, "updateBidStatus");
+  useVersions.getState().bump("tenders");
 }
 
 // =============================================================================

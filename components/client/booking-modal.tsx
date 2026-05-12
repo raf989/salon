@@ -23,7 +23,7 @@ import {
   useAppointments,
   useServices,
 } from "@/lib/api/repo";
-import { generateSlots, isInBreak, toMinutes } from "@/lib/slots";
+import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
 import {
   cn,
   formatDate,
@@ -139,7 +139,12 @@ function BookingFlow({
       const hasFree = slotsForStylist.some((time) => {
         if (isInBreak(time, stylist.breaks)) return false;
         if (taken.has(time)) return false;
-        if (isToday && toMinutes(time) <= nowMinutes) return false;
+        if (
+          isToday &&
+          isSlotPast(toMinutes(time), nowMinutes, stylist.workingHours.start)
+        ) {
+          return false;
+        }
         return true;
       });
       return hasFree ? "free" : "busy";

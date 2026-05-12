@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { useTenders } from "@/lib/api/repo";
+import { useTenders, useTendersRealtime } from "@/lib/api/repo";
 import { useStore } from "@/lib/store";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -12,19 +12,15 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { TenderCard } from "@/components/tenders/tender-card";
 import { TenderCardCompact } from "@/components/tenders/tender-card-compact";
 import { BidsPanel } from "@/components/tenders/bids-panel";
-import { CreateTenderCta } from "@/components/tenders/create-tender-cta";
 import { CreateTenderModal } from "@/components/tenders/create-tender-modal";
 
-type FilterKey = "all" | "event" | "beauty" | "mine";
+type FilterKey = "all" | "event" | "mine";
 
-const FILTER_KEYS: ReadonlyArray<FilterKey> = [
-  "all",
-  "event",
-  "beauty",
-  "mine",
-];
+const FILTER_KEYS: ReadonlyArray<FilterKey> = ["all", "event", "mine"];
 
 export default function TendersPage() {
+  // Live-refresh when new tenders / bids land — same UX as a Twitter feed.
+  useTendersRealtime();
   const { t } = useT();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [createOpen, setCreateOpen] = useState(false);
@@ -129,10 +125,6 @@ export default function TendersPage() {
           ) : null}
         </>
       )}
-
-      <div className="mt-12">
-        <CreateTenderCta />
-      </div>
 
       <CreateTenderModal
         open={createOpen}

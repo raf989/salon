@@ -39,6 +39,13 @@ type Store = {
   cityId: string;
   setCityId: (id: string) => void;
 
+  // favorites — local-only "bookmarks" for tenders. Persisted to localStorage
+  // so they survive reload. Not synced across devices (no backend table).
+  favoriteTenderIds: string[];
+  toggleFavoriteTender: (id: string) => void;
+  favoriteProviderIds: string[];
+  toggleFavoriteProvider: (id: string) => void;
+
   // auth slice
   users: AuthUser[];
   sessionUserId: string | null;
@@ -63,6 +70,21 @@ export const useStore = create<Store>()(
       setLanguage: (l) => set({ language: l }),
       cityId: "baku",
       setCityId: (id) => set({ cityId: id }),
+
+      favoriteTenderIds: [],
+      toggleFavoriteTender: (id) =>
+        set((state) => ({
+          favoriteTenderIds: state.favoriteTenderIds.includes(id)
+            ? state.favoriteTenderIds.filter((x) => x !== id)
+            : [...state.favoriteTenderIds, id],
+        })),
+      favoriteProviderIds: [],
+      toggleFavoriteProvider: (id) =>
+        set((state) => ({
+          favoriteProviderIds: state.favoriteProviderIds.includes(id)
+            ? state.favoriteProviderIds.filter((x) => x !== id)
+            : [...state.favoriteProviderIds, id],
+        })),
 
       users: [],
       sessionUserId: null,
@@ -140,6 +162,8 @@ export const useStore = create<Store>()(
         role: state.role,
         language: state.language,
         cityId: state.cityId,
+        favoriteTenderIds: state.favoriteTenderIds,
+        favoriteProviderIds: state.favoriteProviderIds,
         users: state.users,
         sessionUserId: state.sessionUserId,
       }),

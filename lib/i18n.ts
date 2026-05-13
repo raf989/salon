@@ -687,8 +687,8 @@ export const DICT = {
     ru: "Введите 6-значный код, отправленный на {phone}",
   },
   "auth.otp.hint": {
-    az: "SMS gələnə qədər bir neçə saniyə gözləyin",
-    ru: "Подождите несколько секунд, SMS придёт автоматически",
+    az: "SMS bir neçə saniyə ərzində gəlir. Test nömrələri üçün — əvvəlcədən təyin edilmiş kodu daxil edin.",
+    ru: "SMS приходит за несколько секунд. Для тестовых номеров — введите код, заданный в Firebase Console.",
   },
   "auth.otp.submit": { az: "Təsdiqlə", ru: "Подтвердить" },
   "auth.otp.resend": { az: "Kodu yenidən göndər", ru: "Отправить код снова" },

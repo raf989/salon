@@ -61,13 +61,28 @@ export function getFirebaseAuth(): Auth {
 
 // ---- Phone Auth helpers ---------------------------------------------------
 
+// Per-containerId cache. We can't share one verifier across different
+// container elements (e.g. /login uses #recaptcha-login while /register
+// uses #recaptcha-register) — Firebase binds the verifier to a specific
+// DOM node, and reusing it after that node unmounts throws
+// "reCAPTCHA client element has been removed". A Map keyed by container
+// ID + a DOM-presence check keeps each page's verifier honest.
+type RecaptchaCache = Map<string, RecaptchaVerifier>;
+
+function getCache(): RecaptchaCache {
+  const w = window as Window & { __vaxtRecaptchaVerifiers?: RecaptchaCache };
+  if (!w.__vaxtRecaptchaVerifiers) w.__vaxtRecaptchaVerifiers = new Map();
+  return w.__vaxtRecaptchaVerifiers;
+}
+
 /**
- * Build (and cache on the global window) an invisible reCAPTCHA tied to a
- * container element. Firebase requires this verifier for `signInWithPhoneNumber`.
+ * Build (and cache by container ID) an invisible reCAPTCHA verifier.
+ * Firebase requires this for `signInWithPhoneNumber`. If a verifier was
+ * cached for the same container but its DOM node has since been removed
+ * (e.g. navigated away and back), we tear down the stale one and create
+ * a fresh widget.
  *
- * Caller must mount a `<div id={containerId} />` somewhere in the DOM before
- * calling this. The verifier is reused across multiple calls so the user
- * isn't re-challenged within one session.
+ * Caller must mount a `<div id={containerId} />` BEFORE calling this.
  */
 export function getRecaptchaVerifier(
   containerId: string,
@@ -75,33 +90,55 @@ export function getRecaptchaVerifier(
   if (typeof window === "undefined") {
     throw new Error("getRecaptchaVerifier called server-side");
   }
-  const w = window as Window & {
-    __vaxtRecaptchaVerifier?: RecaptchaVerifier;
-  };
-  if (w.__vaxtRecaptchaVerifier) return w.__vaxtRecaptchaVerifier;
+  const container = document.getElementById(containerId);
+  if (!container) {
+    throw new Error(
+      `getRecaptchaVerifier: container #${containerId} not found in DOM`,
+    );
+  }
+  const cache = getCache();
+  const cached = cache.get(containerId);
+  if (cached) {
+    // Even with the right ID, the previous instance may have been
+    // disposed (page navigation, fast refresh). Firebase doesn't expose
+    // a `.isReady()` so we rely on a marker on the container: an active
+    // verifier inserts an iframe/div as a child. If empty, treat stale.
+    if (container.childElementCount > 0) {
+      return cached;
+    }
+    try {
+      cached.clear();
+    } catch {
+      // Already torn down; ignore.
+    }
+    cache.delete(containerId);
+  }
   const verifier = new RecaptchaVerifier(getFirebaseAuth(), containerId, {
     size: "invisible",
   });
-  w.__vaxtRecaptchaVerifier = verifier;
+  cache.set(containerId, verifier);
   return verifier;
 }
 
 /**
- * Clear the cached reCAPTCHA — needed after a failed `signInWithPhoneNumber`
- * so the next attempt mounts a fresh widget. Call this in the catch block
- * of OTP send failures.
+ * Clear a cached reCAPTCHA — needed after a failed `signInWithPhoneNumber`
+ * so the next attempt mounts a fresh widget. With no argument, clears
+ * everything (sign-out path, hard reset). With a containerId, clears
+ * only that one.
  */
-export function resetRecaptchaVerifier(): void {
+export function resetRecaptchaVerifier(containerId?: string): void {
   if (typeof window === "undefined") return;
-  const w = window as Window & {
-    __vaxtRecaptchaVerifier?: RecaptchaVerifier;
-  };
-  try {
-    w.__vaxtRecaptchaVerifier?.clear();
-  } catch {
-    // Verifier may already be torn down; safe to ignore.
+  const cache = getCache();
+  const ids = containerId ? [containerId] : Array.from(cache.keys());
+  for (const id of ids) {
+    const v = cache.get(id);
+    try {
+      v?.clear();
+    } catch {
+      // Already torn down — ignore.
+    }
+    cache.delete(id);
   }
-  w.__vaxtRecaptchaVerifier = undefined;
 }
 
 /**
@@ -137,8 +174,9 @@ export async function sendPhoneOtp(
     return await signInWithPhoneNumber(auth, phoneE164, verifier);
   } catch (err) {
     // A failed attempt invalidates the widget — Firebase docs explicitly
-    // require resetting it before retrying.
-    resetRecaptchaVerifier();
+    // require resetting it before retrying. Scope the reset to this
+    // page's container so a parallel mount on another page isn't nuked.
+    resetRecaptchaVerifier(containerId);
     throw err;
   }
 }

@@ -21,6 +21,12 @@ import {
 } from "@/components/ui/social-icons";
 import { StatusControl } from "@/components/dashboard/status-control";
 import { useProviderEditsRealtime } from "@/lib/api/repo";
+import {
+  instagramHref,
+  telegramHref,
+  tiktokHref,
+  whatsappHref,
+} from "@/lib/contact-urls";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { CATEGORY_LABELS, type Stylist } from "@/lib/types";
@@ -243,55 +249,17 @@ function ContactCell({ item }: { item: ContactItem }) {
 function hrefForItem(item: ContactItem): string | null {
   switch (item.kind) {
     case "whatsapp":
-      return whatsappUrl(item.value);
+      return whatsappHref(item.value);
     case "telegram":
-      return telegramUrl(item.value);
+      return telegramHref(item.value);
     case "instagram":
-      return instagramUrl(item.value);
+      return instagramHref(item.value);
     case "tiktok":
-      return tiktokUrl(item.value);
+      return tiktokHref(item.value);
     case "phone":
       // Phones stay non-clickable — change to `tel:` if it ever needs to dial.
       return null;
   }
-}
-
-function telegramUrl(input: string): string | null {
-  const raw = input.trim();
-  if (!raw) return null;
-  // Phone-style input (starts with `+` or contains 10+ digits) becomes a
-  // phone-deeplink so the link still works for users without a public handle.
-  const digits = raw.replace(/\D/g, "");
-  if (raw.startsWith("+") || digits.length >= 10) {
-    return digits ? `https://t.me/+${digits}` : null;
-  }
-  const user = stripHandle(raw)
-    .replace(/^https?:\/\/(www\.)?t\.me\//i, "")
-    .replace(/\/+$/, "");
-  return user ? `https://t.me/${encodeURIComponent(user)}` : null;
-}
-
-function instagramUrl(handle: string): string | null {
-  const user = stripHandle(handle)
-    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
-    .replace(/\/+$/, "");
-  return user ? `https://instagram.com/${encodeURIComponent(user)}` : null;
-}
-
-function tiktokUrl(handle: string): string | null {
-  const user = stripHandle(handle)
-    .replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, "")
-    .replace(/\/+$/, "");
-  return user ? `https://tiktok.com/@${encodeURIComponent(user)}` : null;
-}
-
-function whatsappUrl(phone: string): string | null {
-  const digits = phone.replace(/\D/g, "");
-  return digits ? `https://wa.me/${digits}` : null;
-}
-
-function stripHandle(raw: string): string {
-  return raw.trim().replace(/^@+/, "");
 }
 
 function iconForKind(kind: ChannelKind): ReactNode {

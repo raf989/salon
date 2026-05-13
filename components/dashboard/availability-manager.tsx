@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { updateProvider } from "@/lib/api/repo";
-import { normalizeCity } from "@/lib/cities";
+import { CITIES, normalizeCity } from "@/lib/cities";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { Stylist } from "@/lib/types";
@@ -38,6 +38,13 @@ function breaksEqual(a: Break[], b: Break[]): boolean {
 
 export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   const { t, lang } = useT();
+  const cityOptions = useMemo(
+    () =>
+      CITIES.map((c) => ({ value: c.name[lang], label: c.name[lang] })).sort(
+        (a, b) => a.label.localeCompare(b.label, lang, { sensitivity: "base" }),
+      ),
+    [lang],
+  );
 
   // Read localized strings via `lang` (stable string) rather than the
   // `pickLocalized` function — that function is a fresh reference every
@@ -394,13 +401,25 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
           {t("dash.avail.location.sub")}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          <Input
+          {/* City is a select, not free-text — the catalog filter only matches
+              against the canonical CITIES list, so a typo'd entry would
+              silently drop the provider from city-filtered results. */}
+          <select
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder={t("dash.avail.location.city.placeholder")}
             disabled={disabled}
             aria-label={t("dash.avail.location.city.placeholder")}
-          />
+            className="h-11 w-full rounded-[10px] border border-border-strong bg-surface px-3 text-sm text-ink-800 transition-colors hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <option value="">
+              {t("dash.avail.location.city.placeholder")}
+            </option>
+            {cityOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
           <Input
             value={address}
             onChange={(e) => setAddress(e.target.value)}

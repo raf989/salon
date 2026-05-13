@@ -15,6 +15,12 @@ import {
 import { useT } from "@/lib/i18n";
 import { useAppointments, useServices } from "@/lib/api/repo";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import {
+  instagramHref,
+  telegramHref,
+  tiktokHref,
+  whatsappHref,
+} from "@/lib/contact-urls";
 import type { Provider } from "@/lib/types";
 import { formatDate, formatPrice, getDateISO, getTodayISO } from "@/lib/utils";
 
@@ -24,46 +30,6 @@ type Props = {
 };
 
 const VISIBLE_WINDOW_DAYS = 60;
-
-// Strip non-digits — WhatsApp's wa.me wants only digits, no `+` or spaces.
-function whatsappHref(raw: string): string | null {
-  const digits = raw.replace(/\D/g, "");
-  return digits ? `https://wa.me/${digits}` : null;
-}
-
-function instagramHref(handle: string): string | null {
-  const user = handle
-    .trim()
-    .replace(/^@+/, "")
-    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
-    .replace(/\/+$/, "");
-  return user ? `https://instagram.com/${encodeURIComponent(user)}` : null;
-}
-
-function tiktokHref(handle: string): string | null {
-  const user = handle
-    .trim()
-    .replace(/^@+/, "")
-    .replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, "")
-    .replace(/\/+$/, "");
-  return user ? `https://tiktok.com/@${encodeURIComponent(user)}` : null;
-}
-
-function telegramHref(input: string): string | null {
-  const raw = input.trim();
-  if (!raw) return null;
-  // Accept both `@handle` and a phone number — telegram opens the chat by
-  // either, as long as that number is registered with telegram.
-  const digits = raw.replace(/\D/g, "");
-  if (raw.startsWith("+") || digits.length >= 10) {
-    return digits ? `https://t.me/+${digits}` : null;
-  }
-  const user = raw
-    .replace(/^@+/, "")
-    .replace(/^https?:\/\/(www\.)?t\.me\//i, "")
-    .replace(/\/+$/, "");
-  return user ? `https://t.me/${encodeURIComponent(user)}` : null;
-}
 
 export function StickyBooking({ provider, onOpenBooking }: Props) {
   const { t, lang, pickLocalized } = useT();

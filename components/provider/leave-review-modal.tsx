@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
-import { createReview } from "@/lib/api/repo";
+import { createReview, useProvider, useReviews } from "@/lib/api/repo";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -46,10 +46,12 @@ function LeaveReviewForm({
   onClose: () => void;
   onSubmitted?: () => void;
 }) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const currentUser = useStore(
     (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
   );
+  const provider = useProvider(providerId);
+  const existingReviews = useReviews(providerId);
 
   const [authorName, setAuthorName] = useState<string>(
     currentUser?.name ?? "",
@@ -59,11 +61,38 @@ function LeaveReviewForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Anti-abuse client-side checks. Server-side enforcement would need a
+  // proper auth_user_id column on reviews — for the prototype these guards
+  // are enough to prevent honest accidents and the most obvious self-review.
+  const normalisedAuthor = authorName.trim().toLowerCase();
+  const isSelfReview =
+    !!provider &&
+    normalisedAuthor === provider.name.trim().toLowerCase();
+  const alreadyReviewed = existingReviews.some(
+    (r) => r.authorName.trim().toLowerCase() === normalisedAuthor,
+  );
+
+  const validationMessage = (() => {
+    if (isSelfReview) {
+      return lang === "ru"
+        ? "Нельзя оставить отзыв о себе."
+        : "Özünüzə rəy yaza bilməzsiniz.";
+    }
+    if (alreadyReviewed) {
+      return lang === "ru"
+        ? "Вы уже оставляли отзыв этому исполнителю."
+        : "Bu icraçıya artıq rəy yazmısınız.";
+    }
+    return null;
+  })();
+
   const ready =
     authorName.trim().length > 0 &&
-    text.trim().length > 0 &&
+    text.trim().length >= 15 &&
     rating >= 1 &&
-    rating <= 5;
+    rating <= 5 &&
+    !isSelfReview &&
+    !alreadyReviewed;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +145,11 @@ function LeaveReviewForm({
           />
         </div>
 
+        {validationMessage ? (
+          <p className="text-sm text-pomegranate-500 leading-relaxed border border-pomegranate-200 bg-pomegranate-50 rounded-[10px] px-3 py-2">
+            {validationMessage}
+          </p>
+        ) : null}
         {error ? (
           <p className="text-sm text-pomegranate-500 leading-relaxed">
             {error}

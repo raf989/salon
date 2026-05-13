@@ -15,7 +15,6 @@ import { isWithinHours, toMinutes } from "@/lib/slots";
 import {
   CATEGORY_LABELS,
   KIND_LABELS,
-  type Localized,
   type Provider,
   type ProviderKind,
 } from "@/lib/types";
@@ -27,8 +26,6 @@ type Props = {
   onBook: (p: Provider) => void;
   availableToday: boolean;
 };
-
-const PRICE_UNIT_FALLBACK: Localized = { az: "saat", ru: "час" };
 
 const SUBTITLE_KEY_BY_KIND: Partial<Record<ProviderKind, DictKey>> = {
   photographer: "meta.weddingPhotographer",
@@ -63,7 +60,6 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
   const services = allServices.filter((s) => provider.serviceIds.includes(s.id));
   const minPrice =
     services.length > 0 ? Math.min(...services.map((s) => s.price)) : 0;
-  const priceUnit = pickLocalized(provider.priceUnit ?? PRICE_UNIT_FALLBACK);
 
   const subtitleKey = SUBTITLE_KEY_BY_KIND[provider.kind];
   // Restaurants fall through to KIND_LABELS — the previous hard-coded
@@ -181,11 +177,13 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
 
         {/* Mobile-only price + Book button row */}
         <div className="relative z-10 col-span-2 flex items-end justify-between gap-3 border-t border-border pt-3 md:hidden pointer-events-none">
-          <div className="min-w-0">
-            <div className="font-mono font-semibold text-xl text-ink-900 leading-tight whitespace-nowrap">
-              {t("meta.minPriceSuffix")} {formatPrice(minPrice)}
-            </div>
-            <div className="text-[11px] text-ink-400">/ {priceUnit}</div>
+          <div className="min-w-0 leading-tight whitespace-nowrap flex items-baseline gap-1.5">
+            <span className="text-xs text-ink-400 font-medium">
+              {t("meta.minPriceSuffix")}
+            </span>
+            <span className="font-mono font-semibold text-xl text-ink-900">
+              {formatPrice(minPrice)}
+            </span>
           </div>
           <Button
             variant="primary"
@@ -202,11 +200,13 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
 
         {/* Desktop-only right column with stacked price + Book button */}
         <div className="relative z-10 hidden md:flex flex-col items-end justify-between py-2 gap-2 min-w-[170px] pointer-events-none">
-          <div className="text-right">
-            <div className="font-mono font-semibold text-xl text-ink-900 whitespace-nowrap">
-              {t("meta.minPriceSuffix")} {formatPrice(minPrice)}
-            </div>
-            <div className="text-xs text-ink-400">/ {priceUnit}</div>
+          <div className="whitespace-nowrap flex items-baseline justify-end gap-1.5">
+            <span className="text-xs text-ink-400 font-medium">
+              {t("meta.minPriceSuffix")}
+            </span>
+            <span className="font-mono font-semibold text-xl text-ink-900">
+              {formatPrice(minPrice)}
+            </span>
           </div>
           <Button
             variant="primary"

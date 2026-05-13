@@ -24,6 +24,7 @@ import {
   useServices,
 } from "@/lib/api/repo";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import { telegramHref, whatsappHref } from "@/lib/contact-urls";
 import {
   cn,
   formatDate,
@@ -228,7 +229,7 @@ function BookingFlow({
               <span aria-hidden className="text-ink-300">
                 ·
               </span>
-              <RatingStars value={stylist.rating} size={12} />
+              <RatingStars value={stylist.rating} size={14} />
               <span className="font-mono text-ink-700 font-medium">
                 {stylist.rating.toFixed(1)}
               </span>
@@ -394,23 +395,10 @@ function SuccessView({
   const { t, pickLocalized } = useT();
   const serviceLabel = serviceName ? pickLocalized(serviceName) : "";
 
-  // Compose real chat URLs so the buttons actually do something.
-  // wa.me wants raw digits; t.me wants a handle or `+digits` deeplink.
-  const waDigits = whatsapp?.replace(/\D/g, "") ?? "";
-  const waHref = waDigits ? `https://wa.me/${waDigits}` : null;
-  const tgRaw = telegram?.trim() ?? "";
-  const tgHref = (() => {
-    if (!tgRaw) return null;
-    const digits = tgRaw.replace(/\D/g, "");
-    if (tgRaw.startsWith("+") || digits.length >= 10) {
-      return digits ? `https://t.me/+${digits}` : null;
-    }
-    const handle = tgRaw
-      .replace(/^@+/, "")
-      .replace(/^https?:\/\/(www\.)?t\.me\//i, "")
-      .replace(/\/+$/, "");
-    return handle ? `https://t.me/${encodeURIComponent(handle)}` : null;
-  })();
+  // Shared URL builders so all four "contact this provider" surfaces stay
+  // identical (lib/contact-urls.ts).
+  const waHref = whatsapp ? whatsappHref(whatsapp) : null;
+  const tgHref = telegram ? telegramHref(telegram) : null;
   return (
     <div className="flex flex-col items-center gap-6 py-6 text-center">
       <motion.div

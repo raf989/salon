@@ -64,11 +64,15 @@ export function Header() {
   }, [pathname]);
 
   // Outside-click + Escape to close (only attached while open to avoid
-  // spurious listeners on every render).
+  // spurious listeners on every render). We listen on `click` rather than
+  // `mousedown` / `pointerdown` so that a tap on a `<Link>` inside the
+  // menu has time to deliver its click event before the outside-handler
+  // closes the panel; on inertial-scroll touch devices `mousedown`
+  // sometimes fired before the synthesised click could navigate.
   const menuWrapRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!mobileOpen) return;
-    function onPointerDown(e: MouseEvent) {
+    function onClick(e: MouseEvent) {
       if (
         menuWrapRef.current &&
         !menuWrapRef.current.contains(e.target as Node)
@@ -79,10 +83,10 @@ export function Header() {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setMobileOpen(false);
     }
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("click", onClick);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("click", onClick);
       document.removeEventListener("keydown", onKey);
     };
   }, [mobileOpen]);

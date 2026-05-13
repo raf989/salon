@@ -58,7 +58,7 @@ export function Reviews({ provider }: Props) {
               <div className="flex-1 min-w-0 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <b className="text-ink-900">{review.authorName}</b>
-                  <RatingStars value={review.rating} size={12} />
+                  <RatingStars value={review.rating} size={16} />
                 </div>
                 <p className="text-ink-500 text-sm leading-relaxed">
                   {pickLocalized(review.text)}

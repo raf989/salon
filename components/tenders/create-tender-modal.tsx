@@ -85,15 +85,20 @@ function CreateTenderForm({
 
   const budgetMinNum = Number(budgetMin);
   const budgetMaxNum = Number(budgetMax);
+  const todayMin = getTodayISO();
+  // iOS Safari ignores `min={...}` on <input type="date"> so we re-check
+  // the boundary in JS too. Compared as ISO strings (YYYY-MM-DD) → simple
+  // lexical compare works.
+  const eventDateValid = eventDate.length === 10 && eventDate >= todayMin;
   const ready =
     !!currentUser &&
-    title.trim().length > 0 &&
-    description.trim().length > 0 &&
+    title.trim().length >= 4 &&
+    description.trim().length >= 20 &&
     Number.isFinite(budgetMinNum) &&
-    budgetMinNum >= 0 &&
+    budgetMinNum > 0 &&
     Number.isFinite(budgetMaxNum) &&
     budgetMaxNum >= budgetMinNum &&
-    eventDate.length === 10 &&
+    eventDateValid &&
     district.trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,8 +137,6 @@ function CreateTenderForm({
       setSubmitting(false);
     }
   };
-
-  const todayMin = getTodayISO();
 
   return (
     <form

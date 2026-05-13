@@ -46,16 +46,14 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
 
   const completedCount = mine.filter((a) => a.status === "completed").length;
 
-  // Revenue earned over the past 7 days — counts both "completed" appointments
-  // and not-yet-marked "upcoming" ones whose date has already passed (they'll
-  // auto-promote to completed in AppointmentsList soon). "cancelled" / "no_show"
-  // explicitly excluded.
+  // Revenue earned over the past 7 days — strictly `completed` only.
+  // Past-dated `upcoming` rows are phantom income (client may have been a
+  // no-show); they auto-promote to no_show in AppointmentsList after 31 min
+  // overdue, so the figure self-heals without inflating in the meantime.
   const weekRevenue = mine
     .filter(
       (a) =>
-        a.date >= weekStart &&
-        a.date <= today &&
-        (a.status === "completed" || a.status === "upcoming"),
+        a.date >= weekStart && a.date <= today && a.status === "completed",
     )
     .reduce((sum, appt) => {
       const service = services.find((s) => s.id === appt.serviceId);

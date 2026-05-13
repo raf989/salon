@@ -1,5 +1,14 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { getProvider, getProviderBySlug } from "@/lib/api/server";
+
+// `react.cache()` memoizes the result across the whole request tree, so
+// when generateMetadata and the page's data layer both reach for the same
+// provider, Supabase is hit only once. The two fetchers are wrapped
+// separately because `getProviderBySlug` returns null for a UUID-shaped
+// param and we still want the UUID fallback to share its own cache.
+const cachedBySlug = cache(getProviderBySlug);
+const cachedById = cache(getProvider);
 
 // `app/provider/[id]/page.tsx` is a Client Component (interactive booking
 // state), so it can't host generateMetadata directly. This server-component
@@ -32,9 +41,9 @@ export async function generateMetadata({
   try {
     // Prefer slug-aware lookup; if the helper itself or its inner slug query
     // hits an unexpected error, the catch below collapses to base metadata.
-    provider = await getProviderBySlug(id);
+    provider = await cachedBySlug(id);
     if (!provider) {
-      provider = await getProvider(id);
+      provider = await cachedById(id);
     }
   } catch {
     return BASE_METADATA;

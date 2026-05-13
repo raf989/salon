@@ -16,6 +16,7 @@ import {
   useServices,
 } from "@/lib/api/repo";
 import type { Appointment, Service, Stylist } from "@/lib/types";
+import { useNow } from "@/lib/use-now";
 import { cn, getTodayISO } from "@/lib/utils";
 
 export type AppointmentsListProps = {
@@ -34,7 +35,6 @@ type DisplayStatus =
   | "no_show";
 
 const NO_SHOW_AFTER_MIN = 31;
-const TICK_MS = 30_000; // re-evaluate timing twice a minute
 
 function apptStartTime(appt: Appointment): number {
   // Local-time interpretation matches how clients pick the slot in-app.
@@ -65,13 +65,9 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   const [tab, setTab] = useState<Tab>("upcoming");
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
 
-  // Live clock: every TICK_MS we recompute display + check if any upcoming
-  // appointment crossed the 31-minute mark and needs promoting to no_show.
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNowMs(Date.now()), TICK_MS);
-    return () => window.clearInterval(id);
-  }, []);
+  // Live clock comes from the shared `useNow` store — single interval for
+  // the whole page, auto-paused when the tab is hidden.
+  const nowMs = useNow().getTime();
 
   const today = getTodayISO();
 

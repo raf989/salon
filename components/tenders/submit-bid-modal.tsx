@@ -5,7 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/store";
 import { submitBid, useProviders } from "@/lib/api/repo";
 import { formatPrice } from "@/lib/utils";
 import type { Tender } from "@/lib/types";
@@ -42,9 +42,7 @@ function SubmitBidForm({
   onSubmitted?: () => void;
 }) {
   const { t, lang, pickLocalized } = useT();
-  const currentUser = useStore(
-    (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
-  );
+  const currentUser = useCurrentUser();
   // Pull "my" avatar from the same place the dashboard does — providers[0]
   // is what /dashboard treats as the current user until real auth↔provider
   // linkage exists. We snapshot the URL onto the bid so cards can show a

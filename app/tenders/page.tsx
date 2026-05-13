@@ -7,7 +7,7 @@ import {
   SkeletonTenderCard,
   SkeletonTenderCardCompact,
 } from "@/components/ui/skeleton";
-import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/store";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -35,9 +35,7 @@ export default function TendersPage() {
   // to scope the "Мои" filter. Same hydration guard as <Header /> — the
   // persisted auth state isn't available during SSR, so we read null until
   // the client has mounted to avoid SSR/CSR mismatch.
-  const currentUserName = useStore(
-    (s) => s.users.find((u) => u.id === s.sessionUserId)?.name ?? null,
-  );
+  const currentUserName = useCurrentUser()?.name ?? null;
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const mineAuthor = hydrated ? currentUserName : null;

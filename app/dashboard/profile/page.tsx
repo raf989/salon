@@ -23,7 +23,7 @@ import { TelegramIcon as SharedTelegramIcon } from "@/components/ui/social-icons
 import { updateProvider, useProvider, useProviders } from "@/lib/api/repo";
 import { deleteImage, uploadImage } from "@/lib/api/storage";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useCurrentUser, useStore } from "@/lib/store";
 import type { Stylist } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -76,9 +76,7 @@ function ProfileEditor({ me }: { me: Stylist }) {
   // The greeting on the dashboard reads from the authenticated user, so the
   // edit form pre-fills the same source. Falls back to the provider record
   // only if there is no logged-in user yet (and never to the seeded "Elvin").
-  const authUser = useStore((s) =>
-    s.users.find((u) => u.id === s.sessionUserId) ?? null,
-  );
+  const authUser = useCurrentUser();
   const updateCurrentUser = useStore((s) => s.updateCurrentUser);
   const initialName = authUser?.name?.trim() ?? "";
   const [name, setName] = useState<string>(initialName);

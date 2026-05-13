@@ -9,26 +9,30 @@ import type {
   Role,
   UserRole,
 } from "./types";
-import { normalizePhone } from "./utils";
 
-export type RegisterInput = {
-  phone: string; // raw input, will be normalized
+// =============================================================================
+// Zustand store — UI prefs, favorites, and the *profile cache* for the
+// currently signed-in Firebase user.
+//
+// AUTH SOURCE OF TRUTH: Firebase Phone Auth. `sessionUserId` here is mirrored
+// from `onAuthStateChanged` via lib/auth.ts:FirebaseAuthSync — do NOT set it
+// from user code; let the listener drive it. Components stay subscribed via
+// the same `useStore(s => s.sessionUserId)` shape as before, just now it
+// reflects the Firebase UID.
+//
+// `profiles` is a UID-keyed cache of profile data we collected at register
+// time (name, role, email, kind). Firebase doesn't store any of this; the
+// cache survives reloads via localStorage persist.
+// =============================================================================
+
+export type RegisterProfileInput = {
+  uid: string;
+  phone: string; // E.164
   name: string;
-  password: string;
   role: UserRole;
-  email?: string; // required when role === "provider"
-  kind?: ProviderKind; // required when role === "provider"
+  email?: string;
+  kind?: ProviderKind;
 };
-
-export type RegisterResult =
-  | { ok: true; userId: string }
-  | { ok: false; reason: "phoneTaken" | "invalidPhone" };
-
-export type VerifyOtpResult = { ok: true } | { ok: false };
-
-export type LoginResult =
-  | { ok: true; userId: string }
-  | { ok: false; reason: "notFound" | "wrongPassword" | "notVerified" };
 
 type Store = {
   // UI prefs
@@ -39,27 +43,25 @@ type Store = {
   cityId: string;
   setCityId: (id: string) => void;
 
-  // favorites — local-only "bookmarks" for tenders. Persisted to localStorage
-  // so they survive reload. Not synced across devices (no backend table).
+  // favorites — local-only "bookmarks" for tenders + providers. Persisted to
+  // localStorage so they survive reload. Not synced across devices.
   favoriteTenderIds: string[];
   toggleFavoriteTender: (id: string) => void;
   favoriteProviderIds: string[];
   toggleFavoriteProvider: (id: string) => void;
 
-  // auth slice
-  users: AuthUser[];
+  // auth — mirror of Firebase auth state + profile cache.
   sessionUserId: string | null;
-  register: (input: RegisterInput) => RegisterResult;
-  verifyOtp: (userId: string, code: string) => VerifyOtpResult;
-  login: (phone: string, password: string) => LoginResult;
-  logout: () => void;
-  currentUser: () => AuthUser | null;
-  updateCurrentUser: (patch: Partial<Pick<AuthUser, "name" | "email">>) => void;
-};
+  setSessionUserId: (id: string | null) => void;
 
-function makeId(): string {
-  return `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
+  /** Profile cache keyed by Firebase UID — name, role, kind, email. */
+  profiles: Record<string, AuthUser>;
+  setProfile: (input: RegisterProfileInput) => void;
+  updateCurrentUser: (
+    patch: Partial<Pick<AuthUser, "name" | "email">>,
+  ) => void;
+  currentUser: () => AuthUser | null;
+};
 
 export const useStore = create<Store>()(
   persist(
@@ -86,75 +88,47 @@ export const useStore = create<Store>()(
             : [...state.favoriteProviderIds, id],
         })),
 
-      users: [],
       sessionUserId: null,
+      setSessionUserId: (id) => set({ sessionUserId: id }),
 
-      register: (input) => {
-        const phone = normalizePhone(input.phone);
-        if (!phone) return { ok: false, reason: "invalidPhone" };
-        const existing = get().users.find((u) => u.phone === phone);
-        if (existing) return { ok: false, reason: "phoneTaken" };
-
-        const user: AuthUser = {
-          id: makeId(),
-          phone,
-          name: input.name.trim(),
-          password: input.password,
-          role: input.role,
-          email: input.role === "provider" ? input.email?.trim() : undefined,
-          kind: input.role === "provider" ? input.kind : undefined,
-          verified: false,
-          createdAt: new Date().toISOString(),
-        };
-        set((state) => ({ users: [...state.users, user] }));
-        return { ok: true, userId: user.id };
-      },
-
-      verifyOtp: (userId, code) => {
-        if (code !== "123456") return { ok: false };
-        const target = get().users.find((u) => u.id === userId);
-        if (!target) return { ok: false };
-        set((state) => ({
-          users: state.users.map((u) =>
-            u.id === userId ? { ...u, verified: true } : u,
-          ),
-          sessionUserId: userId,
-        }));
-        return { ok: true };
-      },
-
-      login: (phoneRaw, password) => {
-        const phone = normalizePhone(phoneRaw);
-        const user = phone
-          ? get().users.find((u) => u.phone === phone)
-          : undefined;
-        if (!user) return { ok: false, reason: "notFound" };
-        if (user.password !== password)
-          return { ok: false, reason: "wrongPassword" };
-        if (!user.verified) return { ok: false, reason: "notVerified" };
-        set({ sessionUserId: user.id });
-        return { ok: true, userId: user.id };
-      },
-
-      logout: () => set({ sessionUserId: null }),
-
-      currentUser: () => {
-        const state = get();
-        return (
-          state.users.find((u) => u.id === state.sessionUserId) ?? null
-        );
-      },
+      profiles: {},
+      setProfile: (input) =>
+        set((state) => {
+          const profile: AuthUser = {
+            id: input.uid,
+            phone: input.phone,
+            name: input.name.trim(),
+            role: input.role,
+            email:
+              input.role === "provider" ? input.email?.trim() : undefined,
+            kind: input.role === "provider" ? input.kind : undefined,
+            createdAt:
+              state.profiles[input.uid]?.createdAt ?? new Date().toISOString(),
+          };
+          return { profiles: { ...state.profiles, [input.uid]: profile } };
+        }),
 
       updateCurrentUser: (patch) =>
         set((state) => {
-          if (!state.sessionUserId) return state;
+          const uid = state.sessionUserId;
+          if (!uid) return state;
+          const existing = state.profiles[uid];
+          if (!existing) return state;
           return {
-            users: state.users.map((u) =>
-              u.id === state.sessionUserId ? { ...u, ...patch } : u,
-            ),
+            profiles: {
+              ...state.profiles,
+              [uid]: { ...existing, ...patch },
+            },
           };
         }),
+
+      currentUser: () => {
+        const state = get();
+        if (!state.sessionUserId) return null;
+        return state.profiles[state.sessionUserId] ?? null;
+      },
     }),
+
     {
       name: "salon-store",
       storage: createJSONStorage(() => localStorage),
@@ -164,9 +138,26 @@ export const useStore = create<Store>()(
         cityId: state.cityId,
         favoriteTenderIds: state.favoriteTenderIds,
         favoriteProviderIds: state.favoriteProviderIds,
-        users: state.users,
-        sessionUserId: state.sessionUserId,
+        // `sessionUserId` is NOT persisted — Firebase owns session state,
+        // and persisting our mirror leads to a stale UID flashing in the
+        // UI before the Firebase listener pushes the real one. `profiles`
+        // IS persisted so a returning user keeps their cached name/role
+        // even before the auth listener fires.
+        profiles: state.profiles,
       }),
     },
   ),
 );
+
+/**
+ * Reactive selector for the current user's profile. Equivalent to the
+ * imperative `useStore.getState().currentUser()` but plays nicely with
+ * React's re-render cycle. Returns null when logged out OR when the user
+ * is logged in but has no cached profile yet (e.g. fresh login on a new
+ * device — the user would then need to fill in their profile).
+ */
+export function useCurrentUser(): AuthUser | null {
+  return useStore((s) =>
+    s.sessionUserId ? (s.profiles[s.sessionUserId] ?? null) : null,
+  );
+}

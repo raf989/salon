@@ -1,18 +1,24 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import type { ConfirmationResult } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
 import { cn, formatPhone } from "@/lib/utils";
 
+// Firebase OTP confirmation. Caller passes the `ConfirmationResult`
+// returned from `signInWithPhoneNumber`; on success we hand back the
+// signed-in user (and the parent decides what to do — redirect, save
+// profile, etc.). No mock 123456 check anymore; the code goes straight
+// to Firebase.
 type Props = {
-  userId: string;
+  confirmation: ConfirmationResult;
   phone: string;
-  onSuccess: () => void;
+  onSuccess: (uid: string) => void;
 };
 
-export function OtpForm({ userId, phone, onSuccess }: Props) {
+export function OtpForm({ confirmation, phone, onSuccess }: Props) {
   const { t } = useT();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,17 +27,28 @@ export function OtpForm({ userId, phone, onSuccess }: Props) {
   const subtitleTemplate = t("auth.otp.subtitle");
   const subtitle = subtitleTemplate.replace("{phone}", formatPhone(phone));
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const res = useStore.getState().verifyOtp(userId, code);
-    setSubmitting(false);
-    if (!res.ok) {
-      setError(t("auth.otp.error.wrong"));
-      return;
+    try {
+      const cred = await confirmation.confirm(code);
+      onSuccess(cred.user.uid);
+    } catch (err) {
+      if (err instanceof FirebaseError) {
+        if (err.code === "auth/invalid-verification-code") {
+          setError(t("auth.otp.error.wrong"));
+        } else if (err.code === "auth/code-expired") {
+          setError(t("auth.otp.error.expired"));
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    } finally {
+      setSubmitting(false);
     }
-    onSuccess();
   }
 
   function handleChange(value: string) {
@@ -80,18 +97,8 @@ export function OtpForm({ userId, phone, onSuccess }: Props) {
         type="submit"
         disabled={submitting || code.length !== 6}
       >
-        {t("auth.otp.submit")}
+        {submitting ? t("auth.otp.checking") : t("auth.otp.submit")}
       </Button>
-
-      <button
-        type="button"
-        className="text-xs text-ink-500 hover:text-ink-900 transition-colors text-center mt-1"
-        onClick={() => {
-          // Visual only — no real resend in prototype.
-        }}
-      >
-        {t("auth.otp.resend")}
-      </button>
     </form>
   );
 }

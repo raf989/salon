@@ -5,7 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/store";
 import { createTender } from "@/lib/api/repo";
 import { getTodayISO } from "@/lib/utils";
 import {
@@ -59,9 +59,7 @@ function CreateTenderForm({
   onCreated?: (id: string) => void;
 }) {
   const { t, lang, pickLocalized } = useT();
-  const currentUser = useStore(
-    (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
-  );
+  const currentUser = useCurrentUser();
 
   const [tier, setTier] = useState<ProviderTier>("event");
   const [kind, setKind] = useState<ProviderKind>("photographer");

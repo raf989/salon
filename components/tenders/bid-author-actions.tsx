@@ -5,7 +5,7 @@ import { Check, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BidStatusBadge } from "@/components/tenders/bid-status-badge";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/store";
 import { updateBidStatus } from "@/lib/api/repo";
 import type { Tender, TenderBid } from "@/lib/types";
 
@@ -22,9 +22,7 @@ type Props = {
  */
 export function BidAuthorActions({ bid, tender }: Props) {
   const { t } = useT();
-  const currentUser = useStore(
-    (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
-  );
+  const currentUser = useCurrentUser();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

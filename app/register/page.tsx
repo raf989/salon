@@ -5,14 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { OtpForm } from "@/components/auth/otp-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import { RegisterRolePicker } from "@/components/auth/register-role-picker";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import type { UserRole } from "@/lib/types";
 
-type Step = "role" | "form" | "otp" | "success";
+// Stages collapsed from 4 to 3 — phone OTP is now nested inside
+// RegisterForm (it owns its own confirmation result), so the parent
+// only steers role → form → success.
+type Step = "role" | "form" | "success";
 
 function RegisterFlow() {
   const { t } = useT();
@@ -22,8 +24,6 @@ function RegisterFlow() {
 
   const [step, setStep] = useState<Step>("role");
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [phone, setPhone] = useState<string>("");
 
   // Pre-select role from URL once on mount.
   useEffect(() => {
@@ -70,11 +70,7 @@ function RegisterFlow() {
         <RegisterForm
           role={selectedRole}
           onBack={() => setStep("role")}
-          onSuccess={(id, normalizedPhone) => {
-            setUserId(id);
-            setPhone(normalizedPhone);
-            setStep("otp");
-          }}
+          onSuccess={() => setStep("success")}
         />
         <p className="text-sm text-ink-500 text-center mt-6">
           {t("auth.register.haveAccount")}{" "}
@@ -85,18 +81,6 @@ function RegisterFlow() {
             {t("auth.register.loginLink")}
           </Link>
         </p>
-      </AuthShell>
-    );
-  }
-
-  if (step === "otp" && userId) {
-    return (
-      <AuthShell title={t("auth.otp.title")}>
-        <OtpForm
-          userId={userId}
-          phone={phone}
-          onSuccess={() => setStep("success")}
-        />
       </AuthShell>
     );
   }
@@ -131,7 +115,6 @@ function RegisterFlow() {
     );
   }
 
-  // Fallback (e.g. if step/role state combination is incomplete) — show role picker.
   return (
     <AuthShell
       title={t("auth.register.role.title")}

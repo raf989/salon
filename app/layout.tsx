@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
 import { Header } from "@/components/header";
 import { HtmlLangSync } from "@/components/html-lang-sync";
+import { FirebaseAuthSync } from "@/lib/auth";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,6 +48,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-bg text-ink-700 antialiased font-sans">
         <HtmlLangSync />
+        <FirebaseAuthSync />
         <Header />
         {children}
       </body>

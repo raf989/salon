@@ -28,7 +28,7 @@ import {
   whatsappHref,
 } from "@/lib/contact-urls";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/store";
 import { CATEGORY_LABELS, type Stylist } from "@/lib/types";
 
 export type ProfileCardProps = {
@@ -82,9 +82,7 @@ export function ProfileCard({ me }: ProfileCardProps) {
   // The seeded providers.name (e.g. "Elvin Məmmədov") is intentionally NOT
   // used as a fallback for the greeting — that data belongs to demo rows,
   // not to whoever is logged in.
-  const authUser = useStore((s) =>
-    s.users.find((u) => u.id === s.sessionUserId) ?? null,
-  );
+  const authUser = useCurrentUser();
   const fallbackName = lang === "ru" ? "пользователь" : "İstifadəçi";
   const trimmedAuth = (authUser?.name ?? "").trim();
   const firstName = trimmedAuth

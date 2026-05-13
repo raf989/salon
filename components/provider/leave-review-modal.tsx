@@ -6,7 +6,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/store";
 import { createReview, useProvider, useReviews } from "@/lib/api/repo";
 import { cn } from "@/lib/utils";
 
@@ -47,9 +47,7 @@ function LeaveReviewForm({
   onSubmitted?: () => void;
 }) {
   const { t, lang } = useT();
-  const currentUser = useStore(
-    (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
-  );
+  const currentUser = useCurrentUser();
   const provider = useProvider(providerId);
   const existingReviews = useReviews(providerId);
 

@@ -7,7 +7,8 @@ import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { UserMenu } from "@/components/auth/user-menu";
-import { useStore } from "@/lib/store";
+import { useCurrentUser, useStore } from "@/lib/store";
+import { signOut } from "@/lib/auth";
 import { useT, type DictKey } from "@/lib/i18n";
 import type { AuthUser, Lang } from "@/lib/types";
 import { cn, formatPhone } from "@/lib/utils";
@@ -46,9 +47,7 @@ export function Header() {
   const pathname = usePathname();
   const language = useStore((s) => s.language);
   const setLanguage = useStore((s) => s.setLanguage);
-  const currentUser = useStore(
-    (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
-  );
+  const currentUser = useCurrentUser();
   const { t } = useT();
 
   // Avoid SSR/CSR mismatch: persisted auth state hydrates only on the client.
@@ -309,7 +308,7 @@ function MobileAuthSection({
   const primaryPhone = meProvider?.phones?.[0] ?? user.phone ?? "";
 
   function handleLogout() {
-    useStore.getState().logout();
+    void signOut();
     onClose();
   }
 

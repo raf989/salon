@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, AtSign, Lock, Phone, User as UserIcon } from "lucide-react";
+import { ArrowLeft, AtSign, Phone, User as UserIcon } from "lucide-react";
+import type { ConfirmationResult } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OtpForm } from "@/components/auth/otp-form";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
-import { cn, normalizePhone } from "@/lib/utils";
+import { sendPhoneOtp, toE164 } from "@/lib/firebase";
+import { cn } from "@/lib/utils";
 import {
   KIND_LABELS,
   type ProviderKind,
@@ -15,18 +19,21 @@ import {
 
 type Props = {
   role: UserRole;
-  onSuccess: (userId: string, phone: string) => void;
+  onSuccess: () => void;
   onBack: () => void;
 };
 
 type FieldErrors = Partial<{
   name: string;
   phone: string;
-  password: string;
   email: string;
   kind: string;
   form: string;
 }>;
+
+type Stage = "form" | "otp";
+
+const RECAPTCHA_CONTAINER_ID = "recaptcha-register";
 
 const PROVIDER_KINDS: ProviderKind[] = [
   "photographer",
@@ -40,59 +47,99 @@ const PROVIDER_KINDS: ProviderKind[] = [
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
+// Register collects profile fields locally, then hands the phone to
+// Firebase for SMS verification. Only after `confirmationResult.confirm`
+// succeeds do we persist the profile — that way an abandoned form leaves
+// no orphan data.
 export function RegisterForm({ role, onSuccess, onBack }: Props) {
   const { t, pickLocalized } = useT();
+  const setProfile = useStore((s) => s.setProfile);
+
+  const [stage, setStage] = useState<Stage>("form");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [kind, setKind] = useState<ProviderKind | "">("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
-  function validate(): FieldErrors {
+  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
+    null,
+  );
+  const [phoneE164, setPhoneE164] = useState<string>("");
+
+  function validate(): { errors: FieldErrors; normalized?: string } {
     const e: FieldErrors = {};
     if (!name.trim()) e.name = t("auth.register.error.required");
-    if (!normalizePhone(phone))
-      e.phone = t("auth.register.error.invalidPhone");
-    if (password.length < 6)
-      e.password = t("auth.register.error.passwordShort");
+    const normalized = toE164(phone);
+    if (!normalized) e.phone = t("auth.register.error.invalidPhone");
     if (role === "provider") {
       if (!EMAIL_RE.test(email))
         e.email = t("auth.register.error.invalidEmail");
       if (!kind) e.kind = t("auth.register.error.required");
     }
-    return e;
+    return { errors: e, normalized: normalized ?? undefined };
   }
 
-  function onSubmit(ev: FormEvent<HTMLFormElement>) {
+  async function onSubmit(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
-    const eMap = validate();
-    if (Object.keys(eMap).length > 0) {
+    const { errors: eMap, normalized } = validate();
+    if (Object.keys(eMap).length > 0 || !normalized) {
       setErrors(eMap);
       return;
     }
     setErrors({});
     setSubmitting(true);
-    const result = useStore.getState().register({
-      phone,
-      name,
-      password,
-      role,
-      email: role === "provider" ? email : undefined,
-      kind: role === "provider" ? (kind as ProviderKind) : undefined,
-    });
-    setSubmitting(false);
-    if (!result.ok) {
-      if (result.reason === "phoneTaken") {
-        setErrors({ phone: t("auth.register.error.phoneTaken") });
+    try {
+      const conf = await sendPhoneOtp(normalized, RECAPTCHA_CONTAINER_ID);
+      setPhoneE164(normalized);
+      setConfirmation(conf);
+      setStage("otp");
+    } catch (err) {
+      if (err instanceof FirebaseError) {
+        if (
+          err.code === "auth/invalid-phone-number" ||
+          err.code === "auth/missing-phone-number"
+        ) {
+          setErrors({ phone: t("auth.register.error.invalidPhone") });
+        } else if (err.code === "auth/too-many-requests") {
+          setErrors({ form: t("auth.otp.error.tooManyRequests") });
+        } else if (err.code === "auth/quota-exceeded") {
+          setErrors({ form: t("auth.otp.error.quotaExceeded") });
+        } else {
+          setErrors({ form: err.message });
+        }
       } else {
-        setErrors({ phone: t("auth.register.error.invalidPhone") });
+        setErrors({
+          form: err instanceof Error ? err.message : String(err),
+        });
       }
-      return;
+    } finally {
+      setSubmitting(false);
     }
-    const normalized = normalizePhone(phone);
-    onSuccess(result.userId, normalized ?? phone);
+  }
+
+  if (stage === "otp" && confirmation) {
+    return (
+      <OtpForm
+        confirmation={confirmation}
+        phone={phoneE164}
+        onSuccess={(uid) => {
+          // OTP succeeded → Firebase user exists. Persist the locally
+          // collected profile keyed by UID, then let the parent flow
+          // advance to the success screen.
+          setProfile({
+            uid,
+            phone: phoneE164,
+            name,
+            role,
+            email: role === "provider" ? email : undefined,
+            kind: role === "provider" ? (kind as ProviderKind) : undefined,
+          });
+          onSuccess();
+        }}
+      />
+    );
   }
 
   return (
@@ -135,22 +182,6 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
           placeholder={t("auth.register.field.phonePlaceholder")}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-        />
-      </Field>
-
-      <Field
-        id="reg-password"
-        label={t("auth.register.field.password")}
-        error={errors.password}
-      >
-        <Input
-          id="reg-password"
-          type="password"
-          autoComplete="new-password"
-          icon={<Lock />}
-          placeholder={t("auth.register.field.passwordPlaceholder")}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
         />
       </Field>
 
@@ -214,8 +245,11 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
         type="submit"
         disabled={submitting}
       >
-        {t("auth.register.submit")}
+        {submitting ? t("auth.otp.sending") : t("auth.register.submit")}
       </Button>
+
+      {/* Invisible reCAPTCHA mount — same pattern as login-form. */}
+      <div id={RECAPTCHA_CONTAINER_ID} />
     </form>
   );
 }

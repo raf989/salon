@@ -687,14 +687,28 @@ export const DICT = {
     ru: "Введите 6-значный код, отправленный на {phone}",
   },
   "auth.otp.hint": {
-    az: "Test üçün kod: 123456",
-    ru: "Тестовый код: 123456",
+    az: "SMS gələnə qədər bir neçə saniyə gözləyin",
+    ru: "Подождите несколько секунд, SMS придёт автоматически",
   },
   "auth.otp.submit": { az: "Təsdiqlə", ru: "Подтвердить" },
   "auth.otp.resend": { az: "Kodu yenidən göndər", ru: "Отправить код снова" },
+  "auth.otp.sending": { az: "Göndərilir…", ru: "Отправляем…" },
+  "auth.otp.checking": { az: "Yoxlanılır…", ru: "Проверяем…" },
   "auth.otp.error.wrong": {
     az: "Kod yanlışdır. Yenidən cəhd edin.",
     ru: "Неверный код. Попробуйте снова.",
+  },
+  "auth.otp.error.expired": {
+    az: "Kodun vaxtı bitdi. Yeni kod istəyin.",
+    ru: "Срок действия кода истёк. Запросите новый.",
+  },
+  "auth.otp.error.tooManyRequests": {
+    az: "Çox sayda cəhd. Bir neçə dəqiqədən sonra yenidən cəhd edin.",
+    ru: "Слишком много запросов. Попробуйте через несколько минут.",
+  },
+  "auth.otp.error.quotaExceeded": {
+    az: "SMS limiti tükənib. Daha sonra yenidən cəhd edin.",
+    ru: "Лимит SMS исчерпан. Попробуйте позже.",
   },
 
   // auth — success

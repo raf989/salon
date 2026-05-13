@@ -163,15 +163,20 @@ export type TenderBid = {
 
 export type UserRole = "client" | "provider";
 
+// User profile. `id` is the Firebase UID (from the JWT `sub` claim) — same
+// value returned by `auth.uid()` in Supabase RLS, so callers can use it as
+// the foreign key on `providers.auth_user_id`, `tenders.auth_user_id`, etc.
+//
+// Phone Auth manages the credential (phone + OTP) and verified-status; we
+// don't store either here. Profile fields (name, role, email, kind) are
+// collected during registration and persisted to localStorage keyed by uid.
 export type AuthUser = {
-  id: string;
-  phone: string; // normalized E.164: "+994501234567"
+  id: string; // Firebase UID
+  phone: string; // E.164: "+994501234567"
   name: string;
-  password: string; // PROTOTYPE: plain text. NEVER do this in prod.
   role: UserRole;
   email?: string; // providers only
   kind?: ProviderKind; // providers only
-  verified: boolean;
   createdAt: string; // ISO
 };
 

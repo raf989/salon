@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useProviders } from "@/lib/api/repo";
+import { signOut } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
 import type { AuthUser } from "@/lib/types";
 import { cn, formatPhone } from "@/lib/utils";
 
@@ -45,7 +45,7 @@ export function UserMenu({ user }: Props) {
   }, [open]);
 
   function handleLogout() {
-    useStore.getState().logout();
+    void signOut();
     setOpen(false);
   }
 

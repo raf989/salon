@@ -15,6 +15,7 @@ import {
 import { useT } from "@/lib/i18n";
 import { useAppointments, useServices } from "@/lib/api/repo";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import { useNow } from "@/lib/use-now";
 import {
   instagramHref,
   telegramHref,
@@ -53,7 +54,9 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
     return set;
   }, []);
 
-  const now = new Date();
+  // Shared 30-second clock so the calendar's "free / busy" flips at the
+  // moment a slot actually becomes past, not on next render.
+  const now = useNow();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const dayStateFn = useMemo<(iso: string) => DayState>(() => {
@@ -88,7 +91,7 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
       return hasFree ? "free" : "busy";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider, appointments, todayISO, windowSet]);
+  }, [provider, appointments, todayISO, windowSet, nowMinutes]);
 
   const availableToday = dayStateFn(todayISO) === "free";
 
@@ -105,9 +108,7 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
 
   const priceUnit = provider.priceUnit
     ? pickLocalized(provider.priceUnit)
-    : lang === "ru"
-      ? "час"
-      : "saat";
+    : t("unit.hour");
 
   // Resolve real contact URLs once. wa.me accepts either the dedicated
   // `whatsapp` field or the first entry of `phones` — whichever is present.

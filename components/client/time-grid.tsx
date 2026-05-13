@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Check, Lock } from "lucide-react";
 import { useAppointments } from "@/lib/api/repo";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import { useNow } from "@/lib/use-now";
 import { cn, getTodayISO } from "@/lib/utils";
 import type { Stylist } from "@/lib/types";
 import { useT } from "@/lib/i18n";
@@ -21,10 +22,10 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
 
   const todayISO = getTodayISO();
   const isToday = date === todayISO;
-  const nowMinutes = useMemo(() => {
-    const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
-  }, []);
+  // Shared 30-second clock — without it, a long-open booking flow keeps
+  // past slots looking "free" until the page is reloaded.
+  const now = useNow();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const takenTimes = useMemo(() => {
     return new Set(

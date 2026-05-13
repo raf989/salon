@@ -41,7 +41,7 @@ function SubmitBidForm({
   onClose: () => void;
   onSubmitted?: () => void;
 }) {
-  const { t, pickLocalized } = useT();
+  const { t, lang, pickLocalized } = useT();
   const currentUser = useStore(
     (s) => s.users.find((u) => u.id === s.sessionUserId) ?? null,
   );
@@ -61,11 +61,16 @@ function SubmitBidForm({
   const [done, setDone] = useState<boolean>(false);
 
   const priceNumber = Number(price);
+  const inBudget =
+    Number.isFinite(priceNumber) &&
+    priceNumber >= tender.budgetMin &&
+    priceNumber <= tender.budgetMax;
   const ready =
     providerName.trim().length > 0 &&
     note.trim().length > 0 &&
     Number.isFinite(priceNumber) &&
-    priceNumber > 0;
+    priceNumber > 0 &&
+    inBudget;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +78,13 @@ function SubmitBidForm({
     setSubmitting(true);
     setError(null);
     try {
+      // Save the note under the active locale only; the opposite field
+      // stays empty so `pickLocalized` falls back transparently. Writing
+      // the same string into both buckets used to mark a Russian comment
+      // as "translated" to AZ readers and vice versa.
+      const noteText = note.trim();
+      const noteBody =
+        lang === "ru" ? { az: "", ru: noteText } : { az: noteText, ru: "" };
       await submitBid(tender.id, {
         // Auth user IDs (`users` table) aren't the same as `providers.id` —
         // the FK on tender_bids.provider_id only accepts rows from `providers`.
@@ -83,7 +95,7 @@ function SubmitBidForm({
         providerName: providerName.trim(),
         providerAvatar: myAvatar,
         price: priceNumber,
-        note: { az: note.trim(), ru: note.trim() },
+        note: noteBody,
         badges: [],
       });
       setDone(true);
@@ -127,13 +139,19 @@ function SubmitBidForm({
         <Input
           type="number"
           inputMode="numeric"
-          min={1}
+          min={tender.budgetMin}
+          max={tender.budgetMax}
           step={1}
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           placeholder="0"
           disabled={submitting || done}
         />
+        {price && Number.isFinite(priceNumber) && !inBudget ? (
+          <p className="mt-1 text-xs text-pomegranate-500">
+            {t("tenders.bid.outOfBudget")}
+          </p>
+        ) : null}
       </div>
 
       <div>

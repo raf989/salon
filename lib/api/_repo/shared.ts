@@ -52,6 +52,10 @@ export function useVersion(key: Resource): number {
 }
 
 // ---- generic async hook -----------------------------------------------------
+// Both hooks log rejections to the console — without this, a failing Supabase
+// call surfaces as an unhandled promise rejection AND leaves the UI showing
+// the stale `initial` value indefinitely. Callers that need a richer error
+// surface should not use these helpers.
 export function useAsync<T>(
   fetcher: () => Promise<T>,
   deps: unknown[],
@@ -60,9 +64,16 @@ export function useAsync<T>(
   const [data, setData] = useState<T>(initial);
   useEffect(() => {
     let cancelled = false;
-    fetcher().then((result) => {
-      if (!cancelled) setData(result);
-    });
+    fetcher()
+      .then((result) => {
+        if (!cancelled) setData(result);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          // eslint-disable-next-line no-console
+          console.error("[useAsync] fetcher rejected", err);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -73,6 +84,8 @@ export function useAsync<T>(
 
 // Same as useAsync, but also surfaces whether the first fetch has resolved.
 // Use this when "data is null" needs to mean "not found" vs "still loading".
+// On rejection `loaded` still flips to true so consumers can show a "not
+// found" / "error" state instead of an infinite skeleton.
 export function useAsyncWithStatus<T>(
   fetcher: () => Promise<T>,
   deps: unknown[],
@@ -83,12 +96,20 @@ export function useAsyncWithStatus<T>(
   useEffect(() => {
     let cancelled = false;
     setLoaded(false);
-    fetcher().then((result) => {
-      if (!cancelled) {
-        setData(result);
-        setLoaded(true);
-      }
-    });
+    fetcher()
+      .then((result) => {
+        if (!cancelled) {
+          setData(result);
+          setLoaded(true);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          // eslint-disable-next-line no-console
+          console.error("[useAsyncWithStatus] fetcher rejected", err);
+          setLoaded(true);
+        }
+      });
     return () => {
       cancelled = true;
     };

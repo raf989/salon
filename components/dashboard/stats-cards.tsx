@@ -32,7 +32,10 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
   const services = useServices();
   const today = getTodayISO();
   const weekEnd = getDateISO(7);
-  const weekStart = getDateISO(-7);
+  // weekStart covers the past 7 calendar days INCLUDING today. Using -7
+  // would span 8 days (today + 7 prior) — that's how the revenue figure
+  // used to inflate by one day's worth.
+  const weekStart = getDateISO(-6);
 
   const mine = appointments.filter((a) => a.stylistId === me.id);
 

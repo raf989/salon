@@ -241,6 +241,33 @@ export async function submitBid(
   tenderId: string,
   input: CreateBidInput,
 ): Promise<TenderBid> {
+  // Pre-flight: refuse bids on past-deadline tenders and refuse duplicate
+  // bids from the same auth user. RLS is demo-open so the only safety net
+  // is here + a uniqueness constraint in migration 007. Both are needed:
+  // the constraint catches a race, this check produces a friendly message.
+  const { data: tenderRow, error: tenderErr } = await supabase
+    .from("tenders")
+    .select("deadline")
+    .eq("id", tenderId)
+    .maybeSingle();
+  if (tenderErr) throw asError(tenderErr, "submitBid.lookup");
+  if (!tenderRow) throw new Error("submitBid — tender not found");
+  const todayISO = new Date().toISOString().slice(0, 10);
+  if ((tenderRow.deadline as string) < todayISO) {
+    throw new Error("submitBid — deadline passed");
+  }
+  if (input.authorUserId) {
+    const { count, error: dupErr } = await supabase
+      .from("tender_bids")
+      .select("id", { count: "exact", head: true })
+      .eq("tender_id", tenderId)
+      .eq("author_user_id", input.authorUserId);
+    if (dupErr) throw asError(dupErr, "submitBid.dupCheck");
+    if ((count ?? 0) > 0) {
+      throw new Error("submitBid — already bid on this tender");
+    }
+  }
+
   const row = {
     id: makeId("b"),
     tender_id: tenderId,

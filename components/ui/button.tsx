@@ -54,7 +54,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(15,133,126,0.25)] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:translate-y-px",
+          "inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(15,133,126,0.25)] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none whitespace-nowrap active:translate-y-px",
           variantClasses[variant],
           variant !== "link" && sizeClasses[size],
           className,

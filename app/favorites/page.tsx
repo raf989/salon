@@ -17,6 +17,7 @@ import {
   useTendersRealtime,
 } from "@/lib/api/repo";
 import { hasFreeSlotOnDate } from "@/lib/availability";
+import { useNow } from "@/lib/use-now";
 import { getTodayISO } from "@/lib/utils";
 import type { Provider } from "@/lib/types";
 
@@ -51,15 +52,16 @@ export default function FavoritesPage() {
   }, [tenders, favTenderIds, hydrated]);
 
   // Match the catalog: "available today" badge / "Записаться сейчас" CTA
-  // should reflect actual openness, not a hard-coded false.
+  // should reflect actual openness, not a hard-coded false. Shared clock
+  // means the badge flips live without a page reload.
+  const now = useNow();
   const availabilityMap = useMemo(() => {
-    const now = new Date();
     const map: Record<string, boolean> = {};
     for (const p of favProviders) {
       map[p.id] = hasFreeSlotOnDate(p, todayISO, appointments, todayISO, now);
     }
     return map;
-  }, [favProviders, appointments, todayISO]);
+  }, [favProviders, appointments, todayISO, now]);
 
   const [booking, setBooking] = useState<Provider | null>(null);
 

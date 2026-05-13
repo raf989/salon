@@ -81,8 +81,8 @@ export const DICT = {
   },
   "hero.title.after": { az: "", ru: "" },
   "hero.searchPlaceholder": {
-    az: "Kimi axtarırıq? Fotoqraf, DJ, restoran…",
-    ru: "Кого ищем? Фотограф, DJ, ресторан…",
+    az: "Daxil edin",
+    ru: "Введите",
   },
 
   // filters
@@ -173,6 +173,10 @@ export const DICT = {
   "dash.status.break": { az: "İstirahətdədir", ru: "На перерыве" },
   "dash.status.optionOpen": { az: "Açıqdır", ru: "Открыт" },
   "dash.status.optionClosed": { az: "Bağlıdır", ru: "Закрыт" },
+  "dash.status.updateError": {
+    az: "Status dəyişdirilmədi. Bir az sonra cəhd edin.",
+    ru: "Статус не обновился. Попробуйте чуть позже.",
+  },
   "dash.stats.today": { az: "Bu gün görüşlər", ru: "Записей сегодня" },
   "dash.stats.week": { az: "Bu həftə", ru: "На этой неделе" },
   "dash.stats.completed": { az: "Tamamlanmış", ru: "Завершено" },
@@ -246,6 +250,10 @@ export const DICT = {
   },
   "dash.appts.cancel.confirm.no": { az: "İmtina", ru: "Отмена" },
   "dash.appts.cancel.confirm.yes": { az: "Bəli, ləğv et", ru: "Да, отменить" },
+  "dash.appts.cancel.error": {
+    az: "Ləğv etmək alınmadı. Yenidən cəhd edin.",
+    ru: "Не получилось отменить. Попробуйте ещё раз.",
+  },
   "dash.appts.empty.title": {
     az: "Hələ görüş yoxdur",
     ru: "Записей пока нет",
@@ -498,6 +506,14 @@ export const DICT = {
   "tenders.bid.submit": { az: "Göndər", ru: "Отправить" },
   "tenders.bid.submitting": { az: "Göndərilir…", ru: "Отправляем…" },
   "tenders.bid.success": { az: "Təklif göndərildi", ru: "Ставка отправлена" },
+  "tenders.bid.outOfBudget": {
+    az: "Qiymət büdcədən kənardadır",
+    ru: "Цена вне бюджета тендера",
+  },
+  "tenders.bid.deadlinePassed": {
+    az: "Tender bağlanıb — təklif qəbul edilmir",
+    ru: "Тендер закрыт — ставки не принимаются",
+  },
 
   // tenders — all bids modal
   "tenders.allBids.title": { az: "Bütün təkliflər", ru: "Все ставки" },
@@ -704,6 +720,34 @@ export const DICT = {
   "auth.userMenu.profile": { az: "Profil", ru: "Профиль" },
   "auth.userMenu.dashboard": { az: "Panel", ru: "Панель" },
   "auth.userMenu.logout": { az: "Çıxış", ru: "Выйти" },
+
+  // common UI primitives
+  "common.close": { az: "Bağla", ru: "Закрыть" },
+
+  // signup prompt — fires when an unauthenticated user tries to favorite
+  // a provider or save a tender. Shared modal across heart-button +
+  // favorite-toggle so the copy stays in one place.
+  "auth.required.title": { az: "Daxil olmaq lazımdır", ru: "Нужен вход" },
+  "auth.required.body": {
+    az: "Seçilmişləri saxlamaq üçün hesab yaradın və ya daxil olun.",
+    ru: "Зарегистрируйтесь или войдите, чтобы сохранять в избранное.",
+  },
+  "auth.required.signUp": { az: "Qeydiyyat", ru: "Регистрация" },
+  "auth.required.login": { az: "Daxil ol", ru: "Войти" },
+  "auth.required.cancel": { az: "İmtina", ru: "Отмена" },
+
+  // provider profile units (per-hour fallback when provider.priceUnit empty)
+  "unit.hour": { az: "saat", ru: "час" },
+
+  // 404 page for /provider/[id]
+  "notfound.provider": {
+    az: "Bu icraçı tapılmadı.",
+    ru: "Исполнитель не найден.",
+  },
+  "notfound.backToCatalog": {
+    az: "← Kataloga qayıt",
+    ru: "← Вернуться в каталог",
+  },
 } as const satisfies Record<string, Localized>;
 
 export type DictKey = keyof typeof DICT;

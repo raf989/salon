@@ -22,6 +22,7 @@ import {
 } from "@/lib/api/repo";
 import { SkeletonProviderRow } from "@/components/ui/skeleton";
 import { hasFreeSlotOnDate } from "@/lib/availability";
+import { useNow } from "@/lib/use-now";
 import { getTodayISO } from "@/lib/utils";
 import type {
   Localized,
@@ -180,14 +181,14 @@ function HomePageInner() {
     );
   }, [providers, cityId, pickLocalized, lang]);
 
+  const now = useNow();
   const availabilityMap = useMemo(() => {
-    const now = new Date();
     const map: Record<string, boolean> = {};
     for (const p of providers) {
       map[p.id] = hasFreeSlotOnDate(p, todayISO, appointments, todayISO, now);
     }
     return map;
-  }, [providers, appointments, todayISO]);
+  }, [providers, appointments, todayISO, now]);
 
   const filtered = useMemo(() => {
     // Stage 0 — chain filter: category → city → text.

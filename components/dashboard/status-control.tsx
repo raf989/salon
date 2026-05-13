@@ -40,6 +40,7 @@ export function StatusControl({ provider }: { provider: Stylist }) {
   const [now, setNow] = useState<Date>(() => new Date());
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   // Re-evaluate the time-based status every minute so it flips at the
@@ -79,15 +80,25 @@ export function StatusControl({ provider }: { provider: Stylist }) {
   const setManual = async (next: "open" | "closed" | null) => {
     setOpen(false);
     setBusy(true);
+    setErrorMsg(null);
     try {
       await updateProvider(provider.id, { manualStatus: next });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("[StatusControl] failed to update manual_status", err);
+      setErrorMsg(t("dash.status.updateError"));
     } finally {
       setBusy(false);
     }
   };
+
+  // Auto-dismiss the error after 4s so a transient blip doesn't pin a
+  // stale banner on the page.
+  useEffect(() => {
+    if (!errorMsg) return;
+    const id = window.setTimeout(() => setErrorMsg(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [errorMsg]);
 
   const isManualClosed = provider.manualStatus === "closed";
 
@@ -152,6 +163,14 @@ export function StatusControl({ provider }: { provider: Stylist }) {
           </motion.div>
         )}
       </AnimatePresence>
+      {errorMsg ? (
+        <p
+          role="alert"
+          className="absolute left-0 top-full mt-2 text-xs text-pomegranate-500 whitespace-nowrap"
+        >
+          {errorMsg}
+        </p>
+      ) : null}
     </div>
   );
 }

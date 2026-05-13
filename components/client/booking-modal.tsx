@@ -32,6 +32,7 @@ import {
   getDateISO,
   getTodayISO,
 } from "@/lib/utils";
+import { useNow } from "@/lib/use-now";
 import type {
   Lang,
   Localized,
@@ -116,7 +117,10 @@ function BookingFlow({
     return set;
   }, []);
 
-  const now = new Date();
+  // Use the shared 30-second clock instead of `new Date()` at render time:
+  // a long-open modal (browsing services) used to keep stale "free" slots
+  // visible past their start time.
+  const now = useNow();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const dayStateFn = useMemo<(iso: string) => DayState>(() => {
@@ -151,7 +155,7 @@ function BookingFlow({
       return hasFree ? "free" : "busy";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stylist, appointments, todayISO, windowSet]);
+  }, [stylist, appointments, todayISO, windowSet, nowMinutes]);
 
   const availableToday = dayStateFn(todayISO) === "free";
 

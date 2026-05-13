@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type DialogProps = {
@@ -14,6 +16,17 @@ export type DialogProps = {
 };
 
 export function Dialog({ open, onClose, title, children, className }: DialogProps) {
+  const { t } = useT();
+  // Mount into a portal so the dialog escapes any ancestor's transform /
+  // filter / will-change — those create new containing blocks and make
+  // `position: fixed` scoped to the ancestor instead of the viewport.
+  // Catalog cards use framer-motion (transforms), which caused the
+  // backdrop to cover only one card's height instead of the whole page.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -28,7 +41,9 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
     };
   }, [open, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open ? (
         <motion.div
@@ -41,7 +56,14 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
         >
           <motion.div
             aria-hidden
-            className="absolute inset-0 bg-ink-900/40 backdrop-blur-[2px]"
+            // Opaque dark vail does the hiding (works everywhere); the
+            // inline backdrop-filter adds blur on Chromium/WebKit. Older
+            // Firefox without backdrop-filter still gets the dark layer.
+            className="absolute inset-0 bg-ink-900/80"
+            style={{
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+            }}
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -72,7 +94,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Bağla"
+                aria-label={t("common.close")}
                 className="text-ink-500 hover:text-ink-900 transition-colors p-1.5 rounded-md hover:bg-ink-50 -mt-1 -mr-1"
               >
                 <X className="size-4" />
@@ -82,6 +104,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
           </motion.div>
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

@@ -64,6 +64,8 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
 
   const [tab, setTab] = useState<Tab>("upcoming");
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelBusy, setCancelBusy] = useState<boolean>(false);
 
   // Live clock comes from the shared `useNow` store — single interval for
   // the whole page, auto-paused when the tab is hidden.
@@ -112,8 +114,19 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   const total = upcoming.length + past.length;
 
   const onConfirmCancel = async () => {
-    if (pendingCancelId) await cancelAppointment(pendingCancelId);
-    setPendingCancelId(null);
+    if (!pendingCancelId || cancelBusy) return;
+    setCancelBusy(true);
+    setCancelError(null);
+    try {
+      await cancelAppointment(pendingCancelId);
+      setPendingCancelId(null);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[AppointmentsList] cancelAppointment failed", err);
+      setCancelError(t("dash.appts.cancel.error"));
+    } finally {
+      setCancelBusy(false);
+    }
   };
 
   return (
@@ -172,21 +185,42 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
 
       <Dialog
         open={pendingCancelId !== null}
-        onClose={() => setPendingCancelId(null)}
+        onClose={() => {
+          if (cancelBusy) return;
+          setPendingCancelId(null);
+          setCancelError(null);
+        }}
         title={t("dash.appts.cancel.confirm.title")}
       >
         <p className="text-sm text-ink-600">
           {t("dash.appts.cancel.confirm.body")}
         </p>
+        {cancelError ? (
+          <p
+            role="alert"
+            className="mt-3 text-sm font-medium text-pomegranate-500"
+          >
+            {cancelError}
+          </p>
+        ) : null}
         <div className="mt-6 flex justify-end gap-2">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setPendingCancelId(null)}
+            disabled={cancelBusy}
+            onClick={() => {
+              setPendingCancelId(null);
+              setCancelError(null);
+            }}
           >
             {t("dash.appts.cancel.confirm.no")}
           </Button>
-          <Button type="button" variant="urgent" onClick={onConfirmCancel}>
+          <Button
+            type="button"
+            variant="urgent"
+            disabled={cancelBusy}
+            onClick={onConfirmCancel}
+          >
             {t("dash.appts.cancel.confirm.yes")}
           </Button>
         </div>

@@ -14,6 +14,7 @@ import { SkeletonProviderPage } from "@/components/ui/skeleton";
 import { useT } from "@/lib/i18n";
 import { useAppointments, useProviderBySlugWithStatus } from "@/lib/api/repo";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import { useNow } from "@/lib/use-now";
 import { KIND_PLURAL, type Provider } from "@/lib/types";
 import { getTodayISO } from "@/lib/utils";
 
@@ -38,6 +39,10 @@ function ProviderPageInner({ id }: { id: string }) {
     apptId ? { stylistId: apptId } : undefined,
   );
   const todayISO = getTodayISO();
+  // Shared 30-second clock — keeps the "free today" badge honest on a
+  // long-open profile page.
+  const now = useNow();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const availableToday = useMemo<boolean>(() => {
     if (!provider) return false;
@@ -55,8 +60,6 @@ function ProviderPageInner({ id }: { id: string }) {
         )
         .map((a) => a.time),
     );
-    const now = new Date();
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
     return slots.some((time) => {
       if (isInBreak(time, provider.breaks)) return false;
       if (taken.has(time)) return false;
@@ -64,7 +67,7 @@ function ProviderPageInner({ id }: { id: string }) {
         return false;
       return true;
     });
-  }, [provider, appointments, todayISO]);
+  }, [provider, appointments, todayISO, nowMinutes]);
 
   // Distinguish "still fetching" from "fetched, definitively absent" so the
   // page doesn't 404 on the first render before Supabase replies.

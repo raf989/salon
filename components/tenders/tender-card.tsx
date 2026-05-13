@@ -50,6 +50,8 @@ export function TenderCard({ tender }: Props) {
     String(tender.bidsCount),
   );
   const budgetLine = `${t("tenders.budget")}: ${formatPrice(tender.budgetMin)}–${formatPrice(tender.budgetMax)}`;
+  // Lexical compare is safe — both sides are ISO 'YYYY-MM-DD'.
+  const isClosed = tender.deadline < getTodayISO();
 
   return (
     <motion.div
@@ -116,6 +118,8 @@ export function TenderCard({ tender }: Props) {
             size="lg"
             className="flex-1 sm:flex-none"
             onClick={() => setBidOpen(true)}
+            disabled={isClosed}
+            title={isClosed ? t("tenders.bid.deadlinePassed") : undefined}
           >
             {t("tenders.action.bid")}
           </Button>

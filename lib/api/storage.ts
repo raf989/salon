@@ -16,6 +16,11 @@ import { supabase } from "./supabase";
 
 const BUCKET = "provider-images";
 
+// Match the bucket policy (see 005_storage.sql). Reject oversized files on
+// the client so the user gets a friendly message instead of a generic 413
+// after the upload round-trip.
+const MAX_BYTES = 5 * 1024 * 1024;
+
 // Public URLs look like:
 //   https://<project>.supabase.co/storage/v1/object/public/provider-images/<path>
 const PUBLIC_PREFIX = `/storage/v1/object/public/${BUCKET}/`;
@@ -78,6 +83,11 @@ export async function uploadImage(
   kind: "avatar" | "gallery",
   providerId: string,
 ): Promise<string> {
+  if (file.size > MAX_BYTES) {
+    // Round to MB for the message — the bucket policy is in bytes.
+    const mb = (MAX_BYTES / (1024 * 1024)).toFixed(0);
+    throw new Error(`uploadImage — file too large (max ${mb} MB)`);
+  }
   const ext = extFromFile(file);
   const path = `${providerId}/${kind}/${Date.now()}-${randomToken()}.${ext}`;
 

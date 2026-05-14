@@ -90,9 +90,14 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
                 "h-10 rounded-[10px] text-sm font-mono font-medium border transition-colors inline-flex items-center justify-center gap-1",
                 selected
                   ? "bg-caspian-500 text-white border-caspian-500"
-                  : disabled
-                    ? "bg-ink-50/50 text-ink-300 border-transparent cursor-not-allowed opacity-60"
-                    : "bg-ink-50 text-ink-800 border-transparent hover:bg-caspian-50 hover:text-caspian-700",
+                  : // Taken slots get the red treatment the legend promises
+                    // — distinct from merely past / break slots, which stay
+                    // a neutral grey.
+                    taken
+                    ? "bg-pomegranate-500/12 text-pomegranate-600 border-pomegranate-500/30 cursor-not-allowed"
+                    : disabled
+                      ? "bg-ink-50/50 text-ink-300 border-transparent cursor-not-allowed opacity-60"
+                      : "bg-ink-50 text-ink-800 border-transparent hover:bg-caspian-50 hover:text-caspian-700",
                 disabled && past && !selected && "line-through",
               )}
             >

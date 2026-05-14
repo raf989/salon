@@ -69,18 +69,21 @@ export default function DashboardProfilePage() {
     user?.uid ?? null,
   );
 
+  // Anonymous → login. No provider row (client, or a provider whose row
+  // failed to create) → dashboard, which shows the recovery card.
+  // Both redirects live in an effect — calling router.replace() during
+  // render is a React anti-pattern and can loop.
   useEffect(() => {
-    if (ready && !user) router.replace("/login");
-  }, [ready, user, router]);
+    if (!ready) return;
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+    if (meLoaded && !me) router.replace("/dashboard");
+  }, [ready, user, meLoaded, me, router]);
 
-  // Wait for auth + the provider-row fetch before deciding anything.
-  if (!ready || !user || !meLoaded) return null;
-  // No provider row → bounce to the dashboard, which renders the
-  // "no provider profile" recovery card.
-  if (!me) {
-    router.replace("/dashboard");
-    return null;
-  }
+  // Wait for auth + the provider-row fetch before rendering anything.
+  if (!ready || !user || !meLoaded || !me) return null;
   return <ProfileEditor key={me.id} me={me} />;
 }
 

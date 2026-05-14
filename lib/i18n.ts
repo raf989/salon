@@ -141,6 +141,10 @@ export const DICT = {
   },
   "booking.nameAria": { az: "Müştəri adı", ru: "Имя клиента" },
   "booking.confirm": { az: "Bronu təsdiqlə", ru: "Подтвердить бронь" },
+  "booking.loginToBook": {
+    az: "Bron üçün daxil olun",
+    ru: "Войдите, чтобы записаться",
+  },
   "booking.confirming": { az: "Təsdiqlənir…", ru: "Подтверждаем…" },
   "booking.minutes": { az: "dəq", ru: "мин" },
   "booking.today": { az: "bu gün", ru: "сегодня" },

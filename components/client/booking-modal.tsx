@@ -1,21 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  Check,
-  Palette,
-  Scissors,
-  Sparkles,
-  User,
-  Wind,
-} from "lucide-react";
+import { Check, Palette, Scissors, Sparkles, Wind } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, type DayState } from "@/components/ui/calendar";
 import { Dialog } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { TimeGrid } from "@/components/client/time-grid";
 import {
@@ -23,6 +16,7 @@ import {
   useAppointments,
   useServices,
 } from "@/lib/api/repo";
+import { useCurrentUser } from "@/lib/store";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
 import { telegramHref, whatsappHref } from "@/lib/contact-urls";
 import {
@@ -86,6 +80,9 @@ function BookingFlow({
   const appointments = useAppointments();
   const allServices = useServices();
   const todayISO = getTodayISO();
+  // The booking is attributed to the signed-in user's profile name — no
+  // separate "your name" field. Logged-out visitors are prompted to log in.
+  const currentUser = useCurrentUser();
 
   const services = useMemo<Service[]>(
     () => allServices.filter((s) => stylist.serviceIds.includes(s.id)),
@@ -98,7 +95,6 @@ function BookingFlow({
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
     () => stylist.serviceIds[0] ?? null,
   );
-  const [clientName, setClientName] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   // Surface backend failures from createAppointment so the user isn't stuck
   // watching the button read "Подтверждаем…" forever after e.g. a network
@@ -162,19 +158,26 @@ function BookingFlow({
   const ready =
     selectedTime !== null &&
     selectedServiceId !== null &&
-    clientName.trim().length > 0;
+    currentUser !== null;
 
   const errorLabel =
     lang === "ru" ? "Не получилось сохранить" : "Yadda saxlaya bilmədik";
 
   const handleConfirm = async () => {
-    if (!ready || !selectedTime || !selectedServiceId || submitting) return;
+    if (
+      !ready ||
+      !selectedTime ||
+      !selectedServiceId ||
+      !currentUser ||
+      submitting
+    )
+      return;
     setSubmitting(true);
     setErrorMsg(null);
     try {
       await createAppointment({
         stylistId: stylist.id,
-        clientName: clientName.trim(),
+        clientName: currentUser.name,
         serviceId: selectedServiceId,
         date: selectedDate,
         time: selectedTime,
@@ -317,18 +320,6 @@ function BookingFlow({
               onSelect={setSelectedTime}
             />
           </div>
-
-          {/* Client name */}
-          <div>
-            <SectionLabel>{t("booking.nameLabel")}</SectionLabel>
-            <Input
-              icon={<User />}
-              placeholder={t("booking.namePlaceholder")}
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              aria-label={t("booking.nameAria")}
-            />
-          </div>
         </div>
       </div>
 
@@ -352,15 +343,25 @@ function BookingFlow({
               {t("booking.pickPrompt")}
             </span>
           )}
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleConfirm}
-            disabled={!ready || submitting}
-            aria-label={t("booking.confirm")}
-          >
-            {submitting ? t("booking.confirming") : t("booking.confirm")}
-          </Button>
+          {currentUser ? (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleConfirm}
+              disabled={!ready || submitting}
+              aria-label={t("booking.confirm")}
+            >
+              {submitting ? t("booking.confirming") : t("booking.confirm")}
+            </Button>
+          ) : (
+            // No "your name" field anymore — the booking is tied to the
+            // signed-in profile. A logged-out visitor logs in first.
+            <Link href="/login">
+              <Button variant="primary" size="lg">
+                {t("booking.loginToBook")}
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>

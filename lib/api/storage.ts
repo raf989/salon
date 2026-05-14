@@ -1,18 +1,44 @@
 "use client";
 
-import { supabase } from "./supabase";
+import { createClient } from "@supabase/supabase-js";
 
 // =============================================================================
 // Storage helpers
 //
 // Provider avatars + gallery images live in the `provider-images` bucket
-// (public, 5 MB max, image/* only — see
-// supabase/migrations/20260513000000_storage_bucket.sql).
+// (public, 5 MB max, image/* only — see supabase/migrations/005_storage.sql).
 //
 // Object paths are namespaced per provider so a delete cascade is trivial:
 //   <providerId>/avatar/<timestamp>-<rand>.<ext>
 //   <providerId>/gallery/<timestamp>-<rand>.<ext>
+//
+// IMPORTANT — dedicated client, NO Firebase token.
+// The main `supabase` client (lib/api/supabase.ts) injects the Firebase ID
+// token via the `accessToken` callback. PostgREST validates that token via
+// the Third-Party Auth integration, but Supabase Storage does NOT honor
+// third-party JWTs the same way — sending the Firebase token to Storage
+// gets the request rejected as an invalid JWT, which is what made avatar /
+// gallery uploads silently fail.
+//
+// The `provider-images` bucket is demo-open (005_storage.sql: anon may
+// CRUD), so a plain anon-key client uploads fine. When RLS is tightened
+// later, storage ownership moves to a signed-URL or edge-function flow.
 // =============================================================================
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    "Supabase env not configured for storage. Set NEXT_PUBLIC_SUPABASE_URL " +
+      "and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.",
+  );
+}
+
+const storageClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false },
+  // Deliberately NO `accessToken` callback — see the note above.
+});
 
 const BUCKET = "provider-images";
 
@@ -126,7 +152,7 @@ export async function uploadImage(
   const ext = extFromFile(file);
   const path = `${providerId}/${kind}/${Date.now()}-${randomToken()}.${ext}`;
 
-  const uploadRes = await supabase.storage
+  const uploadRes = await storageClient.storage
     .from(BUCKET)
     .upload(path, file, { upsert: false });
   if (uploadRes.error) {
@@ -137,7 +163,7 @@ export async function uploadImage(
     throw asError(uploadRes.error, "uploadImage");
   }
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const { data } = storageClient.storage.from(BUCKET).getPublicUrl(path);
   if (!data?.publicUrl) {
     throw new Error("uploadImage — no public URL returned");
   }
@@ -159,6 +185,6 @@ export async function deleteImage(url: string): Promise<void> {
   const path = url.slice(idx + PUBLIC_PREFIX.length).split("?")[0];
   if (!path) return;
 
-  const res = await supabase.storage.from(BUCKET).remove([path]);
+  const res = await storageClient.storage.from(BUCKET).remove([path]);
   if (res.error) throw asError(res.error, "deleteImage");
 }

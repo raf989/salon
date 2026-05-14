@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,9 @@ const SUBTITLE_KEY_BY_KIND: Partial<Record<ProviderKind, DictKey>> = {
 export function ProviderRow({ provider, onBook, availableToday }: Props) {
   const { t, pickLocalized } = useT();
   const allServices = useServices();
+  // Show the provider's real uploaded photo when there is one; fall back
+  // to the gradient `Cover` otherwise (or if the image URL is broken).
+  const [avatarFailed, setAvatarFailed] = useState(false);
   // Pure time-vs-hours check. We deliberately ignore manualStatus here —
   // this pill shows whether the displayed range covers "now", not whether
   // the provider has admin-closed themselves.
@@ -112,13 +117,27 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
           className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2"
         />
         <div className="relative z-10">
-          <Cover
-            name={provider.name}
-            id={provider.id}
-            kind={provider.kind}
-            aspect="1"
-            className="rounded-xl"
-          />
+          {provider.avatar && !avatarFailed ? (
+            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-ink-50">
+              <Image
+                src={provider.avatar}
+                alt={provider.name}
+                fill
+                unoptimized
+                sizes="(min-width: 768px) 140px, 96px"
+                className="object-cover"
+                onError={() => setAvatarFailed(true)}
+              />
+            </div>
+          ) : (
+            <Cover
+              name={provider.name}
+              id={provider.id}
+              kind={provider.kind}
+              aspect="1"
+              className="rounded-xl"
+            />
+          )}
           <HeartButton
             providerId={provider.id}
             className="absolute top-1.5 right-1.5 size-9 md:size-auto md:top-2 md:right-2"

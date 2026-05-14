@@ -98,20 +98,28 @@ export function getRecaptchaVerifier(
   }
   const cache = getCache();
   const cached = cache.get(containerId);
+  // Reuse only if cache AND DOM agree — verifier still cached and its
+  // iframe still mounted. Otherwise (e.g. previous attempt errored and
+  // we cleared the cache; or fast-refresh remounted the container),
+  // tear down whatever's left and start over.
+  if (cached && container.childElementCount > 0) {
+    return cached;
+  }
   if (cached) {
-    // Even with the right ID, the previous instance may have been
-    // disposed (page navigation, fast refresh). Firebase doesn't expose
-    // a `.isReady()` so we rely on a marker on the container: an active
-    // verifier inserts an iframe/div as a child. If empty, treat stale.
-    if (container.childElementCount > 0) {
-      return cached;
-    }
     try {
       cached.clear();
     } catch {
       // Already torn down; ignore.
     }
     cache.delete(containerId);
+  }
+  // Firebase `clear()` doesn't always remove the iframe synchronously,
+  // so before constructing a new verifier we wipe the container's DOM.
+  // Without this, `new RecaptchaVerifier` on a container that still has
+  // the previous reCAPTCHA iframe throws
+  // "reCAPTCHA has already been rendered in this element".
+  while (container.firstChild) {
+    container.removeChild(container.firstChild);
   }
   const verifier = new RecaptchaVerifier(getFirebaseAuth(), containerId, {
     size: "invisible",

@@ -371,6 +371,20 @@ export const DICT = {
   // crumbs
   "crumbs.catalog": { az: "Kataloq", ru: "Каталог" },
 
+  // dashboard — no provider profile recovery card
+  "dash.noProvider.title": {
+    az: "İcraçı profili tapılmadı",
+    ru: "Профиль исполнителя не найден",
+  },
+  "dash.noProvider.body": {
+    az: "Bu hesabın icraçı profili yoxdur. İcraçı kimi qeydiyyatdan keçin.",
+    ru: "У этого аккаунта нет профиля исполнителя. Зарегистрируйтесь как исполнитель.",
+  },
+  "dash.noProvider.cta": {
+    az: "İcraçı kimi qeydiyyat",
+    ru: "Регистрация исполнителя",
+  },
+
   // dashboard profile editor
   "dash.profile.goTo": { az: "Profili redaktə et", ru: "Перейти в профиль" },
   "dash.profile.title": { az: "Profili redaktə et", ru: "Редактировать профиль" },
@@ -596,6 +610,10 @@ export const DICT = {
   "auth.login.error.invalidCredential": {
     az: "Nömrə və ya şifrə yanlışdır",
     ru: "Неверный номер или пароль",
+  },
+  "auth.login.error.invalidPhone": {
+    az: "Düzgün nömrə daxil edin",
+    ru: "Введите корректный номер",
   },
 
   // auth — register shell

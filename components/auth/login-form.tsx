@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { signInWithPhonePassword, toE164 } from "@/lib/firebase";
+import { getUserProfile } from "@/lib/api/repo";
 
 // Login is phone + password — no SMS. The password was linked to the
 // Firebase account at registration time (see register-form +
@@ -19,9 +20,7 @@ import { signInWithPhonePassword, toE164 } from "@/lib/firebase";
 export function LoginForm() {
   const { t } = useT();
   const router = useRouter();
-  // Read profiles directly: after sign-in the auth listener sets
-  // sessionUserId; we look up the freshly-signed-in UID's role to route.
-  const profiles = useStore((s) => s.profiles);
+  const cacheProfile = useStore((s) => s.cacheProfile);
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -33,13 +32,17 @@ export function LoginForm() {
     setError(null);
     const normalized = toE164(phone);
     if (!normalized) {
-      setError(t("auth.register.error.invalidPhone"));
+      setError(t("auth.login.error.invalidPhone"));
       return;
     }
     setSubmitting(true);
     try {
       const cred = await signInWithPhonePassword(normalized, password);
-      const profile = profiles[cred.user.uid];
+      // Fetch the profile from the server — works on any device, not just
+      // the registration one. Cache it so the rest of the app
+      // (`useCurrentUser()`, header) sees it immediately, then route by role.
+      const profile = await getUserProfile(cred.user.uid);
+      if (profile) cacheProfile(profile);
       router.push(profile?.role === "provider" ? "/dashboard" : "/");
     } catch (err) {
       if (err instanceof FirebaseError) {

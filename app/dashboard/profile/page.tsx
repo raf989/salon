@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef, useState, type SVGProps } from "react";
+import { Fragment, useEffect, useRef, useState, type SVGProps } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -20,8 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/crumbs";
 import { GalleryUploader } from "@/components/dashboard/gallery-uploader";
 import { TelegramIcon as SharedTelegramIcon } from "@/components/ui/social-icons";
-import { updateProvider, useProvider, useProviders } from "@/lib/api/repo";
+import { updateProvider, useProviderByAuthUserId } from "@/lib/api/repo";
 import { deleteImage, uploadImage } from "@/lib/api/storage";
+import { useAuthState } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useCurrentUser, useStore } from "@/lib/store";
 import type { Stylist } from "@/lib/types";
@@ -56,16 +57,30 @@ function composeE164(local: string): string | null {
 }
 
 // ───────────────────────────────────────────────────────────────────────
-// Outer wrapper waits for provider data. The inner editor receives a
-// non-null `me` so all useState initializers see the real values on first
-// render — fixes the "fields are empty on edit page" bug.
+// Outer wrapper: auth-guards, resolves the signed-in provider's own row
+// (by Firebase UID — not the seed-era `useProviders()[0]` hack), and only
+// then renders the editor. The inner editor receives a non-null `me` so
+// all useState initializers see real values on first render.
 // ───────────────────────────────────────────────────────────────────────
 export default function DashboardProfilePage() {
-  const providers = useProviders();
-  const meId = providers[0]?.id;
-  const me = useProvider(meId);
+  const router = useRouter();
+  const { user, ready } = useAuthState();
+  const { provider: me, loaded: meLoaded } = useProviderByAuthUserId(
+    user?.uid ?? null,
+  );
 
-  if (!me) return null;
+  useEffect(() => {
+    if (ready && !user) router.replace("/login");
+  }, [ready, user, router]);
+
+  // Wait for auth + the provider-row fetch before deciding anything.
+  if (!ready || !user || !meLoaded) return null;
+  // No provider row → bounce to the dashboard, which renders the
+  // "no provider profile" recovery card.
+  if (!me) {
+    router.replace("/dashboard");
+    return null;
+  }
   return <ProfileEditor key={me.id} me={me} />;
 }
 

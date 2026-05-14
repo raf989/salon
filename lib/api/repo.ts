@@ -11,6 +11,7 @@
 // =============================================================================
 
 export * from "./_repo/shared";
+export * from "./_repo/users";
 export * from "./_repo/providers";
 export * from "./_repo/services";
 export * from "./_repo/appointments";

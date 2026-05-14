@@ -14,6 +14,7 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut as fbSignOut, type User } from "firebase/auth";
 import { getFirebaseAuth } from "./firebase";
+import { getUserProfile } from "./api/repo";
 import { useStore } from "./store";
 
 /**
@@ -33,15 +34,47 @@ export function useFirebaseUser(): User | null {
 }
 
 /**
+ * Like `useFirebaseUser` but also reports whether the FIRST auth-state
+ * callback has fired. `ready` is false during the brief gap between mount
+ * and Firebase restoring (or confirming the absence of) a session — guards
+ * use it to avoid redirecting a logged-in user mid-hydration.
+ */
+export function useAuthState(): { user: User | null; ready: boolean } {
+  const [state, setState] = useState<{ user: User | null; ready: boolean }>({
+    user: null,
+    ready: false,
+  });
+  useEffect(() => {
+    return onAuthStateChanged(getFirebaseAuth(), (user) => {
+      setState({ user, ready: true });
+    });
+  }, []);
+  return state;
+}
+
+/**
  * Mount once at the app root. Mirrors Firebase auth state into the zustand
- * store so every component that reads `sessionUserId` stays consistent.
+ * store so every component that reads `sessionUserId` stays consistent, and
+ * hydrates the profile cache from the server on sign-in so `currentUser()`
+ * works on any device — not just the one registration happened on.
  * Renders nothing.
  */
 export function FirebaseAuthSync(): null {
   useEffect(() => {
     const unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
-      const setSession = useStore.getState().setSessionUserId;
-      setSession(user?.uid ?? null);
+      const store = useStore.getState();
+      store.setSessionUserId(user?.uid ?? null);
+      if (!user) return;
+      // Fire-and-forget server fetch — the localStorage cache (if any)
+      // paints instantly; this refreshes it and covers fresh devices.
+      void getUserProfile(user.uid)
+        .then((profile) => {
+          if (profile) useStore.getState().cacheProfile(profile);
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error("[FirebaseAuthSync] profile fetch failed", err);
+        });
     });
     return unsub;
   }, []);

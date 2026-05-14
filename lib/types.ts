@@ -81,6 +81,12 @@ export type Service = {
 export type Stylist = {
   id: string;
   slug: string;
+  /**
+   * Firebase UID of the owner. Set when a provider self-registers; NULL on
+   * legacy/seed rows (admin-managed). The dashboard resolves "me" by
+   * matching this against the signed-in user.
+   */
+  authUserId?: string;
   name: string;
   bio: Localized;
   rating: number;

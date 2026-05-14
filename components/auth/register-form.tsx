@@ -14,6 +14,7 @@ import {
   sendPhoneOtp,
   toE164,
 } from "@/lib/firebase";
+import { createProvider, createUserProfile } from "@/lib/api/repo";
 import { cn } from "@/lib/utils";
 import {
   KIND_LABELS,
@@ -160,6 +161,25 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
               throw new Error(t("auth.register.error.linkFailed"));
             }
           }
+          // Persist the profile server-side so it's recoverable on any
+          // device. For providers also create the `providers` business
+          // row so the dashboard can resolve "me" by auth_user_id.
+          await createUserProfile({
+            uid,
+            name,
+            phone: phoneE164,
+            role,
+            email: role === "provider" ? email : undefined,
+            kind: role === "provider" ? (kind as ProviderKind) : undefined,
+          });
+          if (role === "provider") {
+            await createProvider({
+              authUserId: uid,
+              name,
+              kind: kind as ProviderKind,
+            });
+          }
+          // Local cache for instant paint before FirebaseAuthSync's fetch.
           setProfile({
             uid,
             phone: phoneE164,

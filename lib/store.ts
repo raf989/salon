@@ -57,6 +57,9 @@ type Store = {
   /** Profile cache keyed by Firebase UID — name, role, kind, email. */
   profiles: Record<string, AuthUser>;
   setProfile: (input: RegisterProfileInput) => void;
+  /** Store a fully-formed profile fetched from the server (login on any
+   *  device, FirebaseAuthSync re-hydration). */
+  cacheProfile: (profile: AuthUser) => void;
   updateCurrentUser: (
     patch: Partial<Pick<AuthUser, "name" | "email">>,
   ) => void;
@@ -107,6 +110,11 @@ export const useStore = create<Store>()(
           };
           return { profiles: { ...state.profiles, [input.uid]: profile } };
         }),
+
+      cacheProfile: (profile) =>
+        set((state) => ({
+          profiles: { ...state.profiles, [profile.id]: profile },
+        })),
 
       updateCurrentUser: (patch) =>
         set((state) => {

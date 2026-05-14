@@ -12,13 +12,17 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { supabase } from "../supabase";
 import { normalizeCity } from "../../cities";
-import type {
-  Provider,
-  ProviderEditPatch,
-  ProviderFilters,
+import { slugify } from "../../slugs";
+import {
+  PROVIDER_TIER_OF,
+  type Provider,
+  type ProviderEditPatch,
+  type ProviderFilters,
+  type ProviderKind,
 } from "@/lib/types";
 import {
   asError,
+  makeId,
   useAsync,
   useAsyncWithStatus,
   useVersion,
@@ -30,6 +34,7 @@ import {
 export type ProviderRow = {
   id: string;
   slug: string;
+  auth_user_id: string | null;
   name: string;
   bio: { az: string; ru: string };
   rating: number;
@@ -75,6 +80,7 @@ export function rowToProvider(row: ProviderRow, edit?: ProviderEditRow): Provide
   const base: Provider = {
     id: row.id,
     slug: row.slug,
+    authUserId: row.auth_user_id ?? undefined,
     name: row.name,
     bio: row.bio,
     rating: Number(row.rating),
@@ -385,4 +391,105 @@ export async function updateProvider(
   const updated = await getProvider(id);
   if (!updated) throw new Error(`Provider not found after update: ${id}`);
   return updated;
+}
+
+// ---- self-registration ------------------------------------------------------
+
+/**
+ * Find the provider row owned by a given Firebase UID. Returns null when the
+ * user has no provider profile (a client, or a provider mid-registration).
+ */
+export async function getProviderByAuthUserId(
+  authUserId: string,
+): Promise<Provider | null> {
+  const pRes = await supabase
+    .from("providers")
+    .select("*")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+  if (pRes.error) throw asError(pRes.error, "getProviderByAuthUserId");
+  if (!pRes.data) return null;
+  const provider = pRes.data as ProviderRow;
+  const eRes = await supabase
+    .from("provider_edits")
+    .select("*")
+    .eq("provider_id", provider.id)
+    .maybeSingle();
+  if (eRes.error)
+    throw asError(eRes.error, "getProviderByAuthUserId:edit");
+  return rowToProvider(
+    provider,
+    (eRes.data as ProviderEditRow | null) ?? undefined,
+  );
+}
+
+export type CreateProviderInput = {
+  authUserId: string;
+  name: string;
+  kind: ProviderKind;
+};
+
+/**
+ * Create the `providers` row for a freshly self-registered provider. Called
+ * once, right after Firebase OTP confirms the phone (see register-form).
+ * Fills the NOT NULL columns with sensible blanks the provider edits later
+ * from /dashboard/profile.
+ *
+ * Slug is `slugify(name)-<6-char id suffix>` — the suffix guarantees
+ * uniqueness without a round-trip to check existing slugs.
+ */
+export async function createProvider(
+  input: CreateProviderInput,
+): Promise<Provider> {
+  const id = makeId("p");
+  const slug = `${slugify(input.name)}-${id.slice(-6)}`;
+  const row = {
+    id,
+    slug,
+    auth_user_id: input.authUserId,
+    name: input.name.trim(),
+    bio: { az: "", ru: "" },
+    rating: 0,
+    reviews_count: 0,
+    specialties: [],
+    price_range: "medium",
+    service_ids: [],
+    working_hours: { start: "09:00", end: "18:00" },
+    breaks: [],
+    city: { az: "Bakı", ru: "Баку" },
+    kind: input.kind,
+    tier: PROVIDER_TIER_OF[input.kind],
+    gallery: [],
+    verified: false,
+  };
+  const { data, error } = await supabase
+    .from("providers")
+    .insert(row)
+    .select()
+    .single();
+  if (error) throw asError(error, "createProvider");
+  useVersions.getState().bump("providers");
+  return rowToProvider(data as ProviderRow);
+}
+
+/**
+ * Hook: the provider profile owned by `authUserId`. The dashboard uses this
+ * to resolve "me" — replacing the old `useProviders()[0]` seed-era hack.
+ * `loaded` is false until the first fetch resolves so callers can tell
+ * "still loading" apart from "this user has no provider row".
+ */
+export function useProviderByAuthUserId(
+  authUserId: string | null,
+): { provider: Provider | null; loaded: boolean } {
+  const v = useVersion("providers") + useVersion("providerEdits");
+  const fetcher = useCallback(async () => {
+    if (!authUserId) return null;
+    return getProviderByAuthUserId(authUserId);
+  }, [authUserId]);
+  const { data, loaded } = useAsyncWithStatus(
+    fetcher,
+    [authUserId, v],
+    null,
+  );
+  return { provider: data, loaded };
 }

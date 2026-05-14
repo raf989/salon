@@ -137,12 +137,20 @@ export function ProfileCard({ me }: ProfileCardProps) {
         <div className="flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-0 pt-12 sm:pt-14 lg:pt-12">
           {/* ── Block 1 — identity */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0">
-            <Avatar
-              name={trimmedAuth || me.name}
-              id={authUser?.id ?? me.id}
-              imageUrl={me.avatar}
-              size="xl"
-            />
+            {/* Avatar doubles as a shortcut to the profile editor — the
+                actual photo upload lives on /dashboard/profile. */}
+            <Link
+              href="/dashboard/profile"
+              aria-label={t("dash.profile.avatar.change")}
+              className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            >
+              <Avatar
+                name={trimmedAuth || me.name}
+                id={authUser?.id ?? me.id}
+                imageUrl={me.avatar}
+                size="xl"
+              />
+            </Link>
             <div className="min-w-0">
               <h1 className="font-display font-semibold text-xl sm:text-2xl md:text-3xl text-ink-900 tracking-tight truncate">
                 {t("dash.greeting")}, {firstName}

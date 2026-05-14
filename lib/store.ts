@@ -54,6 +54,14 @@ type Store = {
   sessionUserId: string | null;
   setSessionUserId: (id: string | null) => void;
 
+  // `true` once FirebaseAuthSync has settled the FIRST auth check —
+  // including the server profile fetch for a signed-in user. Until then,
+  // `currentUser()` being null is ambiguous ("logged out" vs "profile
+  // still loading"); components gate their empty states on this flag so
+  // they don't flash "not logged in" / "no bids" before the profile lands.
+  authResolved: boolean;
+  setAuthResolved: (v: boolean) => void;
+
   /** Profile cache keyed by Firebase UID — name, role, kind, email. */
   profiles: Record<string, AuthUser>;
   setProfile: (input: RegisterProfileInput) => void;
@@ -93,6 +101,9 @@ export const useStore = create<Store>()(
 
       sessionUserId: null,
       setSessionUserId: (id) => set({ sessionUserId: id }),
+
+      authResolved: false,
+      setAuthResolved: (v) => set({ authResolved: v }),
 
       profiles: {},
       setProfile: (input) =>

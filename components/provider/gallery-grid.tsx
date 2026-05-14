@@ -68,6 +68,11 @@ export function GalleryGrid({ provider }: Props) {
           );
         })}
       </div>
+      {gallery.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-400">
+          {t("provider.gallery.empty")}
+        </p>
+      ) : null}
     </motion.section>
   );
 }

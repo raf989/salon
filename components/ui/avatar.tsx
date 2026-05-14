@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { cn, getGradientForId, getInitials } from "@/lib/utils";
 
 type Size = "sm" | "md" | "lg" | "xl" | "2xl";
@@ -34,6 +35,14 @@ export function Avatar({
   className,
   liveDot,
 }: Props) {
+  // If `imageUrl` is set but 404s / fails to load, fall back to the
+  // initials-on-gradient instead of leaving an empty circle. Reset the
+  // failure flag whenever the URL changes so a new (valid) photo retries.
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => {
+    setImgFailed(false);
+  }, [imageUrl]);
+
   return (
     <div
       className={cn(
@@ -42,10 +51,14 @@ export function Avatar({
         SIZE_MAP[size],
         className,
       )}
-      style={imageUrl ? undefined : { background: getGradientForId(id) }}
+      style={
+        imageUrl && !imgFailed
+          ? undefined
+          : { background: getGradientForId(id) }
+      }
       aria-label={name}
     >
-      {imageUrl ? (
+      {imageUrl && !imgFailed ? (
         <Image
           src={imageUrl}
           alt={name}
@@ -53,6 +66,7 @@ export function Avatar({
           unoptimized
           sizes="(max-width: 768px) 96px, 128px"
           className="object-cover"
+          onError={() => setImgFailed(true)}
         />
       ) : (
         <span className="leading-none -mt-0.5 tracking-tight">

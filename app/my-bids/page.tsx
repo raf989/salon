@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Send, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { BidStatusBadge } from "@/components/tenders/bid-status-badge";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
+import { useAuthResolved } from "@/lib/auth";
 import {
   deleteBid,
   useMyBids,
@@ -26,12 +27,12 @@ export default function MyBidsPage() {
   const currentUserId = useStore((s) => s.sessionUserId);
   const bids = useMyBids(currentUserId ?? undefined);
 
-  // SSR mismatch guard — sessionUserId is persisted-localStorage so it's null
-  // on the server. Render an empty list during SSR + first client tick.
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
-  const isLoggedIn = hydrated && !!currentUserId;
-  const visible = hydrated ? bids : [];
+  // `authResolved` is false on SSR + until FirebaseAuthSync settles the
+  // first auth check. Gating on it (instead of a bare hydration flag)
+  // means we never flash "not logged in" before the session is known.
+  const authResolved = useAuthResolved();
+  const isLoggedIn = !!currentUserId;
+  const visible = bids;
 
   return (
     <main className="mx-auto max-w-4xl px-4 md:px-6 pb-24 pt-6">
@@ -60,7 +61,11 @@ export default function MyBidsPage() {
         </p>
       </header>
 
-      {!isLoggedIn ? (
+      {!authResolved ? (
+        <Card className="flex flex-col items-center justify-center gap-3 py-20 text-center border-dashed">
+          <span className="size-9 rounded-full border-2 border-ink-200 border-t-caspian-500 animate-spin" />
+        </Card>
+      ) : !isLoggedIn ? (
         <EmptyState
           title={t("myBids.empty.title")}
           sub={t("myBids.empty.notLoggedIn")}

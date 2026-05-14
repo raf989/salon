@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState, type SVGProps } from "react";
+import { Fragment, useRef, useState, type SVGProps } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -20,9 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Crumbs } from "@/components/ui/crumbs";
 import { GalleryUploader } from "@/components/dashboard/gallery-uploader";
 import { TelegramIcon as SharedTelegramIcon } from "@/components/ui/social-icons";
-import { updateProvider, useProviderByAuthUserId } from "@/lib/api/repo";
+import { updateProvider } from "@/lib/api/repo";
 import { deleteImage, uploadImage, validateImageFile } from "@/lib/api/storage";
-import { useAuthState } from "@/lib/auth";
+import { useMyProvider, type MyProviderStatus } from "@/lib/use-my-provider";
 import { useT } from "@/lib/i18n";
 import { useCurrentUser, useStore } from "@/lib/store";
 import type { Stylist } from "@/lib/types";
@@ -63,28 +63,55 @@ function composeE164(local: string): string | null {
 // all useState initializers see real values on first render.
 // ───────────────────────────────────────────────────────────────────────
 export default function DashboardProfilePage() {
-  const router = useRouter();
-  const { user, ready } = useAuthState();
-  const { provider: me, loaded: meLoaded } = useProviderByAuthUserId(
-    user?.uid ?? null,
-  );
+  // Same self-healing resolver the dashboard uses — anonymous → /login and
+  // clients → / are handled inside the hook.
+  const { status, me } = useMyProvider();
 
-  // Anonymous → login. No provider row (client, or a provider whose row
-  // failed to create) → dashboard, which shows the recovery card.
-  // Both redirects live in an effect — calling router.replace() during
-  // render is a React anti-pattern and can loop.
-  useEffect(() => {
-    if (!ready) return;
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
-    if (meLoaded && !me) router.replace("/dashboard");
-  }, [ready, user, meLoaded, me, router]);
-
-  // Wait for auth + the provider-row fetch before rendering anything.
-  if (!ready || !user || !meLoaded || !me) return null;
+  // Non-ready states render a visible panel — never a blank page (which
+  // made the editor look "gone").
+  if (status !== "ready" || !me) {
+    return <ProviderStatusPanel status={status} />;
+  }
   return <ProfileEditor key={me.id} me={me} />;
+}
+
+// Loading spinner / no-provider recovery card for the non-ready states.
+// Accepts the full status union; anything that isn't "incomplete" (i.e.
+// "loading", and the unreachable "ready") shows the spinner.
+function ProviderStatusPanel({ status }: { status: MyProviderStatus }) {
+  const { t } = useT();
+  if (status !== "incomplete") {
+    return (
+      <main className="mx-auto max-w-2xl px-4 md:px-6 pt-24 pb-24">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <span className="size-9 rounded-full border-2 border-ink-200 border-t-caspian-500 animate-spin" />
+          <p className="text-sm text-ink-500">{t("dash.loadingProfile")}</p>
+        </div>
+      </main>
+    );
+  }
+  return (
+    <main className="mx-auto max-w-2xl px-4 md:px-6 pt-16 pb-24">
+      <Card className="p-8 text-center flex flex-col items-center gap-4">
+        <h1 className="font-display font-semibold text-2xl text-ink-900">
+          {t("dash.noProvider.title")}
+        </h1>
+        <p className="text-sm text-ink-500">{t("dash.noProvider.body")}</p>
+        <div className="flex gap-2">
+          <Link href="/dashboard">
+            <Button variant="outline" size="md">
+              {t("dash.profile.back")}
+            </Button>
+          </Link>
+          <Link href="/register?type=provider">
+            <Button variant="primary" size="md">
+              {t("dash.noProvider.cta")}
+            </Button>
+          </Link>
+        </div>
+      </Card>
+    </main>
+  );
 }
 
 function ProfileEditor({ me }: { me: Stylist }) {

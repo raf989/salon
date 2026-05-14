@@ -12,8 +12,8 @@ import { useStore } from "@/lib/store";
 import {
   useAppointments,
   useAppointmentsRealtime,
-  useProviders,
-  useTenders,
+  useProvidersWithStatus,
+  useTendersWithStatus,
   useTendersRealtime,
 } from "@/lib/api/repo";
 import { hasFreeSlotOnDate } from "@/lib/availability";
@@ -27,8 +27,8 @@ export default function FavoritesPage() {
   useTendersRealtime();
   useAppointmentsRealtime();
   const { t } = useT();
-  const providers = useProviders();
-  const tenders = useTenders();
+  const { providers, loaded: providersLoaded } = useProvidersWithStatus();
+  const { tenders, loaded: tendersLoaded } = useTendersWithStatus();
   const todayISO = getTodayISO();
   const appointments = useAppointments({ date: todayISO });
 
@@ -65,7 +65,12 @@ export default function FavoritesPage() {
 
   const [booking, setBooking] = useState<Provider | null>(null);
 
-  const nothing = hydrated && favProviders.length === 0 && favTenders.length === 0;
+  // Favourites are localStorage IDs; resolving them to cards needs the
+  // providers/tenders lists. Until both have loaded we can't tell "no
+  // favourites" from "still loading" — show a skeleton, not the empty state.
+  const dataReady = hydrated && providersLoaded && tendersLoaded;
+  const nothing =
+    dataReady && favProviders.length === 0 && favTenders.length === 0;
 
   return (
     <main className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6">
@@ -86,7 +91,11 @@ export default function FavoritesPage() {
         </p>
       </header>
 
-      {nothing ? (
+      {!dataReady ? (
+        <Card className="flex flex-col items-center justify-center gap-3 py-20 text-center border-dashed">
+          <span className="size-9 rounded-full border-2 border-ink-200 border-t-caspian-500 animate-spin" />
+        </Card>
+      ) : nothing ? (
         <EmptyState />
       ) : (
         <div className="flex flex-col gap-10">

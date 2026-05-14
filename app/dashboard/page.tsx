@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppointmentsList } from "@/components/dashboard/appointments-list";
 import { AvailabilityManager } from "@/components/dashboard/availability-manager";
@@ -9,47 +7,23 @@ import { ProfileCard } from "@/components/dashboard/profile-card";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  useAppointments,
-  useAppointmentsRealtime,
-  useProviderByAuthUserId,
-} from "@/lib/api/repo";
-import { useAuthState } from "@/lib/auth";
-import { useCurrentUser } from "@/lib/store";
+import { useAppointments, useAppointmentsRealtime } from "@/lib/api/repo";
+import { useMyProvider } from "@/lib/use-my-provider";
 import { useT } from "@/lib/i18n";
 import { SkeletonDashboard } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
-  const router = useRouter();
   const { t } = useT();
-  const { user, ready } = useAuthState();
-  const currentUser = useCurrentUser();
-
-  // Resolve "me" by the Firebase UID — replaces the old `useProviders()[0]`
-  // seed-era hack that showed every provider the first catalog row.
-  const { provider: me, loaded: meLoaded } = useProviderByAuthUserId(
-    user?.uid ?? null,
-  );
+  // Resolves "me" by Firebase UID and self-heals a missing provider row.
+  // Anonymous → redirected to /login, clients → redirected to / inside
+  // the hook; we only see loading | ready | incomplete here.
+  const { status, me } = useMyProvider();
 
   // Live-refresh the appointment list when a client books / cancels.
   useAppointmentsRealtime();
   const apptsForMe = useAppointments(me ? { stylistId: me.id } : undefined);
 
-  // Auth guard — once Firebase has resolved, kick anonymous visitors to login.
-  useEffect(() => {
-    if (ready && !user) router.replace("/login");
-  }, [ready, user, router]);
-
-  // Role guard — clients have no dashboard; send them home. Only fires once
-  // the profile is known (currentUser non-null) so we don't bounce a
-  // provider mid-hydration.
-  useEffect(() => {
-    if (ready && user && currentUser && currentUser.role === "client") {
-      router.replace("/");
-    }
-  }, [ready, user, currentUser, router]);
-
-  if (!ready || !user) {
+  if (status === "loading") {
     return (
       <div className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6 md:pt-10">
         <SkeletonDashboard />
@@ -57,27 +31,16 @@ export default function DashboardPage() {
     );
   }
 
-  if (!meLoaded) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6 md:pt-10">
-        <SkeletonDashboard />
-      </div>
-    );
-  }
-
-  // Authenticated, but no provider row. Either a client (the role guard
-  // above will redirect) or a provider whose row failed to create at
-  // registration — give them a clear recovery path instead of a blank page.
-  if (!me) {
+  // Logged in but no `users` profile to build a provider from — give a
+  // clear recovery path instead of a blank page.
+  if (status === "incomplete" || !me) {
     return (
       <div className="mx-auto max-w-2xl px-4 md:px-6 pb-24 pt-16">
         <Card className="p-8 text-center flex flex-col items-center gap-4">
           <h1 className="font-display font-semibold text-2xl text-ink-900">
             {t("dash.noProvider.title")}
           </h1>
-          <p className="text-ink-500 text-sm">
-            {t("dash.noProvider.body")}
-          </p>
+          <p className="text-ink-500 text-sm">{t("dash.noProvider.body")}</p>
           <Link href="/register?type=provider">
             <Button variant="primary" size="lg">
               {t("dash.noProvider.cta")}

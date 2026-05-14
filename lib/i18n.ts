@@ -339,6 +339,10 @@ export const DICT = {
   },
   "provider.minutes": { az: "dəq", ru: "мин" },
   "provider.gallery": { az: "Qalereya", ru: "Галерея" },
+  "provider.gallery.empty": {
+    az: "İcraçı hələ şəkil əlavə etməyib",
+    ru: "Исполнитель пока не добавил фото",
+  },
 
   // card actions per kind
   "action.profile": { az: "Profilə bax", ru: "Посмотреть" },
@@ -371,7 +375,11 @@ export const DICT = {
   // crumbs
   "crumbs.catalog": { az: "Kataloq", ru: "Каталог" },
 
-  // dashboard — no provider profile recovery card
+  // dashboard — loading + no-provider recovery states
+  "dash.loadingProfile": {
+    az: "Profil yüklənir…",
+    ru: "Загрузка профиля…",
+  },
   "dash.noProvider.title": {
     az: "İcraçı profili tapılmadı",
     ru: "Профиль исполнителя не найден",

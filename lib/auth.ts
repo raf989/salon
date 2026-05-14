@@ -64,9 +64,15 @@ export function FirebaseAuthSync(): null {
     const unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
       const store = useStore.getState();
       store.setSessionUserId(user?.uid ?? null);
-      if (!user) return;
-      // Fire-and-forget server fetch — the localStorage cache (if any)
-      // paints instantly; this refreshes it and covers fresh devices.
+      if (!user) {
+        // No session — auth is fully resolved right away.
+        store.setAuthResolved(true);
+        return;
+      }
+      // Signed in: fetch the profile from the server (covers fresh
+      // devices where the localStorage cache is empty). `authResolved`
+      // flips only AFTER this settles, so components don't flash a
+      // "logged out" state while the profile is in flight.
       void getUserProfile(user.uid)
         .then((profile) => {
           if (profile) useStore.getState().cacheProfile(profile);
@@ -74,11 +80,23 @@ export function FirebaseAuthSync(): null {
         .catch((err) => {
           // eslint-disable-next-line no-console
           console.error("[FirebaseAuthSync] profile fetch failed", err);
+        })
+        .finally(() => {
+          useStore.getState().setAuthResolved(true);
         });
     });
     return unsub;
   }, []);
   return null;
+}
+
+/**
+ * `true` once the first auth check (and, for a signed-in user, the server
+ * profile fetch) has settled. Use this to gate empty states — until it's
+ * true, a null `currentUser` could just mean "still loading".
+ */
+export function useAuthResolved(): boolean {
+  return useStore((s) => s.authResolved);
 }
 
 /**

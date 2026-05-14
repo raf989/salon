@@ -12,7 +12,7 @@ import { signOut } from "@/lib/auth";
 import { useT, type DictKey } from "@/lib/i18n";
 import type { AuthUser, Lang } from "@/lib/types";
 import { cn, formatPhone } from "@/lib/utils";
-import { useProviders } from "@/lib/api/repo";
+import { useProviderByAuthUserId } from "@/lib/api/repo";
 
 type NavItem = {
   href: string;
@@ -301,10 +301,9 @@ function MobileAuthSection({
   onClose: () => void;
 }) {
   const { t } = useT();
-  // Show the same phone-resolution rule as UserMenu so the mobile panel
-  // doesn't disagree with the desktop dropdown.
-  const providers = useProviders();
-  const meProvider = providers[0];
+  // Resolve THIS user's provider row by Firebase UID — not the seed-era
+  // `useProviders()[0]` hack, which showed whoever sorts first.
+  const { provider: meProvider } = useProviderByAuthUserId(user.id);
   const primaryPhone = meProvider?.phones?.[0] ?? user.phone ?? "";
 
   function handleLogout() {

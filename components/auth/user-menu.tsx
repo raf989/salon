@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { useProviders } from "@/lib/api/repo";
+import { useProviderByAuthUserId } from "@/lib/api/repo";
 import { signOut } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import type { AuthUser } from "@/lib/types";
@@ -20,10 +20,10 @@ export function UserMenu({ user }: Props) {
   // Display priority for the phone shown under the user's name:
   //   1. provider.phones[0] — the first entry of the multi-phone array
   //      that lives on provider_edits (edited from /dashboard/profile).
-  //   2. user.phone — the legacy single number captured at registration.
+  //   2. user.phone — the number captured at registration.
   //   3. nothing (don't render a placeholder).
-  const providers = useProviders();
-  const meProvider = providers[0];
+  // Resolved by Firebase UID, not the seed-era `useProviders()[0]` hack.
+  const { provider: meProvider } = useProviderByAuthUserId(user.id);
   const primaryPhone = meProvider?.phones?.[0] ?? user.phone ?? "";
 
   useEffect(() => {

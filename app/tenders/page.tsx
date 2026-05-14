@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FileSearch, Plus } from "lucide-react";
 import { useTendersRealtime, useTendersWithStatus } from "@/lib/api/repo";
 import {
@@ -8,6 +8,7 @@ import {
   SkeletonTenderCardCompact,
 } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/lib/store";
+import { useAuthResolved } from "@/lib/auth";
 import { useT, type DictKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -31,14 +32,13 @@ export default function TendersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const { tenders, loaded: tendersLoaded } = useTendersWithStatus();
 
-  // Resolve the current user's display name from the persisted store. Used
-  // to scope the "Мои" filter. Same hydration guard as <Header /> — the
-  // persisted auth state isn't available during SSR, so we read null until
-  // the client has mounted to avoid SSR/CSR mismatch.
+  // Resolve the current user's display name to scope the "Мои" filter.
+  // Gate on `authResolved` (not a bare hydration flag): until the session
+  // + profile have settled, `currentUser` is null for everyone, which
+  // would make "Мои" flash empty for a logged-in author on first paint.
   const currentUserName = useCurrentUser()?.name ?? null;
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
-  const mineAuthor = hydrated ? currentUserName : null;
+  const authResolved = useAuthResolved();
+  const mineAuthor = authResolved ? currentUserName : null;
 
   const filtered = useMemo(() => {
     if (filter === "all") return tenders;

@@ -402,14 +402,19 @@ export async function updateProvider(
 export async function getProviderByAuthUserId(
   authUserId: string,
 ): Promise<Provider | null> {
+  // `.limit(1)` not `.maybeSingle()` — maybeSingle THROWS when more than one
+  // row matches, which would blank the dashboard. A defensive limit just
+  // takes the oldest row (ascending id ≈ creation order) and never errors.
   const pRes = await supabase
     .from("providers")
     .select("*")
     .eq("auth_user_id", authUserId)
-    .maybeSingle();
+    .order("id", { ascending: true })
+    .limit(1);
   if (pRes.error) throw asError(pRes.error, "getProviderByAuthUserId");
-  if (!pRes.data) return null;
-  const provider = pRes.data as ProviderRow;
+  const rows = (pRes.data as ProviderRow[]) ?? [];
+  if (rows.length === 0) return null;
+  const provider = rows[0];
   const eRes = await supabase
     .from("provider_edits")
     .select("*")
@@ -441,6 +446,12 @@ export type CreateProviderInput = {
 export async function createProvider(
   input: CreateProviderInput,
 ): Promise<Provider> {
+  // Idempotent: a user re-registering (or a self-heal retry) must NOT
+  // accumulate duplicate provider rows. If one already exists for this
+  // Firebase UID, return it untouched.
+  const existing = await getProviderByAuthUserId(input.authUserId);
+  if (existing) return existing;
+
   const id = makeId("p");
   const slug = `${slugify(input.name)}-${id.slice(-6)}`;
   const row = {

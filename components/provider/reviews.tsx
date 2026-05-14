@@ -54,7 +54,11 @@ export function Reviews({ provider }: Props) {
                   : "flex gap-3"
               }
             >
-              <Avatar name={review.authorName} id={review.id} size="md" />
+              <Avatar
+                name={review.authorName}
+                id={review.authorName}
+                size="md"
+              />
               <div className="flex-1 min-w-0 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <b className="text-ink-900">{review.authorName}</b>

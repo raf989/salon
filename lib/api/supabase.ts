@@ -34,8 +34,12 @@ export const supabase: SupabaseClient = createClient(url, anonKey, {
     if (!user) return null;
     try {
       return await user.getIdToken();
-    } catch {
-      // Network blip or token revoked — fall through to anon.
+    } catch (err) {
+      // Network blip or token revoked — fall through to anon, but log it:
+      // a consistently-failing token fetch presents as mysteriously broken
+      // mutations with no other signal.
+      // eslint-disable-next-line no-console
+      console.error("[supabase.accessToken] token fetch failed", err);
       return null;
     }
   },

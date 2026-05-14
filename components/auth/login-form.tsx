@@ -3,38 +3,32 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Phone } from "lucide-react";
-import type { ConfirmationResult } from "firebase/auth";
+import { Lock, Phone } from "lucide-react";
 import { FirebaseError } from "firebase/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/lib/i18n";
-import { useCurrentUser } from "@/lib/store";
-import { sendPhoneOtp, toE164 } from "@/lib/firebase";
-import { OtpForm } from "@/components/auth/otp-form";
+import { useStore } from "@/lib/store";
+import { signInWithPhonePassword, toE164 } from "@/lib/firebase";
 
-// Login is passwordless: phone → OTP. Firebase Phone Auth owns the flow.
-// After OTP confirm, if a cached profile exists for the UID we route by
-// role; otherwise we push to /register so the user completes their info.
-const RECAPTCHA_CONTAINER_ID = "recaptcha-login";
-
-type Stage = "phone" | "otp";
-
+// Login is phone + password — no SMS. The password was linked to the
+// Firebase account at registration time (see register-form +
+// lib/firebase.ts:linkPasswordToCurrentUser). `signInWithPhonePassword`
+// resolves the phone to its synthetic email and signs in with the
+// Email/Password provider, returning the same UID phone auth created.
 export function LoginForm() {
   const { t } = useT();
   const router = useRouter();
-  const cached = useCurrentUser();
+  // Read profiles directly: after sign-in the auth listener sets
+  // sessionUserId; we look up the freshly-signed-in UID's role to route.
+  const profiles = useStore((s) => s.profiles);
 
-  const [stage, setStage] = useState<Stage>("phone");
   const [phone, setPhone] = useState("");
-  const [phoneE164, setPhoneE164] = useState<string>("");
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
-    null,
-  );
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onSubmitPhone(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const normalized = toE164(phone);
@@ -44,21 +38,24 @@ export function LoginForm() {
     }
     setSubmitting(true);
     try {
-      const conf = await sendPhoneOtp(normalized, RECAPTCHA_CONTAINER_ID);
-      setPhoneE164(normalized);
-      setConfirmation(conf);
-      setStage("otp");
+      const cred = await signInWithPhonePassword(normalized, password);
+      const profile = profiles[cred.user.uid];
+      router.push(profile?.role === "provider" ? "/dashboard" : "/");
     } catch (err) {
       if (err instanceof FirebaseError) {
+        // Firebase collapses "user not found" and "wrong password" into
+        // auth/invalid-credential on recent SDKs — one friendly message
+        // covers both and avoids leaking which part was wrong.
         if (
-          err.code === "auth/invalid-phone-number" ||
-          err.code === "auth/missing-phone-number"
+          err.code === "auth/invalid-credential" ||
+          err.code === "auth/wrong-password" ||
+          err.code === "auth/user-not-found"
         ) {
-          setError(t("auth.register.error.invalidPhone"));
+          setError(t("auth.login.error.invalidCredential"));
         } else if (err.code === "auth/too-many-requests") {
           setError(t("auth.otp.error.tooManyRequests"));
-        } else if (err.code === "auth/quota-exceeded") {
-          setError(t("auth.otp.error.quotaExceeded"));
+        } else if (err.code === "auth/user-disabled") {
+          setError(t("auth.login.error.notVerified"));
         } else {
           setError(err.message);
         }
@@ -70,24 +67,8 @@ export function LoginForm() {
     }
   }
 
-  if (stage === "otp" && confirmation) {
-    return (
-      <OtpForm
-        confirmation={confirmation}
-        phone={phoneE164}
-        onSuccess={() => {
-          if (cached) {
-            router.push(cached.role === "provider" ? "/dashboard" : "/");
-          } else {
-            router.push("/register");
-          }
-        }}
-      />
-    );
-  }
-
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmitPhone} noValidate>
+    <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
       <div>
         <label
           htmlFor="login-phone"
@@ -107,6 +88,24 @@ export function LoginForm() {
         />
       </div>
 
+      <div>
+        <label
+          htmlFor="login-password"
+          className="block text-xs font-semibold text-ink-700 mb-1.5"
+        >
+          {t("auth.login.password")}
+        </label>
+        <Input
+          id="login-password"
+          type="password"
+          autoComplete="current-password"
+          icon={<Lock />}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+
       {error ? (
         <p className="text-xs text-danger-500" role="alert">
           {error}
@@ -120,12 +119,8 @@ export function LoginForm() {
         type="submit"
         disabled={submitting}
       >
-        {submitting ? t("auth.otp.sending") : t("auth.login.submit")}
+        {submitting ? t("auth.otp.checking") : t("auth.login.submit")}
       </Button>
-
-      {/* Invisible reCAPTCHA mount. Firebase injects the widget here on
-          first send; only becomes visible if Firebase challenges the user. */}
-      <div id={RECAPTCHA_CONTAINER_ID} />
 
       <p className="text-sm text-ink-500 text-center mt-2">
         {t("auth.login.noAccount")}{" "}

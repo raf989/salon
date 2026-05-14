@@ -17,10 +17,14 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
+  EmailAuthProvider,
   RecaptchaVerifier,
+  linkWithCredential,
+  signInWithEmailAndPassword,
   signInWithPhoneNumber,
   type Auth,
   type ConfirmationResult,
+  type UserCredential,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -187,4 +191,70 @@ export async function sendPhoneOtp(
     resetRecaptchaVerifier(containerId);
     throw err;
   }
+}
+
+// ---- phone + password ------------------------------------------------------
+//
+// Firebase Phone Auth is passwordless by design. To give users a
+// phone+password login (OTP only at registration, password thereafter) we
+// link an Email/Password credential onto the phone-authed account, using a
+// synthetic email derived from the phone number. The user never sees this
+// address — it's purely an internal Firebase identifier. Login then goes
+// through `signInWithEmailAndPassword` with that synthetic email, returning
+// the SAME UID the phone auth created.
+//
+// Requires the Email/Password provider enabled in Firebase Console
+// (Authentication → Sign-in method).
+
+// Domain is intentionally a non-routable .internal TLD — no email is ever
+// sent here; it's just a unique, stable key built from the E.164 number.
+const SYNTHETIC_EMAIL_DOMAIN = "phone.vaxt.internal";
+
+/**
+ * Map an E.164 phone (`+994516712881`) to the synthetic email used as the
+ * Firebase Email/Password identifier (`994516712881@phone.vaxt.internal`).
+ */
+export function phoneToSyntheticEmail(phoneE164: string): string {
+  const digits = phoneE164.replace(/\D/g, "");
+  return `${digits}@${SYNTHETIC_EMAIL_DOMAIN}`;
+}
+
+/**
+ * After a successful phone-OTP confirmation, attach a password to the
+ * currently signed-in user so they can log in later with phone+password
+ * (no OTP). Idempotent-ish: if the credential is already linked (re-run),
+ * Firebase throws `auth/provider-already-linked` / `auth/email-already-in-use`
+ * — callers should treat those as "password already set" rather than fatal.
+ */
+export async function linkPasswordToCurrentUser(
+  phoneE164: string,
+  password: string,
+): Promise<void> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("linkPasswordToCurrentUser: no signed-in user");
+  }
+  const credential = EmailAuthProvider.credential(
+    phoneToSyntheticEmail(phoneE164),
+    password,
+  );
+  await linkWithCredential(user, credential);
+}
+
+/**
+ * Log in with phone + password — no SMS. Resolves the phone to its
+ * synthetic email and delegates to `signInWithEmailAndPassword`. Re-throws
+ * Firebase errors (`auth/invalid-credential`, `auth/user-not-found`, …) so
+ * the caller can map them to friendly copy.
+ */
+export async function signInWithPhonePassword(
+  phoneE164: string,
+  password: string,
+): Promise<UserCredential> {
+  return signInWithEmailAndPassword(
+    getFirebaseAuth(),
+    phoneToSyntheticEmail(phoneE164),
+    password,
+  );
 }

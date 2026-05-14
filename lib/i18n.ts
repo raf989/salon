@@ -593,6 +593,10 @@ export const DICT = {
     az: "Nömrə təsdiqlənməyib. Yenidən qeydiyyatdan keçin.",
     ru: "Номер не подтверждён. Зарегистрируйтесь заново.",
   },
+  "auth.login.error.invalidCredential": {
+    az: "Nömrə və ya şifrə yanlışdır",
+    ru: "Неверный номер или пароль",
+  },
 
   // auth — register shell
   "auth.register.title": { az: "Qeydiyyat", ru: "Регистрация" },
@@ -641,6 +645,14 @@ export const DICT = {
     az: "Ən az 6 simvol",
     ru: "Минимум 6 символов",
   },
+  "auth.register.field.passwordConfirm": {
+    az: "Şifrəni təkrarlayın",
+    ru: "Повторите пароль",
+  },
+  "auth.register.field.passwordConfirmPlaceholder": {
+    az: "Şifrəni yenidən daxil edin",
+    ru: "Введите пароль ещё раз",
+  },
   "auth.register.field.email": {
     az: "E-poçt (bildirişlər üçün)",
     ru: "Email (для уведомлений)",
@@ -667,9 +679,17 @@ export const DICT = {
     az: "Bu nömrə artıq qeydiyyatdadır",
     ru: "Этот номер уже зарегистрирован",
   },
+  "auth.register.error.linkFailed": {
+    az: "Şifrə təyin edilmədi. Yenidən cəhd edin.",
+    ru: "Не удалось задать пароль. Попробуйте снова.",
+  },
   "auth.register.error.passwordShort": {
     az: "Şifrə ən az 6 simvol olmalıdır",
     ru: "Пароль должен быть не короче 6 символов",
+  },
+  "auth.register.error.passwordMismatch": {
+    az: "Şifrələr uyğun gəlmir",
+    ru: "Пароли не совпадают",
   },
   "auth.register.error.invalidEmail": {
     az: "Düzgün e-poçt ünvanı daxil edin",

@@ -15,7 +15,9 @@ import { cn, formatPhone } from "@/lib/utils";
 type Props = {
   confirmation: ConfirmationResult;
   phone: string;
-  onSuccess: (uid: string) => void;
+  // May be async — register-form links a password after OTP confirm, and
+  // we want that to finish (or surface its error) before leaving this form.
+  onSuccess: (uid: string) => void | Promise<void>;
 };
 
 export function OtpForm({ confirmation, phone, onSuccess }: Props) {
@@ -33,7 +35,7 @@ export function OtpForm({ confirmation, phone, onSuccess }: Props) {
     setSubmitting(true);
     try {
       const cred = await confirmation.confirm(code);
-      onSuccess(cred.user.uid);
+      await onSuccess(cred.user.uid);
     } catch (err) {
       if (err instanceof FirebaseError) {
         if (err.code === "auth/invalid-verification-code") {

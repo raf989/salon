@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, AtSign, Phone, User as UserIcon } from "lucide-react";
+import { ArrowLeft, AtSign, Lock, Phone, User as UserIcon } from "lucide-react";
 import type { ConfirmationResult } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,11 @@ import { Input } from "@/components/ui/input";
 import { OtpForm } from "@/components/auth/otp-form";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
-import { sendPhoneOtp, toE164 } from "@/lib/firebase";
+import {
+  linkPasswordToCurrentUser,
+  sendPhoneOtp,
+  toE164,
+} from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import {
   KIND_LABELS,
@@ -26,6 +30,8 @@ type Props = {
 type FieldErrors = Partial<{
   name: string;
   phone: string;
+  password: string;
+  passwordConfirm: string;
   email: string;
   kind: string;
   form: string;
@@ -34,6 +40,7 @@ type FieldErrors = Partial<{
 type Stage = "form" | "otp";
 
 const RECAPTCHA_CONTAINER_ID = "recaptcha-register";
+const MIN_PASSWORD_LENGTH = 6;
 
 const PROVIDER_KINDS: ProviderKind[] = [
   "photographer",
@@ -47,10 +54,12 @@ const PROVIDER_KINDS: ProviderKind[] = [
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
-// Register collects profile fields locally, then hands the phone to
-// Firebase for SMS verification. Only after `confirmationResult.confirm`
-// succeeds do we persist the profile — that way an abandoned form leaves
-// no orphan data.
+// Register collects profile fields + a password locally, then verifies the
+// phone via Firebase OTP. After OTP confirm we link an Email/Password
+// credential (synthetic email derived from the phone) so the user can log
+// in later with phone+password and no SMS. The password never touches
+// state until OTP succeeds — an abandoned form leaves no Firebase account
+// with a dangling password.
 export function RegisterForm({ role, onSuccess, onBack }: Props) {
   const { t, pickLocalized } = useT();
   const setProfile = useStore((s) => s.setProfile);
@@ -58,6 +67,8 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
   const [stage, setStage] = useState<Stage>("form");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [email, setEmail] = useState("");
   const [kind, setKind] = useState<ProviderKind | "">("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -73,6 +84,12 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
     if (!name.trim()) e.name = t("auth.register.error.required");
     const normalized = toE164(phone);
     if (!normalized) e.phone = t("auth.register.error.invalidPhone");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      e.password = t("auth.register.error.passwordShort");
+    }
+    if (passwordConfirm !== password) {
+      e.passwordConfirm = t("auth.register.error.passwordMismatch");
+    }
     if (role === "provider") {
       if (!EMAIL_RE.test(email))
         e.email = t("auth.register.error.invalidEmail");
@@ -124,10 +141,25 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
       <OtpForm
         confirmation={confirmation}
         phone={phoneE164}
-        onSuccess={(uid) => {
-          // OTP succeeded → Firebase user exists. Persist the locally
-          // collected profile keyed by UID, then let the parent flow
-          // advance to the success screen.
+        onSuccess={async (uid) => {
+          // OTP succeeded → Firebase user exists. Link the password so
+          // future logins are phone+password (no SMS). If the credential
+          // is already linked (rare re-run), treat it as already-set
+          // rather than fatal — the account is still usable.
+          try {
+            await linkPasswordToCurrentUser(phoneE164, password);
+          } catch (err) {
+            if (
+              err instanceof FirebaseError &&
+              (err.code === "auth/provider-already-linked" ||
+                err.code === "auth/email-already-in-use" ||
+                err.code === "auth/credential-already-in-use")
+            ) {
+              // Password was already set on a prior attempt — fine.
+            } else {
+              throw new Error(t("auth.register.error.linkFailed"));
+            }
+          }
           setProfile({
             uid,
             phone: phoneE164,
@@ -182,6 +214,38 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
           placeholder={t("auth.register.field.phonePlaceholder")}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+        />
+      </Field>
+
+      <Field
+        id="reg-password"
+        label={t("auth.register.field.password")}
+        error={errors.password}
+      >
+        <Input
+          id="reg-password"
+          type="password"
+          autoComplete="new-password"
+          icon={<Lock />}
+          placeholder={t("auth.register.field.passwordPlaceholder")}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </Field>
+
+      <Field
+        id="reg-password-confirm"
+        label={t("auth.register.field.passwordConfirm")}
+        error={errors.passwordConfirm}
+      >
+        <Input
+          id="reg-password-confirm"
+          type="password"
+          autoComplete="new-password"
+          icon={<Lock />}
+          placeholder={t("auth.register.field.passwordConfirmPlaceholder")}
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
         />
       </Field>
 

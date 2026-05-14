@@ -16,14 +16,44 @@ import { supabase } from "./supabase";
 
 const BUCKET = "provider-images";
 
-// Match the bucket policy (see 005_storage.sql). Reject oversized files on
-// the client so the user gets a friendly message instead of a generic 413
-// after the upload round-trip.
+// Match the bucket policy (see 005_storage.sql) exactly. Validate on the
+// client so the user gets a friendly, actionable message instead of a
+// generic 413 / mime rejection after a full upload round-trip — which is
+// what made "can't upload a photo" feel like the form was broken.
 const MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_MIME = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+] as const;
 
 // Public URLs look like:
 //   https://<project>.supabase.co/storage/v1/object/public/provider-images/<path>
 const PUBLIC_PREFIX = `/storage/v1/object/public/${BUCKET}/`;
+
+/**
+ * Pre-flight check for an image file against the bucket's policy. Returns
+ * null when the file is fine, or a structured reason the caller localizes.
+ * `mb` is the file's actual size for the size message.
+ *
+ * Note `<input accept="image/*">` still lets the OS offer HEIC (iPhone) or
+ * AVIF — formats the bucket rejects — so this check is load-bearing, not
+ * cosmetic.
+ */
+export type ImageValidationError =
+  | { code: "type"; got: string }
+  | { code: "size"; mb: string };
+
+export function validateImageFile(file: File): ImageValidationError | null {
+  if (!ALLOWED_MIME.includes(file.type as (typeof ALLOWED_MIME)[number])) {
+    return { code: "type", got: file.type || "unknown" };
+  }
+  if (file.size > MAX_BYTES) {
+    return { code: "size", mb: (file.size / (1024 * 1024)).toFixed(1) };
+  }
+  return null;
+}
 
 /**
  * Mirror of `asError` from `lib/api/repo.ts`. Supabase Storage returns plain
@@ -83,10 +113,15 @@ export async function uploadImage(
   kind: "avatar" | "gallery",
   providerId: string,
 ): Promise<string> {
-  if (file.size > MAX_BYTES) {
-    // Round to MB for the message — the bucket policy is in bytes.
-    const mb = (MAX_BYTES / (1024 * 1024)).toFixed(0);
-    throw new Error(`uploadImage — file too large (max ${mb} MB)`);
+  // Defense in depth: callers should validate first (and show a localized
+  // message), but never let an out-of-policy file reach the server.
+  const invalid = validateImageFile(file);
+  if (invalid) {
+    throw new Error(
+      invalid.code === "size"
+        ? `uploadImage — file too large (${invalid.mb} MB, max 5 MB)`
+        : `uploadImage — unsupported format (${invalid.got}; use JPG/PNG/WebP/GIF)`,
+    );
   }
   const ext = extFromFile(file);
   const path = `${providerId}/${kind}/${Date.now()}-${randomToken()}.${ext}`;
@@ -94,7 +129,13 @@ export async function uploadImage(
   const uploadRes = await supabase.storage
     .from(BUCKET)
     .upload(path, file, { upsert: false });
-  if (uploadRes.error) throw asError(uploadRes.error, "uploadImage");
+  if (uploadRes.error) {
+    // Log the raw Supabase error so it's always visible in the console even
+    // when the caller shows a trimmed message in the UI.
+    // eslint-disable-next-line no-console
+    console.error("[uploadImage] Supabase storage error:", uploadRes.error);
+    throw asError(uploadRes.error, "uploadImage");
+  }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   if (!data?.publicUrl) {

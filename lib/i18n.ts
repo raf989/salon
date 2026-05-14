@@ -442,6 +442,16 @@ export const DICT = {
     az: "Şəkil əlavə etmək üçün avatara basın",
     ru: "Нажмите на аватар, чтобы добавить фото",
   },
+  // image-upload validation — shown when a picked file fails the bucket
+  // policy before it's even sent (size / format).
+  "upload.error.type": {
+    az: "Format dəstəklənmir. JPG, PNG, WebP və ya GIF istifadə edin.",
+    ru: "Формат не поддерживается. Используйте JPG, PNG, WebP или GIF.",
+  },
+  "upload.error.size": {
+    az: "Şəkil çox böyükdür ({mb} MB). Maksimum 5 MB.",
+    ru: "Фото слишком большое ({mb} МБ). Максимум 5 МБ.",
+  },
   "dash.profile.section.name.sub": {
     az: "Müştərilər sizi kataloqda və panelde belə görür",
     ru: "Так клиенты видят вас в каталоге и на дашборде",

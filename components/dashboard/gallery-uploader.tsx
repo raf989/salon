@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Plus, X } from "lucide-react";
 import { useT } from "@/lib/i18n";
-import { deleteImage, uploadImage } from "@/lib/api/storage";
+import { deleteImage, uploadImage, validateImageFile } from "@/lib/api/storage";
 import { updateProvider } from "@/lib/api/repo";
 import { cn } from "@/lib/utils";
 
@@ -32,10 +32,34 @@ export function GalleryUploader({
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const list = Array.from(files).slice(0, Math.max(0, remainingSlots));
-    if (list.length === 0) return;
+    const picked = Array.from(files).slice(0, Math.max(0, remainingSlots));
+    if (picked.length === 0) return;
 
     setErrorMsg(null);
+
+    // Pre-flight: drop files that fail the bucket policy (size / format)
+    // before the upload round-trip, and surface the reason. The first bad
+    // file's reason is shown; valid files still upload.
+    const list: File[] = [];
+    let preflightError: string | null = null;
+    for (const file of picked) {
+      const invalid = validateImageFile(file);
+      if (invalid) {
+        if (!preflightError) {
+          preflightError =
+            invalid.code === "size"
+              ? t("upload.error.size").replace("{mb}", invalid.mb)
+              : t("upload.error.type");
+        }
+        continue;
+      }
+      list.push(file);
+    }
+    if (list.length === 0) {
+      if (preflightError) setErrorMsg(preflightError);
+      return;
+    }
+
     setUploadingCount((c) => c + list.length);
 
     // Uploads run in parallel; each result is appended individually so we get
@@ -59,7 +83,9 @@ export function GalleryUploader({
 
     const results = await Promise.all(uploads);
     const urls: string[] = [];
-    let firstError: string | null = null;
+    // A pre-flight rejection (wrong size/format) takes priority in the
+    // message — it's the more actionable one for the user.
+    let firstError: string | null = preflightError;
     for (const r of results) {
       if (r.ok) urls.push(r.url);
       else if (!firstError) firstError = r.message;

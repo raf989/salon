@@ -21,7 +21,7 @@ import { Crumbs } from "@/components/ui/crumbs";
 import { GalleryUploader } from "@/components/dashboard/gallery-uploader";
 import { TelegramIcon as SharedTelegramIcon } from "@/components/ui/social-icons";
 import { updateProvider, useProviderByAuthUserId } from "@/lib/api/repo";
-import { deleteImage, uploadImage } from "@/lib/api/storage";
+import { deleteImage, uploadImage, validateImageFile } from "@/lib/api/storage";
 import { useAuthState } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useCurrentUser, useStore } from "@/lib/store";
@@ -132,6 +132,17 @@ function ProfileEditor({ me }: { me: Stylist }) {
   const handleAvatarFile = async (file: File | null | undefined) => {
     if (!file) return;
     setAvatarError(null);
+    // Pre-flight: catch oversized / wrong-format files BEFORE the upload
+    // round-trip so the user sees a clear localized reason, not a raw 413.
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setAvatarError(
+        invalid.code === "size"
+          ? t("upload.error.size").replace("{mb}", invalid.mb)
+          : t("upload.error.type"),
+      );
+      return;
+    }
     setAvatarUploading(true);
     const previous = avatar;
     try {

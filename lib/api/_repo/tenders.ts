@@ -225,6 +225,7 @@ export async function createTender(input: CreateTenderInput): Promise<Tender> {
     event_time: input.eventTime ?? null,
     tags: input.tags,
     author_name: input.authorName,
+    auth_user_id: input.authUserId,
     district: input.district,
   };
   const { data, error } = await supabase

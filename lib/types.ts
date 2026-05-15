@@ -248,9 +248,19 @@ export type ProviderFilters = {
 
 export type CreateAppointmentInput = Omit<Appointment, "id" | "status"> & {
   status?: Appointment["status"];
+  /** Firebase UID of the logged-in client; optional for guest bookings.
+   *  Required to claim/cancel the booking later when RLS tightens (011). */
+  authUserId?: string;
 };
 
-export type CreateTenderInput = Omit<Tender, "id" | "openedAt" | "bidsCount" | "bids">;
+export type CreateTenderInput = Omit<
+  Tender,
+  "id" | "openedAt" | "bidsCount" | "bids"
+> & {
+  /** Firebase UID of the author. Required under migration 011; nullable
+   *  for legacy seed data only. */
+  authUserId: string;
+};
 
 // Status is already optional on TenderBid (the DB column has
 // `default 'pending'`), so `Omit<… , "id">` is fine.
@@ -260,4 +270,6 @@ export type CreateReviewInput = {
   authorName: string;
   rating: number;
   text: Localized;
+  /** Firebase UID of the reviewer — required under migration 011. */
+  authUserId: string;
 };

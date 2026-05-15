@@ -186,6 +186,10 @@ function BookingFlow({
         serviceId: selectedServiceId,
         date: selectedDate,
         time: selectedTime,
+        // The booking modal already gates on `currentUser` (logged-out
+        // visitors see a "Войдите" link instead of confirm), so this
+        // is always a real Firebase UID by the time we reach here.
+        authUserId: currentUser.id,
       });
       setStep("success");
     } catch (err) {

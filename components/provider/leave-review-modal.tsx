@@ -71,6 +71,11 @@ function LeaveReviewForm({
   );
 
   const validationMessage = (() => {
+    if (!currentUser) {
+      return lang === "ru"
+        ? "Войдите, чтобы оставить отзыв."
+        : "Rəy yazmaq üçün daxil olun.";
+    }
     if (isSelfReview) {
       return lang === "ru"
         ? "Нельзя оставить отзыв о себе."
@@ -85,6 +90,7 @@ function LeaveReviewForm({
   })();
 
   const ready =
+    !!currentUser &&
     authorName.trim().length > 0 &&
     text.trim().length >= 15 &&
     rating >= 1 &&
@@ -94,7 +100,7 @@ function LeaveReviewForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ready || submitting) return;
+    if (!ready || submitting || !currentUser) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -102,6 +108,9 @@ function LeaveReviewForm({
         authorName: authorName.trim(),
         rating,
         text: { az: text.trim(), ru: text.trim() },
+        // Migration 011 requires non-null; the `ready` gate above
+        // ensures the user is signed in by the time we submit.
+        authUserId: currentUser.id,
       });
       onSubmitted?.();
       onClose();

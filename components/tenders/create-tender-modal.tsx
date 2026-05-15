@@ -125,6 +125,7 @@ function CreateTenderForm({
         eventTime: eventTime || undefined,
         tags,
         authorName: currentUser.name,
+        authUserId: currentUser.id,
         district: { az: district.trim(), ru: district.trim() },
       });
       onCreated?.(created.id);

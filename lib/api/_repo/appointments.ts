@@ -119,6 +119,11 @@ export async function createAppointment(
     date: input.date,
     time: input.time,
     status: input.status ?? "upcoming",
+    // Attribute the booking to the signed-in client. Guests omit this
+    // and the column stays null — migration 011's policy explicitly
+    // allows `auth_user_id IS NULL` on insert so guest bookings keep
+    // working; only owner-only update/delete needs a real UID.
+    auth_user_id: input.authUserId ?? null,
   };
   const { data, error } = await supabase
     .from("appointments")

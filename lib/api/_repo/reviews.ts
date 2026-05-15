@@ -69,6 +69,9 @@ export async function createReview(
     author_name: input.authorName,
     rating: input.rating,
     text: input.text,
+    // Migration 011 requires non-null; the caller already gates the
+    // form on a signed-in user, so this is always a real Firebase UID.
+    auth_user_id: input.authUserId,
   };
   const { data, error } = await supabase
     .from("reviews")

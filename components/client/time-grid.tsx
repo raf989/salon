@@ -18,7 +18,10 @@ type Props = {
 
 export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
   const { t } = useT();
-  const appointments = useAppointments({ stylistId: stylist.id });
+  // Scope the appointment fetch to the displayed date — otherwise a
+  // realtime bump for ANY booking on this stylist (other dates included)
+  // refetches the whole timeline and re-renders the grid for nothing.
+  const appointments = useAppointments({ stylistId: stylist.id, date });
 
   const todayISO = getTodayISO();
   const isToday = date === todayISO;

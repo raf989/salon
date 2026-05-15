@@ -16,7 +16,7 @@ import {
   useAppointments,
   useServices,
 } from "@/lib/api/repo";
-import { useCurrentUser } from "@/lib/store";
+import { useCurrentUser, useStore } from "@/lib/store";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
 import { telegramHref, whatsappHref } from "@/lib/contact-urls";
 import {
@@ -54,11 +54,15 @@ const CATEGORY_ICONS: Partial<Record<ServiceCategory, typeof Scissors>> = {
 };
 
 export function BookingModal({ stylist, open, onClose }: Props) {
+  // Include the signed-in UID in the key so logging in / out while the modal
+  // is open remounts BookingFlow (otherwise stale form state — date / time /
+  // service selections — leaks across auth changes).
+  const sessionUserId = useStore((s) => s.sessionUserId);
   return (
     <Dialog open={open} onClose={onClose} className="max-w-3xl">
       {stylist ? (
         <BookingFlow
-          key={`${stylist.id}-${open ? "open" : "closed"}`}
+          key={`${stylist.id}-${open ? "open" : "closed"}-${sessionUserId ?? "anon"}`}
           stylist={stylist}
           onClose={onClose}
         />
@@ -164,11 +168,12 @@ function BookingFlow({
     lang === "ru" ? "Не получилось сохранить" : "Yadda saxlaya bilmədik";
 
   const handleConfirm = async () => {
+    const trimmedName = currentUser?.name.trim() ?? "";
     if (
       !ready ||
       !selectedTime ||
       !selectedServiceId ||
-      !currentUser ||
+      !trimmedName ||
       submitting
     )
       return;
@@ -177,7 +182,7 @@ function BookingFlow({
     try {
       await createAppointment({
         stylistId: stylist.id,
-        clientName: currentUser.name,
+        clientName: trimmedName,
         serviceId: selectedServiceId,
         date: selectedDate,
         time: selectedTime,
@@ -264,6 +269,9 @@ function BookingFlow({
             onSelect={(iso) => {
               setSelectedDate(iso);
               setSelectedTime(null);
+              // Dismiss any stale error from a previous failed confirm —
+              // the user is now picking again, the old message is irrelevant.
+              setErrorMsg(null);
             }}
           />
         </div>
@@ -281,7 +289,10 @@ function BookingFlow({
                   <button
                     key={svc.id}
                     type="button"
-                    onClick={() => setSelectedServiceId(svc.id)}
+                    onClick={() => {
+                      setSelectedServiceId(svc.id);
+                      setErrorMsg(null);
+                    }}
                     aria-pressed={active}
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition text-left",
@@ -317,7 +328,10 @@ function BookingFlow({
               stylist={stylist}
               date={selectedDate ?? todayISO}
               selectedTime={selectedTime}
-              onSelect={setSelectedTime}
+              onSelect={(time) => {
+                setSelectedTime(time);
+                setErrorMsg(null);
+              }}
             />
           </div>
         </div>

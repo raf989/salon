@@ -164,31 +164,50 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
           // Persist the profile server-side so it's recoverable on any
           // device. For providers also create the `providers` business
           // row so the dashboard can resolve "me" by auth_user_id.
-          await createUserProfile({
-            uid,
-            name,
-            phone: phoneE164,
-            role,
-            email: role === "provider" ? email : undefined,
-            kind: role === "provider" ? (kind as ProviderKind) : undefined,
-          });
-          if (role === "provider") {
-            await createProvider({
-              authUserId: uid,
+          //
+          // Both calls are idempotent (users uses upsert; createProvider
+          // checks for an existing row first), so a network blip → retry
+          // recovers cleanly. Map raw errors to a friendlier message
+          // ending in "повторите попытку" so the user knows to retry.
+          try {
+            await createUserProfile({
+              uid,
               name,
-              kind: kind as ProviderKind,
+              phone: phoneE164,
+              role,
+              email: role === "provider" ? email : undefined,
+              kind:
+                role === "provider" ? (kind as ProviderKind) : undefined,
             });
+            if (role === "provider") {
+              await createProvider({
+                authUserId: uid,
+                name,
+                kind: kind as ProviderKind,
+              });
+            }
+            // Local cache for instant paint before FirebaseAuthSync's fetch.
+            setProfile({
+              uid,
+              phone: phoneE164,
+              name,
+              role,
+              email: role === "provider" ? email : undefined,
+              kind:
+                role === "provider" ? (kind as ProviderKind) : undefined,
+            });
+            onSuccess();
+          } catch (err) {
+            // Friendly wrapper: a raw Supabase / network error here ends
+            // up in OtpForm's error banner verbatim. Re-throwing as a
+            // localized message keeps the original via `cause` for the
+            // console while showing the user something actionable.
+            const wrapped = new Error(
+              t("auth.register.error.profileSetupFailed"),
+            );
+            (wrapped as Error & { cause?: unknown }).cause = err;
+            throw wrapped;
           }
-          // Local cache for instant paint before FirebaseAuthSync's fetch.
-          setProfile({
-            uid,
-            phone: phoneE164,
-            name,
-            role,
-            email: role === "provider" ? email : undefined,
-            kind: role === "provider" ? (kind as ProviderKind) : undefined,
-          });
-          onSuccess();
         }}
       />
     );

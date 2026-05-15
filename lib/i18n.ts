@@ -469,6 +469,7 @@ export const DICT = {
     ru: "Так клиенты видят вас в каталоге и на дашборде",
   },
   "dash.profile.user.fallback": { az: "İstifadəçi", ru: "Пользователь" },
+  "dash.profile.verified": { az: "Doğrulandı", ru: "Подтверждён" },
   "dash.profile.section.name.title": { az: "Ad", ru: "Имя" },
   "dash.profile.section.contacts.title": {
     az: "Əlaqə məlumatları",
@@ -722,6 +723,10 @@ export const DICT = {
   "auth.register.error.linkFailed": {
     az: "Şifrə təyin edilmədi. Yenidən cəhd edin.",
     ru: "Не удалось задать пароль. Попробуйте снова.",
+  },
+  "auth.register.error.profileSetupFailed": {
+    az: "Profil qurulmadı. Bir azdan yenidən cəhd edin.",
+    ru: "Не удалось завершить настройку профиля. Попробуйте ещё раз.",
   },
   "auth.register.error.passwordShort": {
     az: "Şifrə ən az 6 simvol olmalıdır",

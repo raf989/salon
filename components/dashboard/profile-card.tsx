@@ -75,7 +75,7 @@ function buildContactRows(
 }
 
 export function ProfileCard({ me }: ProfileCardProps) {
-  const { t, lang, pickLocalized } = useT();
+  const { t, pickLocalized } = useT();
   useProviderEditsRealtime();
 
   // Greeting source priority: authenticated user → provider overlay → fallback.
@@ -83,15 +83,14 @@ export function ProfileCard({ me }: ProfileCardProps) {
   // used as a fallback for the greeting — that data belongs to demo rows,
   // not to whoever is logged in.
   const authUser = useCurrentUser();
-  const fallbackName = lang === "ru" ? "пользователь" : "İstifadəçi";
   const trimmedAuth = (authUser?.name ?? "").trim();
   const firstName = trimmedAuth
     ? trimmedAuth.split(" ")[0]
-    : fallbackName;
+    : t("dash.profile.user.fallback");
   const specialtiesLabel = me.specialties
     .map((s) => pickLocalized(CATEGORY_LABELS[s]))
     .join(" · ");
-  const verifiedLabel = lang === "ru" ? "Подтверждён" : "Doğrulandı";
+  const verifiedLabel = t("dash.profile.verified");
 
   // Show Telegram on the dashboard only when the provider has entered an
   // explicit handle. The phone-based deep link still works for the public

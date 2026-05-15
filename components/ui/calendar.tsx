@@ -205,8 +205,14 @@ export function Calendar({
                 isFree &&
                   !isSelected &&
                   "bg-success-50 text-success-500 font-semibold hover:bg-success-50",
+                // Match the legend ("Занято" = pomegranate red). Keep
+                // the diagonal stripes so a busy day stays visually
+                // distinct from the bigger "selected" solid teal.
+                // rgb(...) literals because Tailwind's /opacity modifier
+                // only works on utility classes, not inside an arbitrary
+                // repeating-linear-gradient value.
                 isBusy &&
-                  "bg-[repeating-linear-gradient(45deg,var(--ink-50)_0_4px,var(--ink-100)_4px_8px)] text-ink-400 cursor-not-allowed line-through",
+                  "bg-[repeating-linear-gradient(45deg,rgb(203_42_48_/_0.15)_0_4px,rgb(203_42_48_/_0.28)_4px_8px)] text-pomegranate-600 cursor-not-allowed line-through",
                 isToday &&
                   !isSelected &&
                   "outline outline-[1.5px] outline-caspian-500 outline-offset-[-1px]",

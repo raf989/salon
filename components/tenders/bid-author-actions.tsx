@@ -15,10 +15,12 @@ type Props = {
 };
 
 /**
- * Shows the bid's status badge to everyone, and accept/reject controls to the
- * tender's author. Author check uses `authorName` (text) since tenders don't
- * yet carry an `author_user_id` column — brittle but matches the rest of the
- * prototype until real auth↔tender linkage lands.
+ * Shows the bid's status badge to everyone, and accept/reject controls to
+ * the tender's author. Owner check now uses the Firebase UID on the tender
+ * (`tender.authUserId`) — the previous name-equality check broke as soon
+ * as the author renamed their profile. Legacy tenders without authUserId
+ * (seed data) fall back to the name match so historical bids still get
+ * the author UI on the original creator's account.
  */
 export function BidAuthorActions({ bid, tender }: Props) {
   const { t } = useT();
@@ -26,9 +28,11 @@ export function BidAuthorActions({ bid, tender }: Props) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isAuthor =
-    !!currentUser?.name &&
-    currentUser.name.trim() === tender.authorName.trim();
+  const isAuthor = (() => {
+    if (!currentUser) return false;
+    if (tender.authUserId) return tender.authUserId === currentUser.id;
+    return currentUser.name.trim() === tender.authorName.trim();
+  })();
 
   const current = bid.status ?? "pending";
 

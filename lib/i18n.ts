@@ -551,6 +551,10 @@ export const DICT = {
     az: "Tender bağlanıb — təklif qəbul edilmir",
     ru: "Тендер закрыт — ставки не принимаются",
   },
+  "tenders.bid.notLoggedIn": {
+    az: "Təklif vermək üçün daxil olun.",
+    ru: "Войдите, чтобы подать ставку.",
+  },
 
   // tenders — all bids modal
   "tenders.allBids.title": { az: "Bütün təkliflər", ru: "Все ставки" },

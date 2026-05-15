@@ -63,7 +63,12 @@ function SubmitBidForm({
     Number.isFinite(priceNumber) &&
     priceNumber >= tender.budgetMin &&
     priceNumber <= tender.budgetMax;
+  // Bidding requires a signed-in user — migration 011's RLS will reject
+  // any insert where `author_user_id` is null. We gate the form
+  // client-side too so the user sees a clear "log in" prompt instead of
+  // a raw RLS rejection.
   const ready =
+    !!currentUser &&
     providerName.trim().length > 0 &&
     note.trim().length > 0 &&
     Number.isFinite(priceNumber) &&
@@ -72,7 +77,7 @@ function SubmitBidForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ready || submitting) return;
+    if (!ready || submitting || !currentUser) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -86,10 +91,11 @@ function SubmitBidForm({
       await submitBid(tender.id, {
         // Auth user IDs (`users` table) aren't the same as `providers.id` —
         // the FK on tender_bids.provider_id only accepts rows from `providers`.
-        // We keep providerId empty (→ NULL) and stash the local auth user id
-        // in `authorUserId` so "my bids" UI can resolve later.
+        // We keep providerId empty (→ NULL) and stash the Firebase UID in
+        // `authorUserId` so "my bids" UI can resolve later. The `ready`
+        // gate above ensures currentUser is non-null here.
         providerId: "",
-        authorUserId: currentUser?.id,
+        authorUserId: currentUser.id,
         providerName: providerName.trim(),
         providerAvatar: myAvatar,
         price: priceNumber,
@@ -121,6 +127,12 @@ function SubmitBidForm({
           {formatPrice(tender.budgetMin)}–{formatPrice(tender.budgetMax)}
         </span>
       </p>
+
+      {!currentUser ? (
+        <p className="text-sm text-pomegranate-500 leading-relaxed border border-pomegranate-200 bg-pomegranate-50 rounded-[10px] px-3 py-2">
+          {t("tenders.bid.notLoggedIn")}
+        </p>
+      ) : null}
 
       <div>
         <SectionLabel>{t("booking.nameLabel")}</SectionLabel>

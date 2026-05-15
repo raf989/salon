@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 
 export type SortKey =
   | "actuality"
-  | "rating"
   | "cheap"
   | "expensive"
   | "popular";
@@ -37,7 +36,6 @@ export const SORT_OPTIONS: ReadonlyArray<{
   labelKey: DictKey;
 }> = [
   { value: "actuality", labelKey: "search.sort.actuality" },
-  { value: "rating", labelKey: "search.sort.rating" },
   { value: "cheap", labelKey: "search.sort.cheap" },
   { value: "expensive", labelKey: "search.sort.expensive" },
   { value: "popular", labelKey: "search.sort.popular" },

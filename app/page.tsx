@@ -260,12 +260,6 @@ function HomePageInner() {
           return b.reviewsCount - a.reviewsCount;
         return b.rating - a.rating;
       });
-    } else {
-      // "rating": rating desc, reviewsCount as tiebreaker.
-      sorted.sort((a, b) => {
-        if (b.rating !== a.rating) return b.rating - a.rating;
-        return b.reviewsCount - a.reviewsCount;
-      });
     }
     return sorted;
   }, [

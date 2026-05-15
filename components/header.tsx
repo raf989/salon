@@ -111,7 +111,13 @@ export function Header() {
 
         <nav className="hidden md:flex items-center gap-1 ml-4">
           {NAV_ITEMS.map((item) => {
-            const active = item.match(pathname);
+            // Gate the active highlight on `hydrated` — `usePathname()` is
+            // reliable post-mount but can disagree with the prerendered
+            // HTML for static pages, causing a hydration mismatch on the
+            // `className` attribute of this <a>. Rendering "inactive" on
+            // SSR and on the first client paint matches; the effect then
+            // flips the active link in for the real navigation state.
+            const active = hydrated && item.match(pathname);
             return (
               <Link
                 key={item.href}
@@ -211,7 +217,8 @@ export function Header() {
         >
           <nav className="mx-auto max-w-7xl flex flex-col px-4 py-3">
             {NAV_ITEMS.map((item) => {
-              const active = item.match(pathname);
+              // Same hydration guard as the desktop nav above.
+              const active = hydrated && item.match(pathname);
               return (
                 <Link
                   key={item.href}

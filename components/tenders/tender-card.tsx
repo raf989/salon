@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, Pencil, Trash2 } from "lucide-react";
 import { useT, type DictKey } from "@/lib/i18n";
 import type { Tender } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { formatDate, formatPrice, getTodayISO } from "@/lib/utils";
 import { SubmitBidModal } from "@/components/tenders/submit-bid-modal";
 import { FavoriteToggle } from "@/components/tenders/favorite-toggle";
+import { CreateTenderModal } from "@/components/tenders/create-tender-modal";
+import { deleteTender } from "@/lib/api/repo";
+import { useStore } from "@/lib/store";
 
 type Props = { tender: Tender };
 
@@ -40,6 +44,33 @@ function computeMinutesAgo(openedAt: string, id: string): number {
 export function TenderCard({ tender }: Props) {
   const { t, lang, pickLocalized } = useT();
   const [bidOpen, setBidOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Authoring controls are gated on a strong owner check — the Firebase UID
+  // on the tender row must match the signed-in user. The name-based check
+  // we previously used could collide on common names and would break the
+  // moment a user renamed their profile.
+  const sessionUserId = useStore((s) => s.sessionUserId);
+  const isAuthor =
+    !!sessionUserId &&
+    !!tender.authUserId &&
+    tender.authUserId === sessionUserId;
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteTender(tender.id);
+      setDeleteOpen(false);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const tierKey = `tier.${tender.tier}` as DictKey;
   const tierBadge = `${t("tenders.tenderBadge")} · ${t(tierKey)}`;
@@ -113,17 +144,45 @@ export function TenderCard({ tender }: Props) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mt-6">
-          <Button
-            variant="primary"
-            size="lg"
-            className="flex-1 sm:flex-none"
-            onClick={() => setBidOpen(true)}
-            disabled={isClosed}
-            title={isClosed ? t("tenders.bid.deadlinePassed") : undefined}
-          >
-            {t("tenders.action.bid")}
-          </Button>
-          <FavoriteToggle tenderId={tender.id} />
+          {isAuthor ? (
+            // Author view: edit / delete; bidding on your own tender
+            // makes no sense and "save to favorites" is awkward, so
+            // those CTAs are hidden.
+            <>
+              <Button
+                variant="primary"
+                size="lg"
+                className="flex-1 sm:flex-none"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="size-4" />
+                {t("tenders.action.edit")}
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setDeleteOpen(true)}
+                className="text-pomegranate-600 border-pomegranate-200 hover:bg-pomegranate-50"
+              >
+                <Trash2 className="size-4" />
+                {t("tenders.action.delete")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="primary"
+                size="lg"
+                className="flex-1 sm:flex-none"
+                onClick={() => setBidOpen(true)}
+                disabled={isClosed}
+                title={isClosed ? t("tenders.bid.deadlinePassed") : undefined}
+              >
+                {t("tenders.action.bid")}
+              </Button>
+              <FavoriteToggle tenderId={tender.id} />
+            </>
+          )}
         </div>
       </div>
       <SubmitBidModal
@@ -131,6 +190,51 @@ export function TenderCard({ tender }: Props) {
         open={bidOpen}
         onClose={() => setBidOpen(false)}
       />
+      {isAuthor ? (
+        <>
+          <CreateTenderModal
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            existing={tender}
+          />
+          <Dialog
+            open={deleteOpen}
+            onClose={() => {
+              if (deleting) return;
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }}
+            title={t("tenders.delete.confirm.title")}
+          >
+            <p className="text-sm text-ink-600 leading-relaxed">
+              {t("tenders.delete.confirm.body")}
+            </p>
+            {deleteError ? (
+              <p className="mt-3 text-sm text-pomegranate-500" role="alert">
+                {deleteError}
+              </p>
+            ) : null}
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+              >
+                {t("tenders.delete.confirm.no")}
+              </Button>
+              <Button
+                type="button"
+                variant="urgent"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {t("tenders.delete.confirm.yes")}
+              </Button>
+            </div>
+          </Dialog>
+        </>
+      ) : null}
     </motion.div>
   );
 }

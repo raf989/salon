@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { useCurrentUser } from "@/lib/store";
-import { createTender } from "@/lib/api/repo";
+import { createTender, updateTender } from "@/lib/api/repo";
 import { getTodayISO } from "@/lib/utils";
 import {
   KIND_LABELS,
@@ -14,12 +14,16 @@ import {
   type Localized,
   type ProviderKind,
   type ProviderTier,
+  type Tender,
 } from "@/lib/types";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onCreated?: (id: string) => void;
+  /** Edit mode — when set the form preloads from this tender and the
+   *  submit goes through `updateTender(existing.id, …)` instead of create. */
+  existing?: Tender;
 };
 
 const KIND_OPTIONS: ProviderKind[] = [
@@ -32,20 +36,25 @@ const KIND_OPTIONS: ProviderKind[] = [
   "makeup",
 ];
 
-export function CreateTenderModal({ open, onClose, onCreated }: Props) {
+export function CreateTenderModal({
+  open,
+  onClose,
+  onCreated,
+  existing,
+}: Props) {
   const { t } = useT();
+  const title = existing
+    ? t("tenders.edit.title")
+    : t("tenders.create.title");
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={t("tenders.create.title")}
-      className="max-w-2xl"
-    >
-      {/* Keyed inner form remounts on each open so prior input doesn't linger. */}
+    <Dialog open={open} onClose={onClose} title={title} className="max-w-2xl">
+      {/* Keyed inner form remounts on each open AND when switching between
+          edit targets so prior input doesn't linger. */}
       <CreateTenderForm
-        key={open ? "open" : "closed"}
+        key={`${open ? "open" : "closed"}-${existing?.id ?? "new"}`}
         onClose={onClose}
         onCreated={onCreated}
+        existing={existing}
       />
     </Dialog>
   );
@@ -54,23 +63,45 @@ export function CreateTenderModal({ open, onClose, onCreated }: Props) {
 function CreateTenderForm({
   onClose,
   onCreated,
+  existing,
 }: {
   onClose: () => void;
   onCreated?: (id: string) => void;
+  existing?: Tender;
 }) {
   const { t, lang, pickLocalized } = useT();
   const currentUser = useCurrentUser();
+  const isEdit = !!existing;
 
-  const [tier, setTier] = useState<ProviderTier>("event");
-  const [kind, setKind] = useState<ProviderKind>("photographer");
-  const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [budgetMin, setBudgetMin] = useState<string>("");
-  const [budgetMax, setBudgetMax] = useState<string>("");
-  const [eventDate, setEventDate] = useState<string>("");
-  const [eventTime, setEventTime] = useState<string>("");
-  const [district, setDistrict] = useState<string>("");
-  const [tagsRaw, setTagsRaw] = useState<string>("");
+  // Preload from `existing` in edit mode; empty defaults otherwise. The
+  // description / title come out of `Localized` — pick the AZ side since
+  // we mirror both halves on save anyway.
+  const [tier, setTier] = useState<ProviderTier>(existing?.tier ?? "event");
+  const [kind, setKind] = useState<ProviderKind>(
+    existing?.kind ?? "photographer",
+  );
+  const [title, setTitle] = useState<string>(existing?.title?.az ?? "");
+  const [description, setDescription] = useState<string>(
+    existing?.description?.az ?? "",
+  );
+  const [budgetMin, setBudgetMin] = useState<string>(
+    existing ? String(existing.budgetMin) : "",
+  );
+  const [budgetMax, setBudgetMax] = useState<string>(
+    existing ? String(existing.budgetMax) : "",
+  );
+  const [eventDate, setEventDate] = useState<string>(
+    existing?.eventDate ?? "",
+  );
+  const [eventTime, setEventTime] = useState<string>(
+    existing?.eventTime ?? "",
+  );
+  const [district, setDistrict] = useState<string>(
+    existing?.district?.az ?? "",
+  );
+  const [tagsRaw, setTagsRaw] = useState<string>(
+    existing ? existing.tags.map((tag) => tag.az).join(", ") : "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,7 +142,7 @@ function CreateTenderForm({
         .filter((s) => s.length > 0)
         .map((s) => ({ az: s, ru: s }));
 
-      const created = await createTender({
+      const payload = {
         tier,
         kind,
         title: { az: title.trim(), ru: title.trim() },
@@ -125,10 +156,13 @@ function CreateTenderForm({
         eventTime: eventTime || undefined,
         tags,
         authorName: currentUser.name,
-        authUserId: currentUser.id,
+        authUserId: existing?.authUserId ?? currentUser.id,
         district: { az: district.trim(), ru: district.trim() },
-      });
-      onCreated?.(created.id);
+      };
+      const saved = existing
+        ? await updateTender(existing.id, payload)
+        : await createTender(payload);
+      onCreated?.(saved.id);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -279,7 +313,9 @@ function CreateTenderForm({
         >
           {submitting
             ? t("tenders.bid.submitting")
-            : t("tenders.create.submit")}
+            : isEdit
+              ? t("tenders.edit.submit")
+              : t("tenders.create.submit")}
         </Button>
       </div>
     </form>

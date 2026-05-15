@@ -577,6 +577,20 @@ export const DICT = {
     ru: "Теги (через запятую)",
   },
   "tenders.create.submit": { az: "Yerləşdir", ru: "Опубликовать" },
+  "tenders.edit.title": { az: "Tenderi redaktə et", ru: "Редактировать тендер" },
+  "tenders.edit.submit": { az: "Yadda saxla", ru: "Сохранить" },
+  "tenders.action.edit": { az: "Redaktə", ru: "Редактировать" },
+  "tenders.action.delete": { az: "Sil", ru: "Удалить" },
+  "tenders.delete.confirm.title": {
+    az: "Tenderi silmək?",
+    ru: "Удалить тендер?",
+  },
+  "tenders.delete.confirm.body": {
+    az: "Bu tender və ona aid bütün təkliflər birdəfəlik silinəcək. Bu əməliyyatı geri qaytarmaq mümkün deyil.",
+    ru: "Тендер и все полученные ставки будут удалены без возможности восстановления.",
+  },
+  "tenders.delete.confirm.yes": { az: "Sil", ru: "Удалить" },
+  "tenders.delete.confirm.no": { az: "İmtina", ru: "Отмена" },
   "tenders.create.notLoggedIn": {
     az: "Tender yaratmaq üçün daxil olun",
     ru: "Войдите, чтобы создать тендер",

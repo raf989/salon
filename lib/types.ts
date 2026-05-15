@@ -203,6 +203,9 @@ export type Tender = {
   bidsCount: number;
   bids: TenderBid[];
   authorName: string;
+  /** Firebase UID of the author. Set on new tenders; null on legacy seed
+   *  rows. Used to decide whether to render the author-only Edit/Delete UI. */
+  authUserId?: string;
   district: Localized;
 };
 

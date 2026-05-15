@@ -68,6 +68,7 @@ export function rowToTender(
     event_time?: string | null;
     tags: { az: string; ru: string }[];
     author_name: string;
+    auth_user_id?: string | null;
     district: { az: string; ru: string };
   },
   bids: TenderBid[],
@@ -88,6 +89,7 @@ export function rowToTender(
     bidsCount: bids.length,
     bids,
     authorName: row.author_name,
+    authUserId: row.auth_user_id ?? undefined,
     district: row.district,
   };
 }
@@ -289,6 +291,51 @@ export async function submitBid(
   if (error) throw asError(error, "submitBid");
   useVersions.getState().bump("tenders");
   return rowToBid(data as Parameters<typeof rowToBid>[0]);
+}
+
+/**
+ * Update an existing tender. Used by the author to fix typos / adjust
+ * budget / push the event date. `opened_at` and `auth_user_id` are not
+ * touched — those identify the post, not its mutable content.
+ */
+export async function updateTender(
+  id: string,
+  input: CreateTenderInput,
+): Promise<Tender> {
+  const patch = {
+    tier: input.tier,
+    kind: input.kind,
+    title: input.title,
+    description: input.description,
+    budget_min: input.budgetMin,
+    budget_max: input.budgetMax,
+    deadline: input.deadline,
+    event_date: input.eventDate ?? null,
+    event_time: input.eventTime ?? null,
+    tags: input.tags,
+    author_name: input.authorName,
+    district: input.district,
+  };
+  const { data, error } = await supabase
+    .from("tenders")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw asError(error, "updateTender");
+  useVersions.getState().bump("tenders");
+  return rowToTender(data as Parameters<typeof rowToTender>[0], []);
+}
+
+/**
+ * Delete a tender. The `tender_bids` FK has `on delete cascade`, so all
+ * its bids vanish with it. RLS (migration 011) restricts this to the
+ * tender's author.
+ */
+export async function deleteTender(id: string): Promise<void> {
+  const { error } = await supabase.from("tenders").delete().eq("id", id);
+  if (error) throw asError(error, "deleteTender");
+  useVersions.getState().bump("tenders");
 }
 
 /**

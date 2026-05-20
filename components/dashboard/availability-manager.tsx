@@ -26,8 +26,11 @@ const WEEKDAY_DICT_INDICES: ReadonlyArray<0 | 1 | 2 | 3 | 4 | 5 | 6> = [
   1, 2, 3, 4, 5, 6, 0,
 ];
 
+// `min-w-0` lets the input shrink below its native time-spinner min-width
+// inside a grid cell — without it the cell keeps the intrinsic width and
+// the row overflows the (narrow) dashboard card.
 const TIME_INPUT_CLASS =
-  "h-11 w-full bg-surface/60 border border-border-strong rounded-[10px] px-3 font-mono text-sm text-ink-800 transition-all hover:border-violet-500/40 focus:outline-none focus:border-violet-500 focus:shadow-[var(--sh-glow-violet)] disabled:bg-surface-2/40 disabled:text-ink-500 disabled:cursor-not-allowed disabled:hover:border-border-strong";
+  "h-11 w-full min-w-0 bg-surface/60 border border-border-strong rounded-[10px] px-3 font-mono text-sm text-ink-800 transition-all hover:border-violet-500/40 focus:outline-none focus:border-violet-500 focus:shadow-[var(--sh-glow-violet)] disabled:bg-surface-2/40 disabled:text-ink-500 disabled:cursor-not-allowed disabled:hover:border-border-strong";
 
 function breaksEqual(a: Break[], b: Break[]): boolean {
   if (a.length !== b.length) return false;
@@ -368,10 +371,11 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
           </AnimatePresence>
         </div>
 
-        {/* On narrow screens the add button drops to its own row so the
-            two time inputs keep their full width (otherwise the button
-            squeezes the end time to ~60px). */}
-        <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] items-end gap-2 mt-3">
+        {/* The add button always sits on its own row: this card is narrow
+            (dashboard's left column), so a `1fr 1fr auto` single row used
+            to push the button past the card's right edge. Two time inputs
+            on row 1, button on row 2. */}
+        <div className="grid grid-cols-2 items-end gap-2 mt-3">
           <input
             type="time"
             value={newBreakStart}
@@ -394,7 +398,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
               !newBreakEnd ||
               newBreakEnd <= newBreakStart
             }
-            className="col-span-2 sm:col-span-1 min-h-11"
+            className="col-span-2 min-h-11"
           >
             {t("dash.avail.breaks.add")}
           </Button>

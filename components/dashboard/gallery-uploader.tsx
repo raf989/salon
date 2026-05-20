@@ -3,6 +3,10 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { Plus, X } from "lucide-react";
+import {
+  ConfettiBurst,
+  useConfetti,
+} from "@/components/ui/confetti-burst";
 import { useT } from "@/lib/i18n";
 import { deleteImage, uploadImage, validateImageFile } from "@/lib/api/storage";
 import { updateProvider } from "@/lib/api/repo";
@@ -22,11 +26,10 @@ export function GalleryUploader({
   const { t, lang } = useT();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Count of in-flight uploads — drives the placeholder tiles. Using a count
-  // (not a boolean) lets us render one shimmer tile per file when several are
-  // picked at once.
   const [uploadingCount, setUploadingCount] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [fireConfetti, confettiProps] = useConfetti();
 
   const remainingSlots = MAX_PHOTOS - value.length - uploadingCount;
 
@@ -37,9 +40,6 @@ export function GalleryUploader({
 
     setErrorMsg(null);
 
-    // Pre-flight: drop files that fail the bucket policy (size / format)
-    // before the upload round-trip, and surface the reason. The first bad
-    // file's reason is shown; valid files still upload.
     const list: File[] = [];
     let preflightError: string | null = null;
     for (const file of picked) {
@@ -62,8 +62,6 @@ export function GalleryUploader({
 
     setUploadingCount((c) => c + list.length);
 
-    // Uploads run in parallel; each result is appended individually so we get
-    // partial-progress semantics if one fails.
     const uploads = list.map(async (file) => {
       try {
         const url = await uploadImage(file, "gallery", providerId);
@@ -83,8 +81,6 @@ export function GalleryUploader({
 
     const results = await Promise.all(uploads);
     const urls: string[] = [];
-    // A pre-flight rejection (wrong size/format) takes priority in the
-    // message — it's the more actionable one for the user.
     let firstError: string | null = preflightError;
     for (const r of results) {
       if (r.ok) urls.push(r.url);
@@ -93,10 +89,9 @@ export function GalleryUploader({
     if (urls.length > 0) {
       const next = [...value, ...urls];
       onChange(next);
-      // Persist immediately so a reload before the main Save click doesn't
-      // lose the uploads (the files would otherwise become bucket orphans).
       try {
         await updateProvider(providerId, { gallery: next });
+        fireConfetti();
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error("[GalleryUploader.handleFiles] persist failed", err);
@@ -111,8 +106,6 @@ export function GalleryUploader({
 
   const removeAt = (idx: number) => {
     const url = value[idx];
-    // Fire-and-forget: don't block the UI on the storage round-trip, and
-    // tolerate legacy data URLs / external links (deleteImage no-ops on them).
     if (url) {
       void deleteImage(url).catch((err) => {
         // eslint-disable-next-line no-console
@@ -121,7 +114,6 @@ export function GalleryUploader({
     }
     const next = value.filter((_, i) => i !== idx);
     onChange(next);
-    // Mirror the delete in the DB right away — same reason as uploads.
     void updateProvider(providerId, { gallery: next }).catch((err) => {
       // eslint-disable-next-line no-console
       console.warn("[GalleryUploader.removeAt] persist failed", err);
@@ -130,26 +122,68 @@ export function GalleryUploader({
 
   const uploadingTiles = Array.from({ length: uploadingCount });
   const hasContent = value.length > 0 || uploadingCount > 0;
-  // "Add" tile shows when there's still capacity for another upload.
   const showAddTile = MAX_PHOTOS - value.length - uploadingCount > 0;
 
+  // Drag-over handlers — apply to the outer root so dropping anywhere
+  // inside the grid works, not just on the explicit "+" tile.
+  const onDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.types.includes("Files")) setDragOver(true);
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    // Only clear when the leave event escapes the root container.
+    if (e.currentTarget === e.target) setDragOver(false);
+  };
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    void handleFiles(e.dataTransfer.files);
+  };
+
   return (
-    <div>
+    <div
+      data-tour="gallery"
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={cn(
+        "rounded-2xl transition-all",
+        dragOver &&
+          "ring-2 ring-violet-500 shadow-[var(--sh-glow-magenta)] p-1",
+      )}
+    >
+      <ConfettiBurst
+        trigger={confettiProps.trigger}
+        onDone={confettiProps.onDone}
+      />
       {!hasContent ? (
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="w-full aspect-[3/1] rounded-xl border-2 border-dashed border-border-strong bg-bg/50 hover:bg-ink-50 hover:border-caspian-500 transition-colors flex flex-col items-center justify-center gap-2 text-ink-500"
+          className={cn(
+            "w-full aspect-[3/1] rounded-xl border-2 border-dashed border-border-strong",
+            "glass flex flex-col items-center justify-center gap-2 text-ink-500",
+            "transition-all hover:border-violet-500 hover:text-violet-300 hover:shadow-[var(--sh-glow-violet)]",
+          )}
         >
           <Plus className="size-6" />
-          <span className="text-sm font-medium">{t("dash.profile.gallery.empty")}</span>
+          <span className="text-sm font-medium">
+            {t("dash.profile.gallery.empty")}
+          </span>
         </button>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {value.map((url, i) => (
             <div
               key={url || i}
-              className="relative aspect-square rounded-xl overflow-hidden bg-ink-50 group"
+              className={cn(
+                "relative aspect-square rounded-xl overflow-hidden glass group",
+                "transition-transform hover:-translate-y-0.5 hover:shadow-[var(--sh-glow-violet)]",
+              )}
             >
               <Image
                 src={url}
@@ -162,7 +196,7 @@ export function GalleryUploader({
                 type="button"
                 aria-label={t("dash.profile.gallery.remove")}
                 onClick={() => removeAt(i)}
-                className="absolute top-2 right-2 size-7 grid place-items-center rounded-full bg-ink-900/80 text-white opacity-0 group-hover:opacity-100 hover:bg-pomegranate-500 transition-all"
+                className="absolute top-2 right-2 size-7 grid place-items-center rounded-full bg-ink-900/80 text-white opacity-0 group-hover:opacity-100 hover:bg-danger-500 transition-all"
               >
                 <X className="size-3.5" />
               </button>
@@ -171,11 +205,11 @@ export function GalleryUploader({
           {uploadingTiles.map((_, i) => (
             <div
               key={`uploading-${i}`}
-              className="relative aspect-square rounded-xl overflow-hidden bg-ink-50 border border-border-strong flex flex-col items-center justify-center gap-2 text-ink-500"
+              className="relative aspect-square rounded-xl overflow-hidden glass border border-border-strong flex flex-col items-center justify-center gap-2 text-ink-500"
               aria-busy="true"
               aria-live="polite"
             >
-              <span className="size-6 rounded-full border-2 border-ink-300 border-t-caspian-500 animate-spin" />
+              <span className="size-6 rounded-full border-2 border-border-strong border-t-violet-500 animate-spin" />
               <span className="text-xs font-medium">
                 {lang === "ru" ? "Загрузка…" : "Yüklənir…"}
               </span>
@@ -186,7 +220,10 @@ export function GalleryUploader({
               type="button"
               onClick={() => fileRef.current?.click()}
               className={cn(
-                "aspect-square rounded-xl border-2 border-dashed border-border-strong bg-bg/50 hover:bg-ink-50 hover:border-caspian-500 transition-colors flex flex-col items-center justify-center gap-1.5 text-ink-500",
+                "aspect-square rounded-xl border-2 border-dashed border-border-strong",
+                "bg-surface/30 flex flex-col items-center justify-center gap-1.5 text-ink-500",
+                "transition-all hover:border-violet-500 hover:text-violet-300",
+                "hover:shadow-[var(--sh-glow-violet)] hover:bg-violet-500/5",
               )}
             >
               <Plus className="size-5" />
@@ -198,9 +235,11 @@ export function GalleryUploader({
         </div>
       )}
       {errorMsg ? (
-        <p className="text-xs text-pomegranate-500 mt-3">{errorMsg}</p>
+        <p className="text-xs text-danger-500 mt-3">{errorMsg}</p>
       ) : null}
-      <p className="text-xs text-ink-400 mt-3">{t("dash.profile.gallery.limit")}</p>
+      <p className="text-xs text-ink-500 mt-3">
+        {t("dash.profile.gallery.limit")}
+      </p>
       <input
         ref={fileRef}
         type="file"

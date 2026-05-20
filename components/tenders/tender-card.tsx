@@ -17,14 +17,9 @@ import { useStore } from "@/lib/store";
 
 type Props = { tender: Tender };
 
-const TENDER_CARD_STYLE = {
-  background: "linear-gradient(180deg, #ffffff 0%, #FBF8EE 100%)",
-  borderColor: "#F2E8C7",
-} as const;
-
 const BLOB_STYLE = {
   background:
-    "radial-gradient(circle, var(--saffron-100), transparent 70%)",
+    "radial-gradient(circle, rgba(155,108,246,0.18), transparent 70%)",
 } as const;
 
 function hashId(id: string): number {
@@ -90,8 +85,7 @@ export function TenderCard({ tender }: Props) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="relative overflow-hidden rounded-[16px] border p-5 sm:p-6 md:p-7 scroll-mt-20"
-      style={TENDER_CARD_STYLE}
+      className="group relative overflow-hidden rounded-2xl border border-border-strong bg-surface/70 backdrop-blur-md p-5 sm:p-6 md:p-7 scroll-mt-20 transition hover:border-violet-500/40 hover:shadow-[var(--sh-glow-violet)] hover:-translate-y-px"
     >
       <div
         aria-hidden
@@ -100,8 +94,10 @@ export function TenderCard({ tender }: Props) {
       />
       <div className="relative">
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <Badge variant="event">{tierBadge}</Badge>
-          <span className="text-xs text-ink-500 font-mono whitespace-nowrap">
+          <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-xs font-medium text-violet-300">
+            {tierBadge}
+          </span>
+          <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-xs font-mono text-violet-300 whitespace-nowrap">
             {openedAgo} · {bidsLabel}
           </span>
         </div>
@@ -110,25 +106,27 @@ export function TenderCard({ tender }: Props) {
           {pickLocalized(tender.title)}
         </h2>
 
-        <p className="text-ink-500 mt-3 leading-relaxed">
+        <p className="text-ink-700 mt-3 leading-relaxed">
           {pickLocalized(tender.description)}
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
-          <span className="font-mono text-ink-700 whitespace-nowrap">{budgetLine}</span>
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin className="size-3.5 text-ink-400" strokeWidth={1.7} />
-            {pickLocalized(tender.district)}
+          <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-400 font-mono whitespace-nowrap">
+            {budgetLine}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Clock className="size-3.5 text-ink-400" strokeWidth={1.7} />
+            <MapPin className="size-3.5 text-violet-400" strokeWidth={1.7} />
+            <span className="text-ink-700">{pickLocalized(tender.district)}</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="size-3.5 text-violet-400" strokeWidth={1.7} />
             <span className="text-ink-700">
               {formatDate(tender.eventDate ?? tender.deadline, lang)}
               {tender.eventTime ? ` · ${tender.eventTime}` : null}
             </span>
           </span>
-          <span>
-            {t("tenders.author")}: {tender.authorName}
+          <span className="text-ink-500">
+            {t("tenders.author")}: <span className="text-ink-700">{tender.authorName}</span>
           </span>
         </div>
 
@@ -136,7 +134,7 @@ export function TenderCard({ tender }: Props) {
           {tender.tags.map((tag, i) => (
             <span
               key={i}
-              className="inline-flex items-center h-7 px-2.5 rounded-full bg-transparent border border-border-strong text-xs font-medium text-ink-700"
+              className="inline-flex items-center h-7 px-2.5 rounded-full bg-surface-2/60 border border-border-strong text-xs font-medium text-ink-700"
             >
               {pickLocalized(tag)}
             </span>
@@ -162,7 +160,7 @@ export function TenderCard({ tender }: Props) {
                 variant="outline"
                 size="lg"
                 onClick={() => setDeleteOpen(true)}
-                className="text-pomegranate-600 border-pomegranate-200 hover:bg-pomegranate-50"
+                className="text-danger-500 border-danger-500/30 hover:bg-danger-500/10"
               >
                 <Trash2 className="size-4" />
                 {t("tenders.action.delete")}
@@ -206,11 +204,11 @@ export function TenderCard({ tender }: Props) {
             }}
             title={t("tenders.delete.confirm.title")}
           >
-            <p className="text-sm text-ink-600 leading-relaxed">
+            <p className="text-sm text-ink-700 leading-relaxed">
               {t("tenders.delete.confirm.body")}
             </p>
             {deleteError ? (
-              <p className="mt-3 text-sm text-pomegranate-500" role="alert">
+              <p className="mt-3 text-sm text-danger-500" role="alert">
                 {deleteError}
               </p>
             ) : null}

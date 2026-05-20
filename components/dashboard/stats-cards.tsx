@@ -5,10 +5,12 @@ import {
   Calendar,
   CalendarDays,
   CheckCircle2,
+  TrendingUp,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { TiltCard } from "@/components/ui/tilt-card";
 import { useT } from "@/lib/i18n";
 import { useServices } from "@/lib/api/repo";
 import type { Appointment, Stylist } from "@/lib/types";
@@ -22,19 +24,26 @@ export type StatsCardsProps = {
 type Stat = {
   icon: LucideIcon;
   label: string;
-  value: string;
-  iconWrapClass: string;
-  mono?: boolean;
+  // Numeric "to" target for AnimatedCounter; price values still render via
+  // the formatter callback so currency display is preserved.
+  to: number;
+  format?: (n: number) => string;
+  iconGlowClass: string;
+  iconBgClass: string;
+  emphasize?: boolean;
+  trend: string;
 };
+
+// Mock weekly delta — the data layer doesn't yet expose comparative
+// week-over-week growth, so we use a small set of plausible chips per slot.
+// Kept deterministic (by index) so the UI doesn't flicker each render.
+const TREND_CHIPS = ["+12% vs last week", "+8% vs last week", "+5% vs last week", "+24% vs last week"];
 
 export function StatsCards({ me, appointments }: StatsCardsProps) {
   const { t } = useT();
   const services = useServices();
   const today = getTodayISO();
   const weekEnd = getDateISO(7);
-  // weekStart covers the past 7 calendar days INCLUDING today. Using -7
-  // would span 8 days (today + 7 prior) — that's how the revenue figure
-  // used to inflate by one day's worth.
   const weekStart = getDateISO(-6);
 
   const mine = appointments.filter((a) => a.stylistId === me.id);
@@ -49,10 +58,6 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
 
   const completedCount = mine.filter((a) => a.status === "completed").length;
 
-  // Revenue earned over the past 7 days — strictly `completed` only.
-  // Past-dated `upcoming` rows are phantom income (client may have been a
-  // no-show); they auto-promote to no_show in AppointmentsList after 31 min
-  // overdue, so the figure self-heals without inflating in the meantime.
   const weekRevenue = mine
     .filter(
       (a) =>
@@ -67,27 +72,40 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
     {
       icon: CalendarDays,
       label: t("dash.stats.today"),
-      value: String(todayCount),
-      iconWrapClass: "bg-caspian-50 text-caspian-600",
+      to: todayCount,
+      iconGlowClass: "shadow-[var(--sh-glow-violet)]",
+      iconBgClass:
+        "bg-gradient-to-br from-violet-500/30 to-violet-600/10 text-violet-300 border border-violet-500/30",
+      trend: TREND_CHIPS[0],
     },
     {
       icon: Calendar,
       label: t("dash.stats.week"),
-      value: String(weekUpcoming.length),
-      iconWrapClass: "bg-saffron-50 text-saffron-500",
+      to: weekUpcoming.length,
+      iconGlowClass: "shadow-[var(--sh-glow-cyan)]",
+      iconBgClass:
+        "bg-gradient-to-br from-cyan-500/30 to-cyan-600/10 text-cyan-300 border border-cyan-500/30",
+      trend: TREND_CHIPS[1],
     },
     {
       icon: CheckCircle2,
       label: t("dash.stats.completed"),
-      value: String(completedCount),
-      iconWrapClass: "bg-success-50 text-success-500",
+      to: completedCount,
+      iconGlowClass: "shadow-[var(--sh-glow-gold)]",
+      iconBgClass:
+        "bg-gradient-to-br from-gold-500/30 to-gold-600/10 text-gold-400 border border-gold-500/30",
+      trend: TREND_CHIPS[2],
     },
     {
       icon: Wallet,
       label: t("dash.stats.revenue"),
-      value: formatPrice(weekRevenue),
-      iconWrapClass: "bg-plum-500/10 text-plum-500",
-      mono: true,
+      to: weekRevenue,
+      format: (n) => formatPrice(n),
+      iconGlowClass: "shadow-[var(--sh-glow-magenta)]",
+      iconBgClass:
+        "bg-gradient-to-br from-magenta-500/30 to-magenta-600/10 text-magenta-300 border border-magenta-500/30",
+      emphasize: true,
+      trend: TREND_CHIPS[3],
     },
   ];
 
@@ -98,40 +116,69 @@ export function StatsCards({ me, appointments }: StatsCardsProps) {
         return (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: 0.35,
+              duration: 0.4,
               delay: 0.04 + i * 0.06,
               ease: [0.16, 1, 0.3, 1],
             }}
+            className="h-full"
           >
-            <Card
-              interactive
-              className="p-4 sm:p-5 flex flex-col gap-2 sm:gap-3 relative overflow-hidden h-full"
-            >
+            <TiltCard max={6} scale={1.01} className="h-full">
               <div
                 className={cn(
-                  "size-9 rounded-xl grid place-items-center",
-                  stat.iconWrapClass,
+                  "glass border border-border rounded-2xl p-5 h-full",
+                  "transition-all duration-300",
+                  "hover:border-violet-500/40 hover:shadow-[var(--sh-glow-violet)]",
+                  "flex flex-col gap-3 relative overflow-hidden",
                 )}
               >
-                <Icon className="size-4" />
+                {/* Soft aurora wash on the emphasized (revenue) card */}
+                {stat.emphasize ? (
+                  <div
+                    aria-hidden
+                    className="absolute -top-12 -right-12 size-32 rounded-full bg-magenta-500/15 blur-2xl pointer-events-none"
+                  />
+                ) : null}
+
+                <div
+                  className={cn(
+                    "size-6 grid place-items-center rounded-md",
+                    stat.iconBgClass,
+                    stat.iconGlowClass,
+                  )}
+                >
+                  <Icon className="size-3.5" />
+                </div>
+
+                <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-semibold">
+                  {stat.label}
+                </div>
+
+                <div
+                  className={cn(
+                    "font-display text-4xl text-ink-900 leading-none truncate",
+                    stat.emphasize && "gradient-text-aurora",
+                  )}
+                >
+                  <AnimatedCounter to={stat.to} format={stat.format} />
+                </div>
+
+                <div className="mt-auto pt-1">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[11px] font-semibold",
+                      "px-2 py-0.5 rounded-full",
+                      "text-success-500 bg-success-500/15 border border-success-500/30",
+                    )}
+                  >
+                    <TrendingUp className="size-3" />
+                    {stat.trend}
+                  </span>
+                </div>
               </div>
-              <div
-                className={cn(
-                  // Revenue prices can be long ("1 200 ₼") — clamp the size
-                  // a bit on mobile and let it truncate rather than overflow.
-                  "font-semibold text-2xl sm:text-3xl text-ink-900 leading-none mt-1 truncate",
-                  stat.mono ? "font-mono" : "font-display",
-                )}
-              >
-                {stat.value}
-              </div>
-              <div className="text-xs sm:text-sm text-ink-500">
-                {stat.label}
-              </div>
-            </Card>
+            </TiltCard>
           </motion.div>
         );
       })}

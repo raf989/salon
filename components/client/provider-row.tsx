@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Clock, MapPin } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Camera, Clock, MapPin, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Cover } from "@/components/ui/cover";
@@ -36,12 +36,44 @@ const SUBTITLE_KEY_BY_KIND: Partial<Record<ProviderKind, DictKey>> = {
   host: "meta.weddingHost",
 };
 
+// Portfolio-assembly mini-collage tiles fanned out on hover. Each tile is a
+// gradient square with a small icon — sells the "your booking portfolio is
+// being assembled" feeling the product is going for.
+const PORTFOLIO_TILES = [
+  {
+    icon: Sparkles,
+    gradient: "from-violet-500 to-magenta-500",
+    // final offsets after springing out (relative to stacked position)
+    x: 56,
+    y: -10,
+    rotate: -8,
+  },
+  {
+    icon: Camera,
+    gradient: "from-cyan-500 to-violet-600",
+    x: 100,
+    y: 4,
+    rotate: 6,
+  },
+  {
+    icon: Star,
+    gradient: "from-gold-500 to-magenta-500",
+    x: 144,
+    y: -6,
+    rotate: -3,
+  },
+] as const;
+
 export function ProviderRow({ provider, onBook, availableToday }: Props) {
   const { t, pickLocalized } = useT();
   const allServices = useServices();
   // Show the provider's real uploaded photo when there is one; fall back
   // to the gradient `Cover` otherwise (or if the image URL is broken).
   const [avatarFailed, setAvatarFailed] = useState(false);
+  // Hover state drives the portfolio-assembly mini-collage animation. We
+  // track it in React (not pure CSS) so framer-motion can apply springs
+  // with stagger on the way in and on the way out.
+  const [isHovered, setIsHovered] = useState(false);
   // Pure time-vs-hours check. We deliberately ignore manualStatus here —
   // this pill shows whether the displayed range covers "now", not whether
   // the provider has admin-closed themselves.
@@ -106,8 +138,12 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
     >
-      <Card className="relative grid gap-3 md:gap-4 p-3 grid-cols-[96px_1fr] md:grid-cols-[140px_1fr_180px] items-stretch hover:bg-bg transition-colors">
+      <Card className="group relative grid gap-3 md:gap-4 p-3 grid-cols-[96px_1fr] md:grid-cols-[140px_1fr_180px] items-stretch bg-surface/80 backdrop-blur-md border border-border hover:border-violet-500/40 hover:shadow-[var(--sh-glow-violet)] transition-all duration-300">
         {/* Stretched link covers the whole card — clicking anywhere outside
             an interactive child opens the profile. Inner buttons / the
             Heart toggle sit above via `relative z-10`. */}
@@ -117,8 +153,62 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
           className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2"
         />
         <div className="relative z-10">
+          {/* Portfolio assembly collage — fans out from behind the avatar on
+              hover. Sits at z-0 so the avatar (z-10) covers tiles when
+              stacked, and the tiles peek out to the right when the row is
+              hovered. */}
+          <AnimatePresence>
+            {isHovered && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-0 hidden md:block"
+              >
+                {PORTFOLIO_TILES.map((tile, i) => {
+                  const Icon = tile.icon;
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{
+                        opacity: 0,
+                        x: 0,
+                        y: 0,
+                        rotate: 0,
+                        scale: 0.6,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        x: tile.x,
+                        y: tile.y,
+                        rotate: tile.rotate,
+                        scale: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        x: 0,
+                        y: 0,
+                        rotate: 0,
+                        scale: 0.6,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 18,
+                        delay: i * 0.06,
+                      }}
+                      className={cn(
+                        "absolute left-2 top-2 size-9 rounded-md grid place-items-center bg-gradient-to-br shadow-[var(--sh-glow-violet)] ring-1 ring-white/15",
+                        tile.gradient,
+                      )}
+                    >
+                      <Icon className="size-4 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </AnimatePresence>
           {provider.avatar && !avatarFailed ? (
-            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-ink-50">
+            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-2 ring-1 ring-violet-500/20 group-hover:ring-violet-500/60 transition z-10">
               <Image
                 src={provider.avatar}
                 alt={provider.name}
@@ -130,17 +220,19 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
               />
             </div>
           ) : (
-            <Cover
-              name={provider.name}
-              id={provider.id}
-              kind={provider.kind}
-              aspect="1"
-              className="rounded-xl"
-            />
+            <div className="relative rounded-xl ring-1 ring-violet-500/20 group-hover:ring-violet-500/60 transition z-10 overflow-hidden">
+              <Cover
+                name={provider.name}
+                id={provider.id}
+                kind={provider.kind}
+                aspect="1"
+                className="rounded-xl"
+              />
+            </div>
           )}
           <HeartButton
             providerId={provider.id}
-            className="absolute top-1.5 right-1.5 size-9 md:size-auto md:top-2 md:right-2"
+            className="absolute top-1.5 right-1.5 size-9 md:size-auto md:top-2 md:right-2 z-20"
           />
         </div>
 
@@ -160,11 +252,11 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
             </span>
           </div>
 
-          <p className="text-xs md:text-sm text-ink-500 line-clamp-2">{subtitle}</p>
+          <p className="text-xs md:text-sm text-ink-400 line-clamp-2">{subtitle}</p>
 
           {addressDetail ? (
             <div className="hidden md:flex items-center gap-1 text-sm text-ink-500 min-w-0">
-              <MapPin className="size-3.5 text-ink-400 shrink-0" />
+              <MapPin className="size-3.5 text-violet-400/70 shrink-0" />
               <span className="truncate">{addressDetail}</span>
             </div>
           ) : null}
@@ -174,7 +266,7 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
               {tagChips.map((c) => (
                 <span
                   key={c}
-                  className="text-xs h-6 px-2 rounded-full bg-ink-50 text-ink-700 inline-flex items-center"
+                  className="text-xs h-6 px-2 rounded-full bg-violet-500/12 text-violet-300 border border-violet-500/20 inline-flex items-center"
                 >
                   {pickLocalized(CATEGORY_LABELS[c])}
                 </span>
@@ -245,6 +337,6 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
 }
 
 function Dot() {
-  return <span aria-hidden className="size-[3px] rounded-full bg-ink-200" />;
+  return <span aria-hidden className="size-[3px] rounded-full bg-ink-400/40" />;
 }
 

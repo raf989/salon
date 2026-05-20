@@ -240,9 +240,9 @@ function BookingFlow({
             <h2 className="font-display font-semibold text-2xl text-ink-900 leading-tight truncate">
               {stylist.name}
             </h2>
-            <div className="mt-1 flex items-center gap-2 text-sm text-ink-500">
+            <div className="mt-1 flex items-center gap-2 text-sm text-ink-400">
               <span>{pickLocalized(stylist.city)}</span>
-              <span aria-hidden className="text-ink-300">
+              <span aria-hidden className="text-ink-400">
                 ·
               </span>
               <RatingStars value={stylist.rating} size={14} />
@@ -286,13 +286,20 @@ function BookingFlow({
           <div>
             <SectionLabel>{t("booking.serviceLabel")}</SectionLabel>
             <div className="flex flex-col gap-2">
-              {services.map((svc) => {
+              {services.map((svc, idx) => {
                 const active = svc.id === selectedServiceId;
                 const Icon = CATEGORY_ICONS[svc.category] ?? Sparkles;
                 return (
-                  <button
+                  <motion.button
                     key={svc.id}
                     type="button"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      delay: idx * 0.04,
+                      duration: 0.28,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
                     onClick={() => {
                       setSelectedServiceId(svc.id);
                       setErrorMsg(null);
@@ -301,25 +308,32 @@ function BookingFlow({
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition text-left",
                       active
-                        ? "border-caspian-500 bg-caspian-50/50"
-                        : "border-border hover:border-ink-300",
+                        ? "border-transparent bg-surface-2 ring-2 ring-violet-500 shadow-[var(--sh-glow-violet)]"
+                        : "border-border bg-surface-2/60 hover:bg-surface-2 hover:border-violet-500/40",
                     )}
                   >
-                    <span className="h-9 w-9 rounded-lg bg-ink-50 grid place-items-center shrink-0 text-ink-700">
+                    <span
+                      className={cn(
+                        "h-9 w-9 rounded-lg grid place-items-center shrink-0 transition-colors",
+                        active
+                          ? "bg-violet-500/15 text-violet-300"
+                          : "bg-surface text-ink-500",
+                      )}
+                    >
                       <Icon className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-ink-900 truncate">
                         {pickLocalized(svc.name)}
                       </div>
-                      <div className="text-xs text-ink-500 mt-0.5">
+                      <div className="text-xs text-ink-400 mt-0.5">
                         {svc.durationMin} {t("booking.minutes")}
                       </div>
                     </div>
                     <span className="font-mono font-semibold text-ink-900 shrink-0">
                       {formatPrice(svc.price)}
                     </span>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -388,7 +402,7 @@ function BookingFlow({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500">
+    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-400">
       {children}
     </div>
   );
@@ -428,7 +442,7 @@ function SuccessView({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 220, damping: 14 }}
-        className="grid place-items-center size-24 rounded-full bg-caspian-500/10 text-caspian-600"
+        className="grid place-items-center size-24 rounded-full bg-violet-500/15 text-violet-300 shadow-[var(--sh-glow-violet)]"
       >
         <Check className="size-10" strokeWidth={2.5} />
       </motion.div>
@@ -442,7 +456,7 @@ function SuccessView({
         <h3 className="font-display font-semibold text-3xl text-ink-900 leading-tight">
           {t("booking.success.title")}
         </h3>
-        <p className="text-ink-500 max-w-sm font-mono text-sm">
+        <p className="text-ink-400 max-w-sm font-mono text-sm">
           {stylistName} · {serviceLabel} · {formatDate(date, lang)} · {time} ·{" "}
           {formatPrice(servicePrice)}
         </p>

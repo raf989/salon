@@ -267,6 +267,26 @@ export const DICT = {
     ru: "Новые бронирования появятся здесь",
   },
 
+  // dashboard — earnings panel
+  "dash.earnings.title": { az: "Son 7 gün", ru: "Последние 7 дней" },
+  "dash.earnings.sub": {
+    az: "Gündəlik qazanc dinamikası",
+    ru: "Динамика дохода по дням",
+  },
+  "dash.earnings.total": { az: "Bu həftə", ru: "За неделю" },
+
+  // dashboard — achievements
+  "dash.ach.title": { az: "Nailiyyətlər", ru: "Достижения" },
+  "dash.ach.progress": {
+    az: "{n}/{total} açıldı",
+    ru: "{n} из {total} открыто",
+  },
+  "dash.ach.first": { az: "İlk bron", ru: "Первая бронь" },
+  "dash.ach.ten": { az: "10 bron", ru: "10 бронирований" },
+  "dash.ach.fiveStar": { az: "5★ reytinq", ru: "5★ рейтинг" },
+  "dash.ach.hundred": { az: "100 bron", ru: "100 бронирований" },
+  "dash.ach.year": { az: "1 il Vaxt-da", ru: "1 год на Vaxt" },
+
   // weekday short labels (index 0=Sun)
   "weekday.short.0": { az: "B", ru: "Вс" },
   "weekday.short.1": { az: "B.e.", ru: "Пн" },

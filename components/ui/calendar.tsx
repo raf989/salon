@@ -136,7 +136,7 @@ export function Calendar({
     <div
       className={cn(
         "w-full",
-        !bare && "bg-surface border border-border rounded-xl p-4",
+        !bare && "bg-surface/70 backdrop-blur-md border border-border rounded-xl p-4",
         className,
       )}
     >
@@ -147,7 +147,7 @@ export function Calendar({
           onClick={handlePrev}
           disabled={!canPrev}
           aria-label="Previous month"
-          className="h-8 w-8 grid place-items-center rounded-lg text-ink-700 hover:bg-ink-50 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+          className="h-8 w-8 grid place-items-center rounded-lg text-ink-500 hover:text-violet-400 hover:bg-surface-2 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-500 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft size={16} />
         </button>
@@ -159,7 +159,7 @@ export function Calendar({
           onClick={handleNext}
           disabled={!canNext}
           aria-label="Next month"
-          className="h-8 w-8 grid place-items-center rounded-lg text-ink-700 hover:bg-ink-50 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+          className="h-8 w-8 grid place-items-center rounded-lg text-ink-500 hover:text-violet-400 hover:bg-surface-2 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-500 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight size={16} />
         </button>
@@ -199,25 +199,20 @@ export function Calendar({
               aria-label={cell.iso}
               className={cn(
                 cellBase,
-                cell.outside && "text-ink-300 cursor-default",
+                "relative",
+                cell.outside && "text-ink-400/60 cursor-default",
                 !cell.outside && !isBusy && !isFree && !isSelected &&
-                  "text-ink-700 hover:bg-ink-50",
+                  "text-ink-700 hover:ring-1 hover:ring-violet-500/50 hover:text-ink-900",
                 isFree &&
                   !isSelected &&
-                  "bg-success-50 text-success-500 font-semibold hover:bg-success-50",
-                // Match the legend ("Занято" = pomegranate red). Keep
-                // the diagonal stripes so a busy day stays visually
-                // distinct from the bigger "selected" solid teal.
-                // rgb(...) literals because Tailwind's /opacity modifier
-                // only works on utility classes, not inside an arbitrary
-                // repeating-linear-gradient value.
+                  "bg-violet-500/10 text-violet-300 font-semibold hover:bg-violet-500/15 hover:ring-1 hover:ring-violet-500/50",
                 isBusy &&
-                  "bg-[repeating-linear-gradient(45deg,rgb(203_42_48_/_0.15)_0_4px,rgb(203_42_48_/_0.28)_4px_8px)] text-pomegranate-600 cursor-not-allowed line-through",
+                  "bg-[repeating-linear-gradient(45deg,rgb(255_61_157_/_0.12)_0_4px,rgb(255_61_157_/_0.22)_4px_8px)] text-magenta-400 cursor-not-allowed line-through",
                 isToday &&
                   !isSelected &&
-                  "outline outline-[1.5px] outline-caspian-500 outline-offset-[-1px]",
+                  "after:absolute after:left-1.5 after:right-1.5 after:bottom-1 after:h-px after:bg-gold-500",
                 isSelected &&
-                  "bg-caspian-500 text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.10)] hover:bg-caspian-500",
+                  "bg-gradient-to-br from-violet-500 to-magenta-500 text-white shadow-[var(--sh-glow-violet)]",
               )}
             >
               {cell.day}
@@ -230,15 +225,15 @@ export function Calendar({
       {showLegendRow ? (
         <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-3 text-[11px] text-ink-500">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-success-50 border border-success-500/30" />
+            <span className="h-3 w-3 rounded-sm bg-violet-500/15 border border-violet-500/30" />
             {t("calendar.legend.free")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm bg-pomegranate-500" />
+            <span className="h-3 w-3 rounded-sm bg-magenta-500/30 border border-magenta-500/40" />
             {t("calendar.legend.busy")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-sm outline outline-[1.5px] outline-caspian-500 outline-offset-[-1px]" />
+            <span className="h-3 w-3 rounded-sm border-b border-gold-500" />
             {t("calendar.legend.today")}
           </span>
         </div>

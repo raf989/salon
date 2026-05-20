@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type MouseEvent } from "react";
+import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { SignupPrompt } from "@/components/auth/signup-prompt";
 import { cn } from "@/lib/utils";
@@ -44,23 +45,28 @@ export function HeartButton({ providerId, className }: Props) {
 
   return (
     <>
-      <button
+      <motion.button
         type="button"
         aria-label={t("card.favorite.aria")}
         aria-pressed={active}
         onClick={handleClick}
+        whileTap={{ scale: 0.85 }}
+        animate={active ? { scale: [1, 1.25, 1] } : { scale: 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 14 }}
         className={cn(
-          "grid place-items-center text-white/95 hover:text-pomegranate-500 transition-colors drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]",
-          active && "text-pomegranate-500",
+          "grid place-items-center transition-colors",
+          active
+            ? "text-magenta-500 drop-shadow-[0_0_10px_rgba(255,61,157,0.7)]"
+            : "text-ink-400 hover:text-magenta-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]",
           className,
         )}
       >
         <Heart
           size={20}
-          className={active ? "fill-pomegranate-500" : ""}
+          className={active ? "fill-magenta-500" : ""}
           strokeWidth={1.8}
         />
-      </button>
+      </motion.button>
       <SignupPrompt open={promptOpen} onClose={() => setPromptOpen(false)} />
     </>
   );

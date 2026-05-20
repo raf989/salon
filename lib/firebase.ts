@@ -41,19 +41,16 @@ let authInstance: Auth | null = null;
 
 function getApp(): FirebaseApp {
   if (appInstance) return appInstance;
-  for (const [k, v] of Object.entries(firebaseConfig)) {
+  // Stub mode: if any env var is missing, fill with dummy values so init
+  // succeeds. Auth calls will fail at network time, but UI shell renders.
+  const stubbed = { ...firebaseConfig };
+  for (const [k, v] of Object.entries(stubbed)) {
     if (!v) {
-      throw new Error(
-        `Firebase env missing: NEXT_PUBLIC_FIREBASE_${k
-          .replace(/([A-Z])/g, "_$1")
-          .toUpperCase()}. See .env.local.example.`,
-      );
+      (stubbed as Record<string, string>)[k] = `stub-${k}`;
     }
   }
-  // HMR / Next.js fast-refresh can re-execute this module; reuse the existing
-  // instance instead of throwing "Firebase app already exists".
   const existing = getApps();
-  appInstance = existing[0] ?? initializeApp(firebaseConfig);
+  appInstance = existing[0] ?? initializeApp(stubbed);
   return appInstance;
 }
 

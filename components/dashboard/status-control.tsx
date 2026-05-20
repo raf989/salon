@@ -1,73 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { updateProvider } from "@/lib/api/repo";
 import { getStatus, type DerivedStatus } from "@/lib/get-status";
 import { useT, type DictKey } from "@/lib/i18n";
 import type { Stylist } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const TICK_MS = 60_000; // re-evaluate the time-based status every minute
+const TICK_MS = 60_000;
 
-const STATUS_TONE: Record<
-  DerivedStatus,
-  { pill: string; dot: string; pulse: boolean; labelKey: DictKey }
-> = {
-  open: {
-    pill: "bg-success-50 text-success-500",
-    dot: "bg-success-500",
-    pulse: true,
-    labelKey: "dash.status.open",
-  },
-  break: {
-    pill: "bg-warning-50 text-warning-500",
-    dot: "bg-warning-500",
-    pulse: true,
-    labelKey: "dash.status.break",
-  },
-  closed: {
-    pill: "bg-danger-50 text-danger-500",
-    dot: "bg-danger-500",
-    pulse: false,
-    labelKey: "dash.status.closed",
-  },
+const SEGMENT_ORDER: DerivedStatus[] = ["open", "break", "closed"];
+
+// Visual tone per segment when *active*. Inactive uses muted ink colors.
+const ACTIVE_GRADIENT: Record<DerivedStatus, string> = {
+  open: "from-cyan-500 via-violet-500 to-magenta-500",
+  break: "from-gold-500 to-magenta-500",
+  closed: "from-magenta-500 to-magenta-600",
+};
+
+const ACTIVE_GLOW: Record<DerivedStatus, string> = {
+  open: "shadow-[var(--sh-glow-violet)]",
+  break: "shadow-[var(--sh-glow-gold)]",
+  closed: "shadow-[var(--sh-glow-magenta)]",
+};
+
+const LABEL_KEY: Record<DerivedStatus, DictKey> = {
+  open: "dash.status.open",
+  break: "dash.status.break",
+  closed: "dash.status.closed",
 };
 
 export function StatusControl({ provider }: { provider: Stylist }) {
   const { t } = useT();
   const [now, setNow] = useState<Date>(() => new Date());
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
 
-  // Re-evaluate the time-based status every minute so it flips at the
-  // exact moment working hours end / a break starts / etc.
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), TICK_MS);
     return () => window.clearInterval(id);
   }, []);
-
-  // Outside-click + Escape close the dropdown.
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [open]);
 
   const status = getStatus(
     now,
@@ -75,10 +48,8 @@ export function StatusControl({ provider }: { provider: Stylist }) {
     provider.breaks,
     provider.manualStatus,
   );
-  const tone = STATUS_TONE[status];
 
   const setManual = async (next: "open" | "closed" | null) => {
-    setOpen(false);
     setBusy(true);
     setErrorMsg(null);
     try {
@@ -92,118 +63,90 @@ export function StatusControl({ provider }: { provider: Stylist }) {
     }
   };
 
-  // Auto-dismiss the error after 4s so a transient blip doesn't pin a
-  // stale banner on the page.
   useEffect(() => {
     if (!errorMsg) return;
     const id = window.setTimeout(() => setErrorMsg(null), 4000);
     return () => window.clearTimeout(id);
   }, [errorMsg]);
 
-  const isManualClosed = provider.manualStatus === "closed";
+  // "break" is time-derived, not a manual toggle — clicking it is a no-op
+  // hint state. open / closed dispatch to setManual.
+  const onClickSegment = (seg: DerivedStatus) => {
+    if (busy) return;
+    if (seg === "open") void setManual(null);
+    else if (seg === "closed") void setManual("closed");
+    // "break" is informational only.
+  };
 
   return (
-    // `relative z-[999]` lifts the whole control above neighbour sections
-    // (StatsCards etc.) so the dropdown is never visually trapped under them.
-    <div ref={wrapRef} className="relative z-[999]">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        disabled={busy}
-        aria-haspopup="listbox"
-        aria-expanded={open}
+    <div className="relative">
+      <div
+        role="group"
+        aria-label={t("dash.status.open")}
         className={cn(
-          // h-9 sm:h-7 — bigger tap target on mobile (36px > 28px) while
-          // keeping the compact desktop pill. Padding scales to match.
-          "inline-flex items-center gap-2 h-9 sm:h-7 px-3 sm:px-2.5 rounded-full text-xs sm:text-[11px] font-semibold tracking-tight transition-colors",
-          tone.pill,
-          busy && "opacity-60",
+          "inline-flex items-center glass-strong rounded-full p-1 border border-border",
+          busy && "opacity-70",
         )}
       >
-        <span
-          className={cn(
-            "size-1.5 rounded-full",
-            tone.dot,
-            tone.pulse && "animate-pulse",
-          )}
-          aria-hidden
-        />
-        {t(tone.labelKey)}
-        <ChevronDown
-          className={cn(
-            "size-3 transition-transform opacity-70",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="status-dropdown"
-            role="listbox"
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 top-full mt-2 w-48 sm:w-44 origin-top-left bg-surface border border-border rounded-xl shadow-[var(--sh-3)] p-1.5 z-[999]"
-          >
-            <Option
-              label={t("dash.status.optionOpen")}
-              active={!isManualClosed}
-              tone="bg-success-500"
-              onClick={() => setManual(null)}
-            />
-            <Option
-              label={t("dash.status.optionClosed")}
-              active={isManualClosed}
-              tone="bg-danger-500"
-              onClick={() => setManual("closed")}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {SEGMENT_ORDER.map((seg) => {
+          const active = seg === status;
+          const isBreak = seg === "break";
+          return (
+            <button
+              key={seg}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onClickSegment(seg)}
+              disabled={busy || (isBreak && !active)}
+              className={cn(
+                "relative h-7 px-3 rounded-full text-[11px] font-semibold tracking-tight transition-colors",
+                active ? "text-white" : "text-ink-500 hover:text-ink-900",
+                isBreak && !active && "opacity-50 cursor-default",
+              )}
+            >
+              {active ? (
+                <motion.span
+                  layoutId="status-pill"
+                  transition={{
+                    type: "spring",
+                    stiffness: 320,
+                    damping: 28,
+                  }}
+                  className={cn(
+                    "absolute inset-0 rounded-full bg-gradient-to-br",
+                    ACTIVE_GRADIENT[seg],
+                    ACTIVE_GLOW[seg],
+                  )}
+                />
+              ) : null}
+              <span className="relative inline-flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    active
+                      ? "bg-white animate-pulse"
+                      : seg === "open"
+                        ? "bg-success-500"
+                        : seg === "break"
+                          ? "bg-gold-500"
+                          : "bg-danger-500",
+                  )}
+                />
+                {t(LABEL_KEY[seg])}
+              </span>
+            </button>
+          );
+        })}
+      </div>
       {errorMsg ? (
         <p
           role="alert"
-          className="absolute left-0 top-full mt-2 text-xs text-pomegranate-500 whitespace-nowrap"
+          className="absolute left-0 top-full mt-2 text-xs text-danger-500 whitespace-nowrap"
         >
           {errorMsg}
         </p>
       ) : null}
     </div>
-  );
-}
-
-function Option({
-  label,
-  active,
-  tone,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  tone: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={active}
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center justify-between gap-2 px-3 h-11 sm:h-9 rounded-lg text-sm transition-colors",
-        active
-          ? "bg-ink-50 text-ink-900 font-semibold"
-          : "text-ink-700 hover:bg-ink-50",
-      )}
-    >
-      <span className="inline-flex items-center gap-2">
-        <span className={cn("size-1.5 rounded-full", tone)} aria-hidden />
-        {label}
-      </span>
-      {active && <Check className="size-3.5 text-caspian-600" />}
-    </button>
   );
 }

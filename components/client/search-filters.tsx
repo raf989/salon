@@ -128,7 +128,7 @@ export function SearchFilters({ value, onChange, districts, onShow }: Props) {
   // four fields fit in the grid anyway.
 
   return (
-    <Card className="p-3 sm:p-5">
+    <Card className="p-3 sm:p-5 bg-surface/70 backdrop-blur-md border border-border-strong rounded-2xl">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <FilterSelect
           label={t("search.label.specialist")}
@@ -174,7 +174,7 @@ export function SearchFilters({ value, onChange, districts, onShow }: Props) {
         type="button"
         onClick={() => setShowAdvanced((v) => !v)}
         aria-expanded={showAdvanced}
-        className="sm:hidden mt-3 inline-flex items-center gap-1 text-sm font-medium text-caspian-600 h-9 px-1"
+        className="sm:hidden mt-3 inline-flex items-center gap-1 text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors h-9 px-1"
       >
         <ChevronDown
           className={cn("size-4 transition-transform", showAdvanced && "rotate-180")}
@@ -255,18 +255,19 @@ function FilterSelect({
           aria-disabled={disabled}
           disabled={disabled}
           className={cn(
-            "flex items-center justify-between gap-2 h-11 w-full px-4 rounded-xl text-sm font-medium transition-colors",
+            "flex items-center justify-between gap-2 h-11 w-full px-4 rounded-xl text-sm font-medium border transition-all",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:border-violet-500/60",
             tone === "accent"
-              ? "bg-caspian-50 text-caspian-700 hover:bg-caspian-100"
-              : "bg-ink-50 text-ink-800 hover:bg-ink-100",
-            disabled && "opacity-50 cursor-not-allowed hover:bg-ink-50",
+              ? "bg-violet-500/15 text-violet-300 border-violet-500/30 hover:bg-violet-500/25"
+              : "bg-surface-2 text-ink-700 border-border hover:border-violet-500/40 hover:text-ink-900",
+            disabled && "opacity-50 cursor-not-allowed hover:border-border",
           )}
         >
           <span className="truncate text-left">{current?.label ?? ""}</span>
           <ChevronDown
             className={cn(
               "size-3.5 shrink-0 transition-transform",
-              tone === "accent" ? "text-caspian-600" : "text-ink-500",
+              tone === "accent" ? "text-violet-300" : "text-ink-400",
               open && "rotate-180",
             )}
           />
@@ -281,7 +282,7 @@ function FilterSelect({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute left-0 right-0 top-full mt-2 origin-top bg-surface border border-border rounded-xl shadow-[var(--sh-3)] p-1.5 z-50 max-h-72 overflow-y-auto"
+              className="absolute left-0 right-0 top-full mt-2 origin-top bg-surface-2/95 backdrop-blur-md border border-border-strong rounded-xl shadow-[var(--sh-3)] p-1.5 z-50 max-h-72 overflow-y-auto"
             >
               {options.map((opt) => {
                 const active = opt.value === value;
@@ -298,13 +299,13 @@ function FilterSelect({
                     className={cn(
                       "w-full flex items-center justify-between gap-2 px-3 h-10 rounded-lg text-sm text-left transition-colors",
                       active
-                        ? "bg-caspian-50 text-caspian-700 font-semibold"
-                        : "text-ink-700 hover:bg-ink-50",
+                        ? "bg-violet-500/15 text-violet-300 font-semibold"
+                        : "text-ink-700 hover:bg-violet-500/10 hover:text-ink-900",
                     )}
                   >
                     <span className="truncate">{opt.label}</span>
                     {active ? (
-                      <Check className="size-3.5 text-caspian-600 shrink-0" />
+                      <Check className="size-3.5 text-violet-400 shrink-0" />
                     ) : null}
                   </button>
                 );
@@ -342,7 +343,7 @@ function PriceRange({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <FieldLabel>{label}</FieldLabel>
-      <div className="flex items-stretch h-11 w-full rounded-xl bg-ink-50 overflow-hidden">
+      <div className="flex items-stretch h-11 w-full rounded-xl bg-surface-2 border border-border overflow-hidden transition-colors focus-within:border-violet-500/60 focus-within:ring-2 focus-within:ring-violet-500/30">
         <input
           type="text"
           inputMode="numeric"
@@ -350,9 +351,9 @@ function PriceRange({
           onChange={(e) => onChange("from", sanitize(e.target.value))}
           placeholder={placeholders.from}
           aria-label={`${label} ${placeholders.from}`}
-          className="flex-1 min-w-0 bg-transparent px-4 text-sm font-mono text-ink-800 placeholder:text-ink-400 outline-none"
+          className="flex-1 min-w-0 bg-transparent px-4 text-sm font-mono text-ink-800 placeholder:text-ink-500 outline-none"
         />
-        <span aria-hidden className="self-center w-px h-5 bg-ink-300/60" />
+        <span aria-hidden className="self-center w-px h-5 bg-border-strong" />
         <input
           type="text"
           inputMode="numeric"
@@ -360,7 +361,7 @@ function PriceRange({
           onChange={(e) => onChange("to", sanitize(e.target.value))}
           placeholder={placeholders.to}
           aria-label={`${label} ${placeholders.to}`}
-          className="flex-1 min-w-0 bg-transparent px-4 text-sm font-mono text-ink-800 placeholder:text-ink-400 outline-none"
+          className="flex-1 min-w-0 bg-transparent px-4 text-sm font-mono text-ink-800 placeholder:text-ink-500 outline-none"
         />
       </div>
     </div>
@@ -422,13 +423,13 @@ export function SortDropdown({
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex items-center gap-2 h-9 px-2.5 rounded-lg text-sm font-medium text-ink-800 hover:bg-ink-50 transition-colors"
+        className="inline-flex items-center gap-2 h-9 px-2.5 rounded-lg text-sm font-medium text-ink-800 hover:bg-violet-500/10 hover:text-ink-900 transition-colors"
       >
         <SortGlyph />
         <span>{currentLabel}</span>
         <ChevronDown
           className={cn(
-            "size-3.5 text-ink-500 transition-transform",
+            "size-3.5 text-ink-400 transition-transform",
             open && "rotate-180",
           )}
         />
@@ -443,7 +444,7 @@ export function SortDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 top-full mt-2 w-60 origin-top-left bg-surface border border-border rounded-xl shadow-[var(--sh-3)] p-1.5 z-50"
+            className="absolute left-0 top-full mt-2 w-60 origin-top-left bg-surface-2/95 backdrop-blur-md border border-border-strong rounded-xl shadow-[var(--sh-3)] p-1.5 z-50"
           >
             {SORT_OPTIONS.map((opt) => {
               const active = opt.value === value;
@@ -460,13 +461,13 @@ export function SortDropdown({
                   className={cn(
                     "w-full flex items-center justify-between gap-2 px-3 h-10 rounded-lg text-sm text-left transition-colors",
                     active
-                      ? "bg-caspian-50 text-caspian-700 font-semibold"
-                      : "text-ink-700 hover:bg-ink-50",
+                      ? "bg-violet-500/15 text-violet-300 font-semibold"
+                      : "text-ink-700 hover:bg-violet-500/10 hover:text-ink-900",
                   )}
                 >
                   <span className="truncate">{t(opt.labelKey)}</span>
                   {active ? (
-                    <Check className="size-3.5 text-caspian-600 shrink-0" />
+                    <Check className="size-3.5 text-violet-400 shrink-0" />
                   ) : null}
                 </button>
               );

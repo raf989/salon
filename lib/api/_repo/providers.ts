@@ -270,6 +270,7 @@ export function useProviderBySlugWithStatus(
  */
 export function useProviderEditsRealtime(): void {
   useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
     const channel = supabase
       .channel("provider_edits_changes")
       .on(

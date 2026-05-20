@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { RegisterForm } from "@/components/auth/register-form";
 import { RegisterRolePicker } from "@/components/auth/register-role-picker";
-import { Button } from "@/components/ui/button";
+import { MagneticButton } from "@/components/ui/magnetic-button";
 import { useT } from "@/lib/i18n";
 import type { UserRole } from "@/lib/types";
 
@@ -52,7 +53,7 @@ function RegisterFlow() {
           {t("auth.register.haveAccount")}{" "}
           <Link
             href="/login"
-            className="text-caspian-600 font-semibold hover:underline"
+            className="text-violet-400 font-semibold hover:text-violet-300 hover:underline transition-colors"
           >
             {t("auth.register.loginLink")}
           </Link>
@@ -76,7 +77,7 @@ function RegisterFlow() {
           {t("auth.register.haveAccount")}{" "}
           <Link
             href="/login"
-            className="text-caspian-600 font-semibold hover:underline"
+            className="text-violet-400 font-semibold hover:text-violet-300 hover:underline transition-colors"
           >
             {t("auth.register.loginLink")}
           </Link>
@@ -98,10 +99,15 @@ function RegisterFlow() {
     return (
       <AuthShell title={t("auth.success.title")} subtitle={subtitle}>
         <div className="flex flex-col items-center gap-5 py-2">
-          <span className="grid place-items-center size-16 rounded-full bg-success-50 text-success-500">
+          <motion.span
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="grid place-items-center size-16 rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-white shadow-[var(--sh-glow-cyan)]"
+          >
             <CheckCircle2 className="size-8" />
-          </span>
-          <Button
+          </motion.span>
+          <MagneticButton
             variant="primary"
             size="lg"
             className="w-full"
@@ -109,7 +115,7 @@ function RegisterFlow() {
             onClick={() => router.push(target)}
           >
             {buttonLabel}
-          </Button>
+          </MagneticButton>
         </div>
       </AuthShell>
     );
@@ -134,7 +140,13 @@ function RegisterFlow() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={null}>
-      <RegisterFlow />
+      <motion.main
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      >
+        <RegisterFlow />
+      </motion.main>
     </Suspense>
   );
 }

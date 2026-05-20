@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Send, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, CheckCircle2, Clock, Send, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/crumbs";
 import { Dialog } from "@/components/ui/dialog";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { BidStatusBadge } from "@/components/tenders/bid-status-badge";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -34,8 +36,24 @@ export default function MyBidsPage() {
   const isLoggedIn = !!currentUserId;
   const visible = bids;
 
+  const stats = useMemo(() => {
+    let accepted = 0;
+    let pending = 0;
+    for (const item of visible) {
+      const s = item.bid.status ?? "pending";
+      if (s === "accepted") accepted += 1;
+      else if (s === "pending") pending += 1;
+    }
+    return { total: visible.length, accepted, pending };
+  }, [visible]);
+
   return (
-    <main className="mx-auto max-w-4xl px-4 md:px-6 pb-24 pt-6">
+    <motion.main
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="mx-auto max-w-4xl px-4 md:px-6 pb-24 pt-6"
+    >
       <Crumbs
         items={[
           { label: t("crumbs.catalog"), href: "/" },
@@ -46,20 +64,43 @@ export default function MyBidsPage() {
 
       <header className="mb-8">
         <h1 className="font-display font-semibold text-2xl sm:text-3xl md:text-4xl text-ink-900 leading-tight tracking-[-0.015em] mb-2 flex items-center gap-2 sm:gap-3 flex-wrap">
-          <span className="text-ink-400">
-            <Send className="size-6 sm:size-7" strokeWidth={1.8} />
+          <span className="inline-grid place-items-center size-9 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300">
+            <Send className="size-4 sm:size-5" strokeWidth={2} />
           </span>
           {t("myBids.title")}
-          {visible.length > 0 ? (
-            <span className="font-sans font-medium text-base text-ink-400">
-              {visible.length}
-            </span>
-          ) : null}
         </h1>
         <p className="text-base text-ink-500 leading-relaxed">
           {t("myBids.subtitle")}
         </p>
       </header>
+
+      {isLoggedIn && visible.length > 0 ? (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="grid grid-cols-3 gap-3 mb-8"
+        >
+          <StatCard
+            label="total"
+            value={stats.total}
+            accent="violet"
+            icon={<Send className="size-4" strokeWidth={2} />}
+          />
+          <StatCard
+            label="accepted"
+            value={stats.accepted}
+            accent="success"
+            icon={<CheckCircle2 className="size-4" strokeWidth={2} />}
+          />
+          <StatCard
+            label="pending"
+            value={stats.pending}
+            accent="gold"
+            icon={<Clock className="size-4" strokeWidth={2} />}
+          />
+        </motion.div>
+      ) : null}
 
       {!authResolved ? (
         <Card className="flex flex-col items-center justify-center gap-3 py-20 text-center border-dashed">
@@ -83,7 +124,48 @@ export default function MyBidsPage() {
           ))}
         </div>
       )}
-    </main>
+    </motion.main>
+  );
+}
+
+type AccentKey = "violet" | "success" | "gold";
+
+const ACCENT_CLASSES: Record<AccentKey, string> = {
+  violet:
+    "bg-violet-500/15 border-violet-500/30 text-violet-300",
+  success:
+    "bg-success-500/15 border-success-500/30 text-success-500",
+  gold: "bg-gold-500/15 border-gold-500/30 text-gold-400",
+};
+
+function StatCard({
+  label,
+  value,
+  accent,
+  icon,
+}: {
+  label: string;
+  value: number;
+  accent: AccentKey;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="glass rounded-xl border border-border-strong p-3 sm:p-4 flex items-center gap-3 hover:-translate-y-px hover:border-violet-500/40 transition-all">
+      <span
+        className={`inline-grid place-items-center size-9 rounded-full border ${ACCENT_CLASSES[accent]}`}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <AnimatedCounter
+          to={value}
+          className="font-display font-semibold text-2xl text-ink-900 font-mono leading-none"
+        />
+        <div className="text-[11px] uppercase tracking-[0.16em] text-ink-500 mt-1">
+          {label}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -111,14 +193,27 @@ function BidRow({ bid, tender }: MyBid) {
   // `undefined` (legacy bid before the migration) is treated as pending.
   const canWithdraw = (bid.status ?? "pending") === "pending";
 
+  const status = bid.status ?? "pending";
+  const glowClass =
+    status === "accepted"
+      ? "hover:shadow-[var(--sh-glow-cyan)] hover:border-success-500/40"
+      : status === "rejected"
+        ? "hover:border-danger-500/40"
+        : "hover:shadow-[var(--sh-glow-violet)] hover:border-violet-500/40";
+
   return (
-    <Card className="p-4 sm:p-5 flex flex-col gap-3 hover:bg-bg transition-colors">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className={`glass border border-border rounded-xl p-4 sm:p-5 flex flex-col gap-3 transition-all hover:-translate-y-px ${glowClass}`}
+    >
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <Link
               href={`/tenders#${tender.id}`}
-              className="font-display font-semibold text-base sm:text-lg text-ink-900 hover:text-caspian-600 transition-colors break-words sm:truncate min-w-0"
+              className="font-display font-semibold text-base sm:text-lg text-ink-900 hover:text-violet-300 transition-colors break-words sm:truncate min-w-0"
             >
               {pickLocalized(tender.title)}
             </Link>
@@ -153,7 +248,7 @@ function BidRow({ bid, tender }: MyBid) {
           <Button
             variant="ghost"
             size="sm"
-            className="text-pomegranate-500 hover:bg-pomegranate-50"
+            className="text-danger-500 hover:bg-danger-500/10"
             onClick={() => setConfirmOpen(true)}
           >
             <X className="size-3.5" />
@@ -181,9 +276,7 @@ function BidRow({ bid, tender }: MyBid) {
       >
         <div className="flex flex-col gap-3">
           {error ? (
-            <p className="text-sm text-pomegranate-500 leading-relaxed">
-              {error}
-            </p>
+            <p className="text-sm text-danger-500 leading-relaxed">{error}</p>
           ) : null}
           <div className="flex items-center justify-end gap-2">
             <Button
@@ -207,7 +300,7 @@ function BidRow({ bid, tender }: MyBid) {
           </div>
         </div>
       </Dialog>
-    </Card>
+    </motion.div>
   );
 }
 
@@ -222,12 +315,20 @@ function EmptyState({
 }) {
   const { t } = useT();
   return (
-    <Card className="flex flex-col items-center justify-center gap-3 py-20 text-center border-dashed">
-      <span className="size-12 rounded-full bg-ink-50 grid place-items-center text-ink-500">
-        <Send className="size-5" />
-      </span>
-      <p className="font-display font-semibold text-lg text-ink-800">{title}</p>
-      <p className="text-ink-500 max-w-md text-sm">{sub}</p>
+    <Card className="relative overflow-hidden flex flex-col items-center justify-center gap-3 py-20 text-center border-dashed">
+      <motion.span
+        aria-hidden
+        initial={{ opacity: 0, scale: 0.4 }}
+        animate={{ opacity: 0.9, scale: 1 }}
+        transition={{ type: "spring", stiffness: 220, damping: 18 }}
+        className="size-14 rounded-full glass border border-border-strong grid place-items-center text-violet-300 shadow-[var(--sh-glow-violet)]"
+      >
+        <Send className="size-6" strokeWidth={1.8} />
+      </motion.span>
+      <p className="font-display font-semibold text-lg text-ink-800 relative z-10 mt-1">
+        {title}
+      </p>
+      <p className="text-ink-500 max-w-md text-sm relative z-10">{sub}</p>
       {loginCta ? (
         <Link href="/login">
           <Button variant="primary" size="sm" className="mt-2">

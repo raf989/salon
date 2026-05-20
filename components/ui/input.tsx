@@ -12,16 +12,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="relative w-full">
         {icon ? (
-          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 [&_svg]:size-4">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 [&_svg]:size-4 transition-colors">
             {icon}
           </span>
         ) : null}
         <input
           ref={ref}
           className={cn(
-            "h-11 w-full rounded-[10px] border border-border-strong bg-surface px-4 text-sm text-ink-800 placeholder:text-ink-400 transition-colors",
-            "hover:border-ink-300",
-            "focus:outline-none focus:border-caspian-500 focus:shadow-[0_0_0_3px_rgba(15,133,126,0.25)]",
+            "h-11 w-full rounded-[10px] border border-border-strong bg-surface/60 backdrop-blur-sm px-4 text-sm text-ink-900 placeholder:text-ink-400 transition-all duration-200",
+            "hover:border-border-strong hover:bg-surface/80",
+            "focus:outline-none focus:border-violet-500 focus:bg-surface/80 focus:shadow-[var(--sh-focus)]",
             "disabled:opacity-50 disabled:pointer-events-none",
             icon && "pl-11",
             className,

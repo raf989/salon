@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
+  Camera,
   MessageCircle,
   Phone,
   Star,
@@ -13,7 +14,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   InstagramIcon,
   TelegramIcon,
@@ -107,23 +108,32 @@ export function ProfileCard({ me }: ProfileCardProps) {
 
   return (
     <motion.div
+      data-tour="profile-card"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
     >
-      <Card className="relative p-4 sm:p-7">
-        {/* Without overflow-hidden the gradient bar must round its own top
-            corners so it stays inside the card's rounded edges. */}
+      <div className="glass-strong rounded-2xl border border-border relative p-4 sm:p-7 overflow-hidden">
+        {/* Aurora gradient top stripe */}
         <div
           aria-hidden
-          className="absolute top-0 left-0 right-0 h-1.5 rounded-t-[inherit] bg-gradient-to-r from-caspian-500 via-saffron-400 to-pomegranate-500"
+          className="absolute top-0 left-0 right-0 h-1.5 rounded-t-[inherit] bg-gradient-to-r from-violet-500 via-magenta-500 to-gold-500"
+        />
+        {/* Soft glow blobs */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-16 -right-16 size-48 rounded-full bg-violet-500/15 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-magenta-500/10 blur-3xl"
         />
 
         {/* Edit button — stays in top-right corner, out of the flex flow.
             Slightly inset further on mobile so it can't graze the avatar. */}
         <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
           <Link href="/dashboard/profile" aria-label={t("dash.profile.goTo")}>
-            <Button variant="outline" size="sm" className="min-h-11">
+            <Button variant="primary" size="sm" className="min-h-11">
               <span className="hidden sm:inline">{t("dash.profile.goTo")}</span>
               <ArrowRight className="size-3.5" />
             </Button>
@@ -141,7 +151,12 @@ export function ProfileCard({ me }: ProfileCardProps) {
             <Link
               href="/dashboard/profile"
               aria-label={t("dash.profile.avatar.change")}
-              className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-caspian-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+              className={cn(
+                "relative rounded-full focus:outline-none",
+                "ring-2 ring-violet-500/60 ring-offset-2 ring-offset-bg",
+                "transition-shadow hover:shadow-[var(--sh-glow-violet)]",
+                "focus-visible:ring-violet-400",
+              )}
             >
               <Avatar
                 name={trimmedAuth || me.name}
@@ -149,6 +164,19 @@ export function ProfileCard({ me }: ProfileCardProps) {
                 imageUrl={me.avatar}
                 size="xl"
               />
+              {/* Camera edit pill — visual cue that the avatar opens the photo
+                  upload flow on /dashboard/profile. */}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute -bottom-1 -right-1 grid place-items-center",
+                  "size-7 rounded-full border-2 border-bg",
+                  "bg-gradient-to-br from-violet-500 to-magenta-500 text-white",
+                  "shadow-[var(--sh-glow-violet)]",
+                )}
+              >
+                <Camera className="size-3.5" />
+              </span>
             </Link>
             <div className="min-w-0">
               <h1 className="font-display font-semibold text-xl sm:text-2xl md:text-3xl text-ink-900 tracking-tight truncate">
@@ -163,8 +191,8 @@ export function ProfileCard({ me }: ProfileCardProps) {
           {/* ── Block 2 — statuses. Row layout on mobile so it doesn't
               stack into 3 tall lines; column on lg with ml-12. */}
           <div className="flex flex-row flex-wrap items-center gap-2 shrink-0 lg:flex-col lg:items-start lg:ml-12">
-            <div className="inline-flex items-center gap-2 px-3 h-9 rounded-full bg-ink-50">
-              <Star className="size-4 fill-saffron-400 text-saffron-400" />
+            <div className="inline-flex items-center gap-2 px-3 h-9 rounded-full glass border border-border">
+              <Star className="size-4 fill-gold-400 text-gold-400" />
               <span className="font-mono font-semibold text-ink-900">
                 {me.rating}
               </span>
@@ -208,7 +236,7 @@ export function ProfileCard({ me }: ProfileCardProps) {
             </div>
           ) : null}
         </div>
-      </Card>
+      </div>
     </motion.div>
   );
 }
@@ -219,7 +247,7 @@ function ContactCell({ item }: { item: ContactItem }) {
     <>
       <span
         aria-hidden
-        className="size-7 grid place-items-center rounded-full bg-caspian-500/10 text-caspian-600 shrink-0"
+        className="size-7 grid place-items-center rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0"
       >
         {iconForKind(item.kind)}
       </span>
@@ -233,7 +261,7 @@ function ContactCell({ item }: { item: ContactItem }) {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 text-sm text-ink-700 min-w-0 hover:text-caspian-600 transition-colors"
+        className="inline-flex items-center gap-2 text-sm text-ink-700 min-w-0 hover:text-violet-300 transition-colors"
       >
         {inner}
       </a>

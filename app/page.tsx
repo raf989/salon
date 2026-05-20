@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { SearchX } from "lucide-react";
+import { motion } from "framer-motion";
+import { Compass, Sparkles, Telescope, ChevronDown } from "lucide-react";
 import { Hero } from "@/components/client/hero";
 import { ProviderRow } from "@/components/client/provider-row";
 import {
@@ -13,6 +14,10 @@ import {
 } from "@/components/client/search-filters";
 import { BookingModal } from "@/components/client/booking-modal";
 import { Card } from "@/components/ui/card";
+import { CategoryGrid } from "@/components/landing/category-grid";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { FAQ } from "@/components/landing/faq";
+import { FinalCTA } from "@/components/landing/final-cta";
 import { ALL_CITIES_ID, getCityById, getCityIdByName } from "@/lib/cities";
 import { useStore } from "@/lib/store";
 import {
@@ -37,12 +42,20 @@ const DEFAULT_FILTERS: FiltersValue = { search: "" };
 
 const VALID_KINDS: ReadonlySet<ProviderKind> = new Set<ProviderKind>([
   "photographer",
+  "videographer",
   "dj",
+  "band",
   "restaurant",
+  "catering",
   "host",
+  "decorator",
+  "florist",
   "barber",
   "salon",
   "makeup",
+  "nails",
+  "brows",
+  "cosmetologist",
 ]);
 
 function isProviderKind(v: string | null): v is ProviderKind {
@@ -283,8 +296,34 @@ function HomePageInner() {
       <Hero
         searchValue={filters.search}
         onSearchChange={(v) => setFilters((f) => ({ ...f, search: v }))}
+        onSearchSubmit={scrollToResults}
       />
-      <main className="mx-auto max-w-7xl px-3 md:px-6 pt-3 md:pt-4 pb-24 space-y-5 md:space-y-8">
+
+      <CategoryGrid />
+      <HowItWorks />
+      <FAQ />
+      <FinalCTA />
+
+      {/* Anchor link to the catalog */}
+      <div className="text-center pt-8 pb-2 text-ink-500 text-xs uppercase tracking-widest">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          className="inline-flex flex-col items-center gap-1"
+        >
+          <span>{pickLocalized({ az: "Kataloqa keç", ru: "Перейти в каталог" })}</span>
+          <ChevronDown className="size-4 text-violet-400 animate-bounce" />
+        </motion.div>
+      </div>
+
+      <motion.main
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.05 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-7xl px-3 md:px-6 pt-3 md:pt-4 pb-24 space-y-5 md:space-y-8"
+      >
         <SearchFilters
           value={{
             category: kindFilter ?? "all",
@@ -347,7 +386,7 @@ function HomePageInner() {
             )}
           </div>
         </section>
-      </main>
+      </motion.main>
 
       <BookingModal
         stylist={booking}
@@ -361,12 +400,83 @@ function HomePageInner() {
 
 function EmptyState() {
   const { t } = useT();
+  // Decorative pulsing orbs around the icon — playful "scanning" feel.
+  const orbs = [
+    { d: 0.0, s: 1.0, x: -42, y: -22 },
+    { d: 0.4, s: 0.7, x: 48, y: -18 },
+    { d: 0.8, s: 0.8, x: -36, y: 28 },
+    { d: 1.2, s: 0.5, x: 40, y: 30 },
+  ];
   return (
-    <Card className="flex flex-col items-center justify-center gap-4 py-20 text-center border-dashed">
-      <span className="size-12 rounded-full bg-ink-50 grid place-items-center text-ink-500">
-        <SearchX className="size-5" />
-      </span>
-      <p className="text-ink-500 max-w-xs">{t("results.empty")}</p>
-    </Card>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <Card className="relative overflow-hidden flex flex-col items-center justify-center gap-5 py-20 text-center border-dashed">
+        {/* Soft mesh in the background */}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-70 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(60% 80% at 50% 0%, rgba(15,133,126,0.07), transparent 60%), radial-gradient(50% 70% at 50% 100%, rgba(241,169,28,0.07), transparent 60%)",
+          }}
+        />
+
+        <div className="relative">
+          {orbs.map((o, i) => (
+            <motion.span
+              key={i}
+              aria-hidden
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: [0, 1, 0],
+                x: [0, o.x, 0],
+                y: [0, o.y, 0],
+                scale: [0.4, o.s, 0.4],
+              }}
+              transition={{
+                duration: 3.4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: o.d,
+              }}
+              className="absolute left-1/2 top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-magenta-500 to-cyan-500 blur-[2px]"
+            />
+          ))}
+          <motion.span
+            animate={{
+              boxShadow: [
+                "0 0 0 0 rgba(155,108,246,0.55)",
+                "0 0 0 16px rgba(155,108,246,0)",
+              ],
+            }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
+            className="relative size-14 rounded-full bg-gradient-to-br from-violet-500 via-magenta-500 to-cyan-500 grid place-items-center text-white shadow-[var(--sh-glow-violet)]"
+          >
+            <Telescope className="size-6" strokeWidth={1.6} />
+          </motion.span>
+        </div>
+
+        <div className="relative max-w-sm space-y-1.5 px-4">
+          <p className="font-display font-semibold text-base text-ink-900">
+            {t("results.empty")}
+          </p>
+          <p className="text-sm text-ink-500">
+            Loosen the filters or peek into another city — the catalog is alive,
+            refreshing in real-time.
+          </p>
+        </div>
+
+        <div className="relative flex items-center gap-2 text-xs text-ink-500">
+          <Sparkles className="size-3.5 text-gold-500" strokeWidth={1.8} />
+          <span>scanning vendors</span>
+          <span className="mx-1 size-[3px] rounded-full bg-ink-400" />
+          <Compass className="size-3.5 text-cyan-400" strokeWidth={1.8} />
+          <span>matching radius +5km</span>
+        </div>
+      </Card>
+    </motion.div>
   );
 }

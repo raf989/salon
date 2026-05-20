@@ -55,12 +55,8 @@ async function fetchAppointments(
   query?: AppointmentsQuery,
 ): Promise<Appointment[]> {
   let q = supabase.from("appointments").select("*").order("date").order("time");
-  // Branches ordered alphabetically by criterion label.
-  // clientName — exact match on the client_name column.
   if (query?.clientName) q = q.eq("client_name", query.clientName);
-  // date — exact match on the date column (YYYY-MM-DD).
   if (query?.date) q = q.eq("date", query.date);
-  // stylistId — exact match on the stylist_id column.
   if (query?.stylistId) q = q.eq("stylist_id", query.stylistId);
   const { data, error } = await q;
   if (error) throw asError(error, "listAppointments");
@@ -86,6 +82,9 @@ export function useAppointments(query?: AppointmentsQuery): Appointment[] {
  */
 export function useAppointmentsRealtime(): void {
   useEffect(() => {
+    // Skip realtime in stub mode — supabase-js retries WebSocket forever
+    // on a fake URL and floods the console + pegs the main thread.
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
     const channel = supabase
       .channel("appointments_changes")
       .on(

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { LayoutDashboard, LogOut, Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { Logo } from "@/components/ui/logo";
 import { UserMenu } from "@/components/auth/user-menu";
 import { useCurrentUser, useStore } from "@/lib/store";
 import { signOut } from "@/lib/auth";
@@ -93,20 +95,15 @@ export function Header() {
   return (
     <header
       ref={menuWrapRef}
-      className="sticky top-0 z-40 w-full border-b border-border bg-surface"
+      className="sticky top-0 z-40 w-full border-b border-border glass-strong"
     >
       <div className="mx-auto max-w-7xl flex h-16 items-center px-4 md:px-6 gap-3">
         <Link
           href="/"
-          className="flex items-center gap-2.5 group shrink-0"
+          className="group shrink-0 transition-transform hover:scale-[1.03]"
           aria-label={t("brand.homeAria")}
         >
-          <span className="grid size-7 place-items-center rounded-[8px] bg-caspian-500 text-white font-display text-[14px] font-semibold">
-            V
-          </span>
-          <span className="font-display font-semibold text-xl text-ink-900 tracking-tight">
-            {t("brand.name")}
-          </span>
+          <Logo size="md" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1 ml-4">
@@ -123,13 +120,20 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "px-3 py-2 rounded-[8px] text-sm font-medium transition-colors",
+                  "relative group px-3 py-2 rounded-[8px] text-sm font-medium transition-colors",
                   active
-                    ? "bg-ink-50 text-ink-900"
-                    : "text-ink-600 hover:text-ink-900 hover:bg-ink-50",
+                    ? "text-ink-900"
+                    : "text-ink-400 hover:text-ink-900",
                 )}
               >
-                {t(item.labelKey)}
+                <span className="relative z-10">{t(item.labelKey)}</span>
+                <motion.span
+                  className="pointer-events-none absolute left-2 right-2 bottom-1 h-px bg-gradient-to-r from-magenta-500 via-violet-500 to-cyan-500 origin-left"
+                  initial={false}
+                  animate={{ scaleX: active ? 1 : 0 }}
+                  whileHover={{ scaleX: 1 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                />
               </Link>
             );
           })}
@@ -140,7 +144,7 @@ export function Header() {
         {/* Language switcher — visible on every viewport, mirroring the
             requirement that the mobile panel doesn't need its own copy. */}
         <div
-          className="flex items-center bg-ink-50 rounded-[10px] p-1"
+          className="flex items-center bg-surface-2/60 backdrop-blur-sm border border-border rounded-[10px] p-1"
           role="group"
           aria-label="Language"
         >
@@ -159,6 +163,21 @@ export function Header() {
             RU
           </LangButton>
         </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            document.dispatchEvent(new CustomEvent("vaxt:open-command-palette"))
+          }
+          aria-label="Open command palette"
+          className="hidden md:inline-flex items-center gap-2 h-8 px-2.5 rounded-lg border border-border-strong bg-surface-2/50 hover:bg-surface-2 hover:border-violet-500/50 transition-colors text-ink-500 hover:text-ink-200"
+        >
+          <Search className="size-3.5" strokeWidth={1.8} />
+          <span className="text-xs">Search</span>
+          <kbd className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md border border-border bg-bg-elevated/40 text-[10px] font-mono">
+            ⌘ K
+          </kbd>
+        </button>
 
         <div className="hidden md:flex items-center gap-2">
           {user ? (
@@ -196,8 +215,8 @@ export function Header() {
           aria-expanded={mobileOpen}
           aria-controls="mobile-nav-panel"
           className={cn(
-            "md:hidden inline-flex items-center justify-center size-9 rounded-[10px] text-ink-700 hover:bg-ink-50 transition-colors",
-            mobileOpen && "bg-ink-50",
+            "md:hidden inline-flex items-center justify-center size-9 rounded-[10px] text-ink-400 hover:text-ink-900 hover:bg-surface-2 border border-transparent transition-colors",
+            mobileOpen && "bg-surface-2 border-border text-ink-900",
           )}
         >
           {mobileOpen ? (
@@ -213,7 +232,7 @@ export function Header() {
       {mobileOpen ? (
         <div
           id="mobile-nav-panel"
-          className="md:hidden border-t border-border bg-surface"
+          className="md:hidden border-t border-border glass-strong"
         >
           <nav className="mx-auto max-w-7xl flex flex-col px-4 py-3">
             {NAV_ITEMS.map((item) => {
@@ -227,8 +246,8 @@ export function Header() {
                   className={cn(
                     "px-3 py-3 rounded-[8px] text-base font-medium transition-colors",
                     active
-                      ? "bg-ink-50 text-ink-900"
-                      : "text-ink-700 hover:text-ink-900 hover:bg-ink-50",
+                      ? "bg-surface-2 text-ink-900 border border-border-strong"
+                      : "text-ink-400 hover:text-ink-900 hover:bg-surface-2",
                   )}
                 >
                   {t(item.labelKey)}
@@ -271,10 +290,10 @@ function LangButton({
       aria-pressed={active}
       aria-label={code.toUpperCase()}
       className={cn(
-        "h-7 px-2.5 text-xs font-semibold uppercase tracking-wider rounded-[8px] transition-colors",
+        "h-7 px-2.5 text-xs font-semibold uppercase tracking-wider rounded-[8px] transition-all",
         active
-          ? "bg-surface text-ink-900 shadow-[var(--sh-1)]"
-          : "text-ink-500 hover:text-ink-800",
+          ? "bg-gradient-to-br from-violet-500 to-magenta-500 text-white shadow-[var(--sh-1)]"
+          : "text-ink-500 hover:text-ink-900",
       )}
     >
       {children}
@@ -342,7 +361,7 @@ function MobileAuthSection({
         <Link
           href="/dashboard"
           onClick={onClose}
-          className="flex items-center gap-2 px-3 py-3 text-sm text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
+          className="flex items-center gap-2 px-3 py-3 text-sm text-ink-400 hover:text-ink-900 hover:bg-surface-2 rounded-md transition-colors"
         >
           <LayoutDashboard className="size-4" />
           {t("auth.userMenu.dashboard")}
@@ -351,7 +370,7 @@ function MobileAuthSection({
       <button
         type="button"
         onClick={handleLogout}
-        className="w-full flex items-center gap-2 px-3 py-3 text-sm text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-3 text-sm text-ink-400 hover:text-ink-900 hover:bg-surface-2 rounded-md transition-colors"
       >
         <LogOut className="size-4" />
         {t("auth.userMenu.logout")}

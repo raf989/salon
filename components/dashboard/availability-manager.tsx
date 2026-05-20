@@ -5,9 +5,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { useToast } from "@/components/ui/toast";
 import { updateProvider } from "@/lib/api/repo";
 import { CITIES, normalizeCity } from "@/lib/cities";
 import { useT, type DictKey } from "@/lib/i18n";
@@ -26,7 +27,7 @@ const WEEKDAY_DICT_INDICES: ReadonlyArray<0 | 1 | 2 | 3 | 4 | 5 | 6> = [
 ];
 
 const TIME_INPUT_CLASS =
-  "h-11 w-full bg-surface border border-border-strong rounded-[10px] px-3 font-mono text-sm text-ink-800 transition-colors hover:border-ink-300 focus:outline-none focus:border-caspian-500 focus:shadow-[var(--sh-focus)] disabled:bg-ink-50/60 disabled:text-ink-500 disabled:cursor-not-allowed disabled:hover:border-border-strong";
+  "h-11 w-full bg-surface/60 border border-border-strong rounded-[10px] px-3 font-mono text-sm text-ink-800 transition-all hover:border-violet-500/40 focus:outline-none focus:border-violet-500 focus:shadow-[var(--sh-glow-violet)] disabled:bg-surface-2/40 disabled:text-ink-500 disabled:cursor-not-allowed disabled:hover:border-border-strong";
 
 function breaksEqual(a: Break[], b: Break[]): boolean {
   if (a.length !== b.length) return false;
@@ -38,6 +39,7 @@ function breaksEqual(a: Break[], b: Break[]): boolean {
 
 export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   const { t, lang } = useT();
+  const { toast } = useToast();
   const cityOptions = useMemo(
     () =>
       CITIES.map((c) => ({ value: c.name[lang], label: c.name[lang] })).sort(
@@ -200,6 +202,10 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
       setIsEditing(false);
       setConfirmOpen(false);
       setSavedAt(Date.now());
+      toast({
+        title: t("dash.avail.saved"),
+        variant: "success",
+      });
     } catch (err) {
       // Surface the real cause — Supabase plain objects collapse to
       // "[object Object]" when thrown into React's error overlay.
@@ -220,7 +226,10 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   const disabled = !isEditing;
 
   return (
-    <Card className="p-4 sm:p-6">
+    <div
+      data-tour="availability"
+      className="glass-strong border border-border rounded-2xl p-4 sm:p-6"
+    >
       {/* Top bar with Edit / Cancel toggle */}
       <div className="flex items-start justify-between gap-4 mb-1">
         <div>
@@ -254,7 +263,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
       </div>
 
       {/* Section 1 — Working hours */}
-      <section className="mt-5">
+      <section className="mt-5 glass border border-border rounded-xl p-4">
         <h3 className="font-display font-semibold text-lg text-ink-900">
           {t("dash.avail.hours.title")}
         </h3>
@@ -290,7 +299,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
       </section>
 
       {/* Section 2 — Active days */}
-      <section className="border-t border-border pt-5 mt-5">
+      <section className="mt-4 glass border border-border rounded-xl p-4">
         <h3 className="font-display font-semibold text-lg text-ink-900">
           {t("dash.avail.days.title")}
         </h3>
@@ -310,11 +319,11 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
                 disabled={disabled}
                 className={cn(
                   // h-11 (44px) meets the iOS/Android tap-target guideline.
-                  "h-11 min-w-11 px-4 rounded-[10px] text-sm font-medium border transition-colors",
+                  "h-11 min-w-11 px-4 rounded-[10px] text-sm font-medium border transition-all",
                   active
-                    ? "bg-caspian-500 text-white border-caspian-500"
-                    : "bg-ink-50 text-ink-700 border-transparent hover:bg-ink-100",
-                  disabled && "opacity-60 cursor-not-allowed hover:bg-ink-50",
+                    ? "bg-gradient-to-br from-violet-500 to-magenta-500 text-white border-violet-500 shadow-[var(--sh-glow-violet)]"
+                    : "bg-surface/60 text-ink-700 border-border hover:border-violet-500/40 hover:text-ink-900",
+                  disabled && "opacity-60 cursor-not-allowed",
                 )}
               >
                 {label}
@@ -325,7 +334,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
       </section>
 
       {/* Section 3 — Breaks */}
-      <section className="border-t border-border pt-5 mt-5">
+      <section className="mt-4 glass border border-border rounded-xl p-4">
         <h3 className="font-display font-semibold text-lg text-ink-900">
           {t("dash.avail.breaks.title")}
         </h3>
@@ -343,14 +352,14 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.18 }}
-                className="inline-flex items-center gap-1 h-11 sm:h-9 pl-3 pr-1 sm:pr-3 rounded-full bg-saffron-50 text-saffron-500 text-sm font-medium font-mono"
+                className="inline-flex items-center gap-1 h-11 sm:h-9 pl-3 pr-1 sm:pr-3 rounded-full bg-magenta-500/15 border border-magenta-500/30 text-magenta-300 text-sm font-medium font-mono"
               >
                 {b.start} – {b.end}
                 <button
                   type="button"
                   onClick={() => removeBreak(i)}
                   aria-label={`${b.start} – ${b.end} ${t("dash.avail.breaks.removeAria")}`}
-                  className="ml-1 size-8 sm:size-5 grid place-items-center rounded-full opacity-70 hover:opacity-100 hover:bg-saffron-100 transition-all"
+                  className="ml-1 size-8 sm:size-5 grid place-items-center rounded-full opacity-70 hover:opacity-100 hover:bg-magenta-500/25 transition-all"
                 >
                   <X className="size-3.5 sm:size-3" />
                 </button>
@@ -393,7 +402,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
       </section>
 
       {/* Section 4 — Location & address */}
-      <section className="border-t border-border pt-5 mt-5">
+      <section className="mt-4 glass border border-border rounded-xl p-4">
         <h3 className="font-display font-semibold text-lg text-ink-900">
           {t("dash.avail.location.title")}
         </h3>
@@ -460,7 +469,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
               </motion.div>
             ) : null}
           </AnimatePresence>
-          <Button
+          <MagneticButton
             type="button"
             variant="primary"
             onClick={() => setConfirmOpen(true)}
@@ -468,7 +477,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
             className="min-h-11 flex-1 sm:flex-none"
           >
             {t("dash.avail.save")}
-          </Button>
+          </MagneticButton>
         </div>
       ) : (
         <AnimatePresence mode="wait">
@@ -531,6 +540,6 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
           </Button>
         </div>
       </Dialog>
-    </Card>
+    </div>
   );
 }

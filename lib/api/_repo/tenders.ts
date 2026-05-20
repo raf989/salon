@@ -178,6 +178,7 @@ export function useMyBids(authorUserId: string | undefined): MyBid[] {
  */
 export function useTendersRealtime(): void {
   useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
     const channel = supabase
       .channel("tenders_changes")
       .on(

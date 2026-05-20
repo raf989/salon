@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarOff, Clock } from "lucide-react";
+import { Clock, Telescope } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { useT, type DictKey } from "@/lib/i18n";
 import {
@@ -130,7 +129,7 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
   };
 
   return (
-    <Card className="p-6">
+    <div className="glass-strong rounded-2xl border border-border p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display font-semibold text-xl text-ink-900">
           {t("dash.appts.title")}
@@ -139,7 +138,7 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
       </div>
 
       {/* Segmented tabs */}
-      <div className="mt-4 inline-flex p-1 bg-ink-50 rounded-[10px]">
+      <div className="mt-4 inline-flex p-1 glass border border-border rounded-[10px]">
         <SegmentTab active={tab === "upcoming"} onClick={() => setTab("upcoming")}>
           {t("dash.appts.tab.upcoming")}
         </SegmentTab>
@@ -225,7 +224,7 @@ export function AppointmentsList({ me }: AppointmentsListProps) {
           </Button>
         </div>
       </Dialog>
-    </Card>
+    </div>
   );
 }
 
@@ -244,9 +243,9 @@ function SegmentTab({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-9 px-4 rounded-[8px] text-sm font-medium transition-colors",
+        "h-9 px-4 rounded-[8px] text-sm font-medium transition-all",
         active
-          ? "bg-surface text-ink-900 shadow-[var(--sh-1)]"
+          ? "bg-gradient-to-br from-violet-500 to-magenta-500 text-white shadow-[var(--sh-glow-violet)]"
           : "text-ink-500 hover:text-ink-800",
       )}
     >
@@ -281,19 +280,19 @@ function AppointmentRow({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, delay: index * 0.03 }}
+      transition={{ duration: 0.3, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border bg-surface transition-colors",
-        // Subtle saffron wash on "Gecikir" — attention without alarm.
+        "flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-4 rounded-xl glass border transition-all",
+        // Subtle gold wash on "late" — attention without alarm.
         isLate
-          ? "border-saffron-400/40 bg-saffron-50/40 hover:bg-saffron-50/60"
-          : "border-border hover:bg-bg",
+          ? "border-gold-500/40 hover:border-gold-500/60 hover:shadow-[var(--sh-glow-gold)]"
+          : "border-border hover:border-violet-500/40 hover:shadow-[var(--sh-glow-violet)]",
       )}
     >
       {/* Date badge */}
-      <div className="w-12 sm:w-14 flex flex-col items-center justify-center py-1.5 sm:py-2 rounded-xl bg-ink-50 text-center shrink-0">
+      <div className="w-12 sm:w-14 flex flex-col items-center justify-center py-1.5 sm:py-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-center shrink-0">
         <span className="font-display font-semibold text-xl sm:text-2xl text-ink-900 leading-none">
           {day}
         </span>
@@ -333,7 +332,7 @@ function AppointmentRow({
             variant="ghost"
             size="sm"
             onClick={onCancel}
-            className="text-ink-600 hover:text-pomegranate-500 hover:bg-pomegranate-500/5"
+            className="text-ink-500 hover:text-danger-500 hover:bg-danger-500/10 border border-transparent hover:border-danger-500/30"
           >
             {t("dash.appts.cancel")}
           </Button>
@@ -343,24 +342,44 @@ function AppointmentRow({
   );
 }
 
+const STATUS_PILL_CLASS =
+  "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full text-[11px] font-semibold tracking-tight backdrop-blur-sm border";
+
 function StatusBadge({ display }: { display: DisplayStatus }) {
   const { t } = useT();
   switch (display) {
     case "completed":
       return (
-        <Badge variant="success-soft">
+        <span
+          className={cn(
+            STATUS_PILL_CLASS,
+            "bg-success-500/15 text-success-500 border-success-500/30",
+          )}
+        >
           {t("dash.appts.status.completed")}
-        </Badge>
+        </span>
       );
     case "cancelled":
       return (
-        <Badge variant="danger-soft">
+        <span
+          className={cn(
+            STATUS_PILL_CLASS,
+            "bg-danger-500/15 text-danger-500 border-danger-500/30",
+          )}
+        >
           {t("dash.appts.status.cancelled")}
-        </Badge>
+        </span>
       );
     case "no_show":
       return (
-        <Badge variant="danger-soft">{t("dash.appts.status.noShow")}</Badge>
+        <span
+          className={cn(
+            STATUS_PILL_CLASS,
+            "bg-danger-500/15 text-danger-500 border-danger-500/30",
+          )}
+        >
+          {t("dash.appts.status.noShow")}
+        </span>
       );
     case "late":
       return (
@@ -370,8 +389,16 @@ function StatusBadge({ display }: { display: DisplayStatus }) {
       );
     case "upcoming":
     default:
+      // "Confirmed/upcoming" → cyan accent.
       return (
-        <Badge variant="info-soft">{t("dash.appts.status.upcoming")}</Badge>
+        <span
+          className={cn(
+            STATUS_PILL_CLASS,
+            "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+          )}
+        >
+          {t("dash.appts.status.upcoming")}
+        </span>
       );
   }
 }
@@ -380,18 +407,27 @@ function EmptyState() {
   const { t } = useT();
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
-      className="py-12 text-center flex flex-col items-center"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="py-14 text-center flex flex-col items-center"
     >
-      <span className="size-12 rounded-full bg-ink-50 grid place-items-center text-ink-400">
-        <CalendarOff className="size-5" />
-      </span>
-      <p className="text-ink-500 mt-3 text-sm">{t("dash.appts.empty.title")}</p>
-      <p className="text-ink-400 text-xs mt-1">
-        {t("dash.appts.empty.sub")}
+      <motion.span
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        className={cn(
+          "size-16 rounded-full grid place-items-center",
+          "bg-gradient-to-br from-violet-500/20 to-magenta-500/20",
+          "border border-violet-500/30 text-violet-300",
+          "shadow-[var(--sh-glow-violet)]",
+        )}
+      >
+        <Telescope className="size-7" />
+      </motion.span>
+      <p className="text-ink-700 mt-4 text-sm font-semibold">
+        {t("dash.appts.empty.title")}
       </p>
+      <p className="text-ink-500 text-xs mt-1">{t("dash.appts.empty.sub")}</p>
     </motion.div>
   );
 }

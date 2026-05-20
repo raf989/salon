@@ -19,16 +19,22 @@ export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
 };
 
 const variantClasses: Record<Variant, string> = {
-  default: "bg-ink-50 text-ink-700",
-  "success-soft": "bg-success-50 text-success-500",
-  "warning-soft": "bg-warning-50 text-warning-500",
-  "danger-soft": "bg-danger-50 text-danger-500",
-  "info-soft": "bg-info-50 text-info-500",
-  verified: "bg-caspian-500 text-white",
-  promo: "bg-saffron-400 text-ink-900",
-  urgent: "bg-pomegranate-500 text-white",
-  event: "bg-plum-500/10 text-plum-500",
-  beauty: "bg-rose-500/10 text-rose-500",
+  default: "bg-surface-2 text-ink-700 border border-border",
+  "success-soft":
+    "bg-success-500/15 text-success-500 border border-success-500/30",
+  "warning-soft":
+    "bg-warning-500/15 text-warning-500 border border-warning-500/30",
+  "danger-soft":
+    "bg-danger-500/15 text-danger-500 border border-danger-500/30",
+  "info-soft": "bg-info-500/15 text-info-500 border border-info-500/30",
+  verified:
+    "bg-caspian-500/15 text-caspian-600 border border-caspian-500/30",
+  promo:
+    "bg-gold-500/15 text-gold-500 border border-gold-500/30",
+  urgent:
+    "bg-magenta-500/15 text-magenta-500 border border-magenta-500/30",
+  event: "bg-plum-500/15 text-plum-500 border border-plum-500/30",
+  beauty: "bg-rose-500/15 text-rose-500 border border-rose-500/30",
 };
 
 const dotClasses: Record<Variant, string> = {
@@ -37,9 +43,9 @@ const dotClasses: Record<Variant, string> = {
   "warning-soft": "bg-warning-500",
   "danger-soft": "bg-danger-500",
   "info-soft": "bg-info-500",
-  verified: "bg-white",
-  promo: "bg-ink-900",
-  urgent: "bg-white",
+  verified: "bg-caspian-500",
+  promo: "bg-gold-500",
+  urgent: "bg-magenta-500",
   event: "bg-plum-500",
   beauty: "bg-rose-500",
 };
@@ -53,7 +59,7 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
       <span
         ref={ref}
         className={cn(
-          "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full text-[11px] font-semibold tracking-tight",
+          "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full text-[11px] font-semibold tracking-tight backdrop-blur-sm",
           variantClasses[variant],
           className,
         )}

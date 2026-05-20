@@ -3,13 +3,12 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getFirebaseAuth } from "@/lib/firebase";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321";
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "stub-anon-key";
 
-if (!url || !anonKey) {
-  throw new Error(
-    "Supabase env not configured. Set NEXT_PUBLIC_SUPABASE_URL and " +
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local (see .env.local.example).",
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  console.warn(
+    "[supabase] Running in stub mode — no backend. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real data.",
   );
 }
 

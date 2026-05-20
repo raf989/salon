@@ -1,11 +1,21 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { ArrowLeft, AtSign, Lock, Phone, User as UserIcon } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
+import {
+  ArrowLeft,
+  AtSign,
+  Eye,
+  EyeOff,
+  Lock,
+  Phone,
+  User as UserIcon,
+} from "lucide-react";
 import type { ConfirmationResult } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { ConfettiBurst, useConfetti } from "@/components/ui/confetti-burst";
+import { useToast } from "@/components/ui/toast";
 import { OtpForm } from "@/components/auth/otp-form";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -55,6 +65,20 @@ const PROVIDER_KINDS: ProviderKind[] = [
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
+// 0 = empty, 1 = weak, 2 = medium, 3 = strong
+function passwordStrength(pw: string): 0 | 1 | 2 | 3 {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 6) score += 1;
+  if (pw.length >= 10) score += 1;
+  if (/\d/.test(pw) && /[A-Za-z]/.test(pw)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pw)) score += 1;
+  if (score >= 4) return 3;
+  if (score >= 2) return 2;
+  if (score >= 1) return 1;
+  return 0;
+}
+
 // Register collects profile fields + a password locally, then verifies the
 // phone via Firebase OTP. After OTP confirm we link an Email/Password
 // credential (synthetic email derived from the phone) so the user can log
@@ -64,12 +88,16 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/;
 export function RegisterForm({ role, onSuccess, onBack }: Props) {
   const { t, pickLocalized } = useT();
   const setProfile = useStore((s) => s.setProfile);
+  const { toast } = useToast();
+  const [fireConfetti, confettiProps] = useConfetti();
 
   const [stage, setStage] = useState<Stage>("form");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [email, setEmail] = useState("");
   const [kind, setKind] = useState<ProviderKind | "">("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -79,6 +107,16 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
     null,
   );
   const [phoneE164, setPhoneE164] = useState<string>("");
+
+  const strength = useMemo(() => passwordStrength(password), [password]);
+  const strengthLabel = useMemo(() => {
+    if (strength === 0) return "";
+    if (strength === 1)
+      return pickLocalized({ az: "Zəif", ru: "Слабый" });
+    if (strength === 2)
+      return pickLocalized({ az: "Orta", ru: "Средний" });
+    return pickLocalized({ az: "Güclü", ru: "Сильный" });
+  }, [strength, pickLocalized]);
 
   function validate(): { errors: FieldErrors; normalized?: string } {
     const e: FieldErrors = {};
@@ -137,79 +175,106 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
     }
   }
 
+  function celebrateSuccess() {
+    // Fire confetti + success toast + onboarding-tour flag, then bubble
+    // the success up so the parent flow advances. The toast and confetti
+    // are best-effort: even if a provider is missing, this never throws.
+    try {
+      sessionStorage.setItem("vaxt:show-onboarding-tour", "1");
+    } catch {
+      // sessionStorage can be unavailable in private modes; ignore.
+    }
+    fireConfetti();
+    toast({
+      title: pickLocalized({
+        az: "Hesabın hazırdır!",
+        ru: "Аккаунт готов!",
+      }),
+      description: pickLocalized({
+        az: "Vaxt-a xoş gəlmisən.",
+        ru: "Добро пожаловать в Vaxt.",
+      }),
+      variant: "success",
+    });
+    onSuccess();
+  }
+
   if (stage === "otp" && confirmation) {
     return (
-      <OtpForm
-        confirmation={confirmation}
-        phone={phoneE164}
-        onSuccess={async (uid) => {
-          // OTP succeeded → Firebase user exists. Link the password so
-          // future logins are phone+password (no SMS). If the credential
-          // is already linked (rare re-run), treat it as already-set
-          // rather than fatal — the account is still usable.
-          try {
-            await linkPasswordToCurrentUser(phoneE164, password);
-          } catch (err) {
-            if (
-              err instanceof FirebaseError &&
-              (err.code === "auth/provider-already-linked" ||
-                err.code === "auth/email-already-in-use" ||
-                err.code === "auth/credential-already-in-use")
-            ) {
-              // Password was already set on a prior attempt — fine.
-            } else {
-              throw new Error(t("auth.register.error.linkFailed"));
+      <>
+        <ConfettiBurst {...confettiProps} />
+        <OtpForm
+          confirmation={confirmation}
+          phone={phoneE164}
+          onSuccess={async (uid) => {
+            // OTP succeeded → Firebase user exists. Link the password so
+            // future logins are phone+password (no SMS). If the credential
+            // is already linked (rare re-run), treat it as already-set
+            // rather than fatal — the account is still usable.
+            try {
+              await linkPasswordToCurrentUser(phoneE164, password);
+            } catch (err) {
+              if (
+                err instanceof FirebaseError &&
+                (err.code === "auth/provider-already-linked" ||
+                  err.code === "auth/email-already-in-use" ||
+                  err.code === "auth/credential-already-in-use")
+              ) {
+                // Password was already set on a prior attempt — fine.
+              } else {
+                throw new Error(t("auth.register.error.linkFailed"));
+              }
             }
-          }
-          // Persist the profile server-side so it's recoverable on any
-          // device. For providers also create the `providers` business
-          // row so the dashboard can resolve "me" by auth_user_id.
-          //
-          // Both calls are idempotent (users uses upsert; createProvider
-          // checks for an existing row first), so a network blip → retry
-          // recovers cleanly. Map raw errors to a friendlier message
-          // ending in "повторите попытку" so the user knows to retry.
-          try {
-            await createUserProfile({
-              uid,
-              name,
-              phone: phoneE164,
-              role,
-              email: role === "provider" ? email : undefined,
-              kind:
-                role === "provider" ? (kind as ProviderKind) : undefined,
-            });
-            if (role === "provider") {
-              await createProvider({
-                authUserId: uid,
+            // Persist the profile server-side so it's recoverable on any
+            // device. For providers also create the `providers` business
+            // row so the dashboard can resolve "me" by auth_user_id.
+            //
+            // Both calls are idempotent (users uses upsert; createProvider
+            // checks for an existing row first), so a network blip → retry
+            // recovers cleanly. Map raw errors to a friendlier message
+            // ending in "повторите попытку" so the user knows to retry.
+            try {
+              await createUserProfile({
+                uid,
                 name,
-                kind: kind as ProviderKind,
+                phone: phoneE164,
+                role,
+                email: role === "provider" ? email : undefined,
+                kind:
+                  role === "provider" ? (kind as ProviderKind) : undefined,
               });
+              if (role === "provider") {
+                await createProvider({
+                  authUserId: uid,
+                  name,
+                  kind: kind as ProviderKind,
+                });
+              }
+              // Local cache for instant paint before FirebaseAuthSync's fetch.
+              setProfile({
+                uid,
+                phone: phoneE164,
+                name,
+                role,
+                email: role === "provider" ? email : undefined,
+                kind:
+                  role === "provider" ? (kind as ProviderKind) : undefined,
+              });
+              celebrateSuccess();
+            } catch (err) {
+              // Friendly wrapper: a raw Supabase / network error here ends
+              // up in OtpForm's error banner verbatim. Re-throwing as a
+              // localized message keeps the original via `cause` for the
+              // console while showing the user something actionable.
+              const wrapped = new Error(
+                t("auth.register.error.profileSetupFailed"),
+              );
+              (wrapped as Error & { cause?: unknown }).cause = err;
+              throw wrapped;
             }
-            // Local cache for instant paint before FirebaseAuthSync's fetch.
-            setProfile({
-              uid,
-              phone: phoneE164,
-              name,
-              role,
-              email: role === "provider" ? email : undefined,
-              kind:
-                role === "provider" ? (kind as ProviderKind) : undefined,
-            });
-            onSuccess();
-          } catch (err) {
-            // Friendly wrapper: a raw Supabase / network error here ends
-            // up in OtpForm's error banner verbatim. Re-throwing as a
-            // localized message keeps the original via `cause` for the
-            // console while showing the user something actionable.
-            const wrapped = new Error(
-              t("auth.register.error.profileSetupFailed"),
-            );
-            (wrapped as Error & { cause?: unknown }).cause = err;
-            throw wrapped;
-          }
-        }}
-      />
+          }}
+        />
+      </>
     );
   }
 
@@ -237,6 +302,7 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
           placeholder={t("auth.register.field.namePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
+          className="h-12 text-base"
         />
       </Field>
 
@@ -253,6 +319,7 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
           placeholder={t("auth.register.field.phonePlaceholder")}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          className="h-12 text-base"
         />
       </Field>
 
@@ -261,15 +328,16 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
         label={t("auth.register.field.password")}
         error={errors.password}
       >
-        <Input
+        <PasswordField
           id="reg-password"
-          type="password"
           autoComplete="new-password"
-          icon={<Lock />}
           placeholder={t("auth.register.field.passwordPlaceholder")}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
+          show={showPassword}
+          onToggleShow={() => setShowPassword((v) => !v)}
         />
+        <StrengthMeter strength={strength} label={strengthLabel} />
       </Field>
 
       <Field
@@ -277,14 +345,14 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
         label={t("auth.register.field.passwordConfirm")}
         error={errors.passwordConfirm}
       >
-        <Input
+        <PasswordField
           id="reg-password-confirm"
-          type="password"
           autoComplete="new-password"
-          icon={<Lock />}
           placeholder={t("auth.register.field.passwordConfirmPlaceholder")}
           value={passwordConfirm}
-          onChange={(e) => setPasswordConfirm(e.target.value)}
+          onChange={setPasswordConfirm}
+          show={showPasswordConfirm}
+          onToggleShow={() => setShowPasswordConfirm((v) => !v)}
         />
       </Field>
 
@@ -303,6 +371,7 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
               placeholder={t("auth.register.field.emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="h-12 text-base"
             />
           </Field>
 
@@ -316,9 +385,9 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
               value={kind}
               onChange={(e) => setKind(e.target.value as ProviderKind | "")}
               className={cn(
-                "h-11 w-full rounded-[10px] border border-border-strong bg-surface px-4 text-sm text-ink-800 transition-colors",
-                "hover:border-ink-300",
-                "focus:outline-none focus:border-caspian-500 focus:shadow-[0_0_0_3px_rgba(15,133,126,0.25)]",
+                "h-12 w-full rounded-[10px] border border-border-strong bg-surface/60 backdrop-blur-sm px-4 text-base text-ink-800 transition-all",
+                "hover:border-border-strong",
+                "focus:outline-none focus:border-violet-500 focus:shadow-[var(--sh-focus)]",
                 kind === "" && "text-ink-400",
               )}
             >
@@ -341,7 +410,7 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
         </p>
       ) : null}
 
-      <Button
+      <MagneticButton
         variant="primary"
         size="lg"
         className="w-full"
@@ -349,7 +418,7 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
         disabled={submitting}
       >
         {submitting ? t("auth.otp.sending") : t("auth.register.submit")}
-      </Button>
+      </MagneticButton>
 
       {/* Invisible reCAPTCHA mount — same pattern as login-form. */}
       <div id={RECAPTCHA_CONTAINER_ID} />
@@ -381,6 +450,86 @@ function Field({
         <p className="text-xs text-danger-500 mt-1.5" role="alert">
           {error}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PasswordField({
+  id,
+  autoComplete,
+  value,
+  onChange,
+  show,
+  onToggleShow,
+  placeholder,
+}: {
+  id: string;
+  autoComplete: string;
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggleShow: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        type={show ? "text" : "password"}
+        autoComplete={autoComplete}
+        icon={<Lock />}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-12 text-base pr-12"
+      />
+      <button
+        type="button"
+        onClick={onToggleShow}
+        aria-label={show ? "Hide password" : "Show password"}
+        className={cn(
+          "absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center size-8 rounded-md text-ink-400 hover:text-ink-700 transition-colors",
+          "focus:outline-none focus:text-violet-400",
+        )}
+      >
+        {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
+  );
+}
+
+function StrengthMeter({
+  strength,
+  label,
+}: {
+  strength: 0 | 1 | 2 | 3;
+  label: string;
+}) {
+  const colors = [
+    "bg-magenta-500 shadow-[var(--sh-glow-magenta)]",
+    "bg-violet-500 shadow-[var(--sh-glow-violet)]",
+    "bg-cyan-500 shadow-[var(--sh-glow-cyan)]",
+  ];
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <div className="flex-1 grid grid-cols-3 gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className={cn(
+              "h-1.5 rounded-full transition-all duration-300",
+              i < strength
+                ? colors[Math.min(strength - 1, 2)]
+                : "bg-border-strong/60",
+            )}
+          />
+        ))}
+      </div>
+      {label ? (
+        <span className="text-[11px] font-medium text-ink-500 min-w-[40px] text-right">
+          {label}
+        </span>
       ) : null}
     </div>
   );

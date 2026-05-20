@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Lock, Phone } from "lucide-react";
+import { Eye, EyeOff, Lock, Phone } from "lucide-react";
 import { FirebaseError } from "firebase/app";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MagneticButton } from "@/components/ui/magnetic-button";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { signInWithPhonePassword, toE164 } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/api/repo";
+import { cn } from "@/lib/utils";
 
 // Login is phone + password — no SMS. The password was linked to the
 // Firebase account at registration time (see register-form +
@@ -18,12 +19,13 @@ import { getUserProfile } from "@/lib/api/repo";
 // resolves the phone to its synthetic email and signs in with the
 // Email/Password provider, returning the same UID phone auth created.
 export function LoginForm() {
-  const { t } = useT();
+  const { t, pickLocalized } = useT();
   const router = useRouter();
   const cacheProfile = useStore((s) => s.cacheProfile);
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +72,11 @@ export function LoginForm() {
     }
   }
 
+  const forgotLabel = pickLocalized({
+    az: "Şifrəni unutmusan?",
+    ru: "Забыли пароль?",
+  });
+
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
       <div>
@@ -87,6 +94,7 @@ export function LoginForm() {
           placeholder="+994 50 123 45 67"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          className="h-12 text-base"
           required
         />
       </div>
@@ -98,14 +106,13 @@ export function LoginForm() {
         >
           {t("auth.login.password")}
         </label>
-        <Input
+        <PasswordField
           id="login-password"
-          type="password"
           autoComplete="current-password"
-          icon={<Lock />}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+          onChange={setPassword}
+          show={showPassword}
+          onToggleShow={() => setShowPassword((v) => !v)}
         />
       </div>
 
@@ -115,7 +122,7 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <Button
+      <MagneticButton
         variant="primary"
         size="lg"
         className="w-full"
@@ -123,17 +130,71 @@ export function LoginForm() {
         disabled={submitting}
       >
         {submitting ? t("auth.otp.checking") : t("auth.login.submit")}
-      </Button>
+      </MagneticButton>
+
+      <div className="flex items-center justify-center">
+        <Link
+          href="/login?recover=1"
+          className="text-xs text-ink-500 hover:text-violet-400 transition-colors"
+        >
+          {forgotLabel}
+        </Link>
+      </div>
 
       <p className="text-sm text-ink-500 text-center mt-2">
         {t("auth.login.noAccount")}{" "}
         <Link
           href="/register"
-          className="text-caspian-600 font-semibold hover:underline"
+          className="text-violet-400 font-semibold hover:text-violet-300 hover:underline transition-colors"
         >
           {t("auth.login.signupLink")}
         </Link>
       </p>
     </form>
+  );
+}
+
+function PasswordField({
+  id,
+  autoComplete,
+  value,
+  onChange,
+  show,
+  onToggleShow,
+  placeholder,
+}: {
+  id: string;
+  autoComplete: string;
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggleShow: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        type={show ? "text" : "password"}
+        autoComplete={autoComplete}
+        icon={<Lock />}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn("h-12 text-base pr-12")}
+        placeholder={placeholder}
+        required
+      />
+      <button
+        type="button"
+        onClick={onToggleShow}
+        aria-label={show ? "Hide password" : "Show password"}
+        className={cn(
+          "absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center size-8 rounded-md text-ink-400 hover:text-ink-700 transition-colors",
+          "focus:outline-none focus:text-violet-400",
+        )}
+      >
+        {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
   );
 }

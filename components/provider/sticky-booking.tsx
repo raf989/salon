@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Calendar, type DayState } from "@/components/ui/calendar";
-import { Card } from "@/components/ui/card";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { ConfettiBurst, useConfetti } from "@/components/ui/confetti-burst";
+import { useToast } from "@/components/ui/toast";
 import {
   InstagramIcon,
   TelegramIcon,
@@ -123,13 +124,30 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
   const ttHref = provider.tiktok ? tiktokHref(provider.tiktok) : null;
   const hasAnyContact = Boolean(waHref || tgHref || igHref || ttHref);
 
+  // Side-effects fired on the "Book" CTA — confetti burst + success toast.
+  // The actual booking submission lives inside the BookingModal; we fire
+  // these here so any path that opens the booking flow gets the celebration.
+  const [fireConfetti, confettiProps] = useConfetti();
+  const { toast } = useToast();
+  const handleBook = () => {
+    fireConfetti();
+    toast({
+      title: "Booked!",
+      description: `${provider.name} — ${formatDate(selectedDate, lang)}`,
+      variant: "success",
+    });
+    onOpenBooking();
+  };
+
   return (
     <>
+      <ConfettiBurst {...confettiProps} />
       {/* Mobile-only sticky bottom action bar. On <lg the booking card lives
           below the entire profile, so without this users have to scroll back
           to find the CTA. */}
       <div
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur border-t border-border shadow-[var(--sh-2)]"
+        data-tour="booking-sticky"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 glass-strong border-t border-border-strong shadow-[var(--sh-2)]"
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
@@ -141,87 +159,101 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
             </div>
             <div className="text-xs text-ink-400 truncate">/ {priceUnit}</div>
           </div>
-          <Button
+          <MagneticButton
             variant="primary"
             size="lg"
             className="shrink-0"
-            onClick={onOpenBooking}
+            onClick={handleBook}
           >
             {t("action.book")}
-          </Button>
+          </MagneticButton>
         </div>
       </div>
 
-      <Card className="p-5 flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="font-mono font-semibold text-xl text-ink-900 leading-tight">
-          {t("provider.priceFrom")} {formatPrice(minPrice)}{" "}
-          <small className="text-sm font-normal text-ink-400">
-            / {priceUnit}
-          </small>
-        </div>
-        {availableToday ? (
-          <Badge variant="success-soft" pulse>
-            {t("provider.freeToday")}
-          </Badge>
-        ) : null}
-      </div>
-
-      <Calendar
-        selected={selectedDate}
-        onSelect={setSelectedDate}
-        getDayState={dayStateFn}
-        bare
-        showLegend={false}
-      />
-
-      <Button
-        variant="primary"
-        size="lg"
-        className="w-full"
-        onClick={onOpenBooking}
+      <div
+        data-tour="booking-sticky"
+        className="glass-strong rounded-2xl border border-border-strong p-5 flex flex-col gap-4 relative overflow-hidden"
       >
-        {t("provider.bookOn").replace(
-          "{date}",
-          formatDate(selectedDate, lang),
-        )}
-      </Button>
-
-      {hasAnyContact ? (
-        // CSS Grid auto-fit picks the column count based on available width:
-        //   1 button → full row, 2 → 1×2 / 2×1, 4 → 2×2.
-        // Each column is at least 130px so labels don't truncate.
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2">
-          {waHref ? (
-            <ContactLinkButton variant="whatsapp" href={waHref}>
-              <MessageCircle size={16} /> {t("contact.whatsapp")}
-            </ContactLinkButton>
-          ) : null}
-          {tgHref ? (
-            <ContactLinkButton variant="telegram" href={tgHref}>
-              <TelegramIcon className="size-4" /> {t("contact.telegram")}
-            </ContactLinkButton>
-          ) : null}
-          {igHref ? (
-            <ContactLinkButton variant="instagram" href={igHref}>
-              <InstagramIcon className="size-4" /> Instagram
-            </ContactLinkButton>
-          ) : null}
-          {ttHref ? (
-            <ContactLinkButton variant="tiktok" href={ttHref}>
-              <TikTokIcon className="size-4" /> TikTok
-            </ContactLinkButton>
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-10 -right-8 size-32 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(155,108,246,0.18), transparent 70%)",
+          }}
+        />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="font-mono font-semibold text-xl text-ink-900 leading-tight">
+            {t("provider.priceFrom")} {formatPrice(minPrice)}{" "}
+            <small className="text-sm font-normal text-ink-400">
+              / {priceUnit}
+            </small>
+          </div>
+          {availableToday ? (
+            <Badge variant="success-soft" pulse>
+              {t("provider.freeToday")}
+            </Badge>
           ) : null}
         </div>
-      ) : null}
 
-      <p className="text-xs text-ink-400 text-center">
-        {t("provider.cancelFree")}
-      </p>
-      </Card>
+        <Calendar
+          selected={selectedDate}
+          onSelect={setSelectedDate}
+          getDayState={dayStateFn}
+          bare
+          showLegend={false}
+        />
+
+        <MagneticButton
+          variant="primary"
+          size="lg"
+          className="w-full"
+          onClick={handleBook}
+        >
+          {t("provider.bookOn").replace(
+            "{date}",
+            formatDate(selectedDate, lang),
+          )}
+        </MagneticButton>
+
+        {hasAnyContact ? (
+          // CSS Grid auto-fit picks the column count based on available width:
+          //   1 button → full row, 2 → 1×2 / 2×1, 4 → 2×2.
+          // Each column is at least 130px so labels don't truncate.
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2">
+            {waHref ? (
+              <ContactLinkButton variant="whatsapp" href={waHref}>
+                <MessageCircle size={16} /> {t("contact.whatsapp")}
+              </ContactLinkButton>
+            ) : null}
+            {tgHref ? (
+              <ContactLinkButton variant="telegram" href={tgHref}>
+                <TelegramIcon className="size-4" /> {t("contact.telegram")}
+              </ContactLinkButton>
+            ) : null}
+            {igHref ? (
+              <ContactLinkButton variant="instagram" href={igHref}>
+                <InstagramIcon className="size-4" /> Instagram
+              </ContactLinkButton>
+            ) : null}
+            {ttHref ? (
+              <ContactLinkButton variant="tiktok" href={ttHref}>
+                <TikTokIcon className="size-4" /> TikTok
+              </ContactLinkButton>
+            ) : null}
+          </div>
+        ) : null}
+
+        <p className="text-xs text-ink-400 text-center">
+          {t("provider.cancelFree")}
+        </p>
+      </div>
     </>
   );
 }
+
+// `Card` import removed in favour of the inline glass-strong wrapper above
+// so we can put a violet radial-glow behind the booking sidebar.
 
 // Anchor styled like the existing Button so we keep the visual treatment for
 // whatsapp/instagram/tiktok without forcing the Button primitive to grow an

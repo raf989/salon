@@ -13,16 +13,18 @@ export function RatingStars({ value, size = 14, className }: Props) {
   const full = Math.round(value);
   return (
     <span
-      className={cn("inline-flex gap-0.5 text-saffron-400", className)}
+      className={cn("inline-flex gap-0.5 text-gold-500", className)}
       aria-label={`${value} / 5`}
     >
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
           size={size}
-          className={
-            i < full ? "fill-saffron-400" : "fill-ink-100 text-ink-200"
-          }
+          className={cn(
+            i < full
+              ? "fill-gold-500 text-gold-500 drop-shadow-[0_0_4px_rgba(255,176,0,0.4)]"
+              : "fill-ink-300/40 text-ink-300",
+          )}
           strokeWidth={0}
         />
       ))}

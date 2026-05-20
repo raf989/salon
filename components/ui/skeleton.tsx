@@ -14,7 +14,7 @@ export function Skeleton({ className }: Props) {
   return (
     <div
       className={cn(
-        "animate-pulse bg-ink-100 rounded-md",
+        "skel rounded-md",
         className,
       )}
     />

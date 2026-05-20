@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useT, type DictKey } from "@/lib/i18n";
 import { formatDate, formatPrice } from "@/lib/utils";
@@ -27,13 +26,15 @@ export function TenderCardCompact({ tender }: Props) {
   return (
     <Card
       id={tender.id}
-      className="p-5 flex flex-col gap-3 hover:shadow-[var(--sh-2)] transition-shadow scroll-mt-20"
+      className="p-5 flex flex-col gap-3 bg-surface/70 backdrop-blur-md border-border-strong rounded-2xl transition hover:border-violet-500/40 hover:shadow-[var(--sh-glow-violet)] hover:-translate-y-px scroll-mt-20"
     >
       <div className="flex items-center justify-between gap-2">
-        <Badge variant={tender.tier === "event" ? "event" : "beauty"}>
+        <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-[11px] font-medium text-violet-300">
           {t(tierKey)}
-        </Badge>
-        <span className="text-xs text-ink-400 font-mono">{bidsLabel}</span>
+        </span>
+        <span className="inline-flex items-center h-6 px-2 rounded-full bg-violet-500/15 border border-violet-500/25 text-[11px] font-mono text-violet-300">
+          {bidsLabel}
+        </span>
       </div>
 
       <h3 className="font-display font-semibold text-lg text-ink-900 leading-snug line-clamp-2">
@@ -41,13 +42,9 @@ export function TenderCardCompact({ tender }: Props) {
       </h3>
 
       <div className="text-sm text-ink-500 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span>
-          {t("tenders.budget")}:{" "}
-          <span className="font-mono text-ink-700">
-            {formatPrice(tender.budgetMin)}–{formatPrice(tender.budgetMax)}
-          </span>
+        <span className="inline-flex items-center h-6 px-2 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-400 font-mono text-[11px]">
+          {formatPrice(tender.budgetMin)}–{formatPrice(tender.budgetMax)}
         </span>
-        <span className="text-ink-300">·</span>
         <span>
           {t("tenders.eventDate")}:{" "}
           <span className="text-ink-700">
@@ -61,7 +58,7 @@ export function TenderCardCompact({ tender }: Props) {
         {tender.tags.slice(0, MAX_TAGS).map((tag, i) => (
           <span
             key={i}
-            className="inline-flex items-center h-6 px-2 rounded-full bg-transparent border border-border-strong text-[11px] font-medium text-ink-700"
+            className="inline-flex items-center h-6 px-2 rounded-full bg-surface-2/60 border border-border-strong text-[11px] font-medium text-ink-700"
           >
             {pickLocalized(tag)}
           </span>

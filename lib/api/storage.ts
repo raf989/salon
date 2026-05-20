@@ -25,13 +25,12 @@ import { createClient } from "@supabase/supabase-js";
 // later, storage ownership moves to a signed-URL or edge-function flow.
 // =============================================================================
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321";
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "stub-anon-key";
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    "Supabase env not configured for storage. Set NEXT_PUBLIC_SUPABASE_URL " +
-      "and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.",
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  console.warn(
+    "[storage] Running in stub mode — uploads will fail at runtime. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real storage.",
   );
 }
 

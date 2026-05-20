@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { Check, Lock } from "lucide-react";
 import { useAppointments } from "@/lib/api/repo";
 import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
@@ -53,15 +54,15 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
       {/* legend */}
       <div className="mt-1 mb-3 flex items-center gap-2 text-xs font-medium">
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-[4px] bg-ink-50 border border-border" />
+          <span className="w-3 h-3 rounded-[4px] bg-surface-2/60 border border-border" />
           <span className="text-ink-500">{t("time.legend.free")}</span>
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-[4px] bg-caspian-500" />
+          <span className="w-3 h-3 rounded-[4px] bg-gradient-to-br from-violet-500 to-magenta-500" />
           <span className="text-ink-500">{t("time.legend.selected")}</span>
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-[4px] bg-pomegranate-500" />
+          <span className="w-3 h-3 rounded-[4px] bg-danger-500/30 border border-danger-500/40" />
           <span className="text-ink-500">{t("time.legend.taken")}</span>
         </span>
       </div>
@@ -77,11 +78,12 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
           const selected = selectedTime === time;
 
           return (
-            <button
+            <motion.button
               key={time}
               type="button"
               disabled={disabled}
               onClick={() => onSelect(time)}
+              whileTap={disabled ? undefined : { scale: 0.95 }}
               aria-pressed={selected}
               aria-disabled={disabled}
               aria-label={
@@ -90,17 +92,14 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
                   : `${time} ${t("time.selectionSuffix")}`
               }
               className={cn(
-                "h-10 rounded-[10px] text-sm font-mono font-medium border transition-colors inline-flex items-center justify-center gap-1",
+                "h-10 rounded-lg text-sm font-mono font-medium border transition-colors inline-flex items-center justify-center gap-1",
                 selected
-                  ? "bg-caspian-500 text-white border-caspian-500"
-                  : // Taken slots get the red treatment the legend promises
-                    // — distinct from merely past / break slots, which stay
-                    // a neutral grey.
-                    taken
-                    ? "bg-pomegranate-500/12 text-pomegranate-600 border-pomegranate-500/30 cursor-not-allowed"
+                  ? "bg-gradient-to-br from-violet-500 to-magenta-500 text-white border-transparent shadow-[var(--sh-glow-violet)]"
+                  : taken
+                    ? "bg-danger-500/12 text-danger-500 border-danger-500/30 cursor-not-allowed"
                     : disabled
-                      ? "bg-ink-50/50 text-ink-300 border-transparent cursor-not-allowed opacity-60"
-                      : "bg-ink-50 text-ink-800 border-transparent hover:bg-caspian-50 hover:text-caspian-700",
+                      ? "bg-surface-2/40 text-ink-400 border-transparent cursor-not-allowed opacity-40"
+                      : "bg-surface-2/60 text-ink-700 border-border hover:bg-surface-2 hover:border-violet-500/40 hover:text-ink-900",
                 disabled && past && !selected && "line-through",
               )}
             >
@@ -112,7 +111,7 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
                   <Lock className="size-3" aria-hidden />
                 ) : null
               ) : null}
-            </button>
+            </motion.button>
           );
         })}
       </div>

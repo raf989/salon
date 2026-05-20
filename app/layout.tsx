@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
 import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import { HtmlLangSync } from "@/components/html-lang-sync";
+import { ScrollProgress } from "@/components/client/scroll-progress";
+import { BackToTop } from "@/components/client/back-to-top";
+import { CommandPalette } from "@/components/ui/command-palette";
+import { ToastProvider } from "@/components/ui/toast";
+import { PageTransition } from "@/components/ui/page-transition";
 import { FirebaseAuthSync } from "@/lib/auth";
 import "./globals.css";
 
@@ -49,8 +55,14 @@ export default function RootLayout({
       <body className="min-h-screen bg-bg text-ink-700 antialiased font-sans">
         <HtmlLangSync />
         <FirebaseAuthSync />
-        <Header />
-        {children}
+        <ScrollProgress />
+        <ToastProvider>
+          <Header />
+          <PageTransition>{children}</PageTransition>
+          <Footer />
+          <BackToTop />
+          <CommandPalette />
+        </ToastProvider>
       </body>
     </html>
   );

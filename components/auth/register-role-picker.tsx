@@ -2,7 +2,8 @@
 
 import { Briefcase, User } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { TiltCard } from "@/components/ui/tilt-card";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
@@ -16,12 +17,12 @@ type Props = {
 export function RegisterRolePicker({ value, onChange, onContinue }: Props) {
   const { t } = useT();
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         <RoleCard
           selected={value === "client"}
           onClick={() => onChange("client")}
-          tone="caspian"
+          tone="violet"
           icon={<User />}
           title={t("auth.register.role.client.title")}
           description={t("auth.register.role.client.desc")}
@@ -29,13 +30,13 @@ export function RegisterRolePicker({ value, onChange, onContinue }: Props) {
         <RoleCard
           selected={value === "provider"}
           onClick={() => onChange("provider")}
-          tone="saffron"
+          tone="magenta"
           icon={<Briefcase />}
           title={t("auth.register.role.provider.title")}
           description={t("auth.register.role.provider.desc")}
         />
       </div>
-      <Button
+      <MagneticButton
         variant="primary"
         size="lg"
         className="w-full"
@@ -44,7 +45,7 @@ export function RegisterRolePicker({ value, onChange, onContinue }: Props) {
         onClick={onContinue}
       >
         {t("auth.register.role.continue")}
-      </Button>
+      </MagneticButton>
     </div>
   );
 }
@@ -59,39 +60,62 @@ function RoleCard({
 }: {
   selected: boolean;
   onClick: () => void;
-  tone: "caspian" | "saffron";
+  tone: "violet" | "magenta";
   icon: ReactNode;
   title: string;
   description: string;
 }) {
+  const accent =
+    tone === "violet"
+      ? {
+          iconBg: "bg-gradient-to-br from-violet-500 to-violet-700",
+          iconGlow: "shadow-[var(--sh-glow-violet)]",
+        }
+      : {
+          iconBg: "bg-gradient-to-br from-magenta-500 to-magenta-700",
+          iconGlow: "shadow-[var(--sh-glow-magenta)]",
+        };
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      className={cn(
-        "text-left rounded-xl border p-4 transition-colors flex flex-col gap-3",
-        selected
-          ? "border-caspian-500 bg-caspian-50/50"
-          : "border-border hover:border-ink-300",
-      )}
-    >
-      <span
+    <TiltCard max={6} scale={selected ? 1.03 : 1.02} glare>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={selected}
         className={cn(
-          "grid place-items-center size-10 rounded-[10px] [&_svg]:size-5",
-          tone === "caspian"
-            ? "bg-caspian-50 text-caspian-600"
-            : "bg-saffron-200/60 text-saffron-600",
+          "relative w-full text-left rounded-2xl p-5 flex flex-col gap-3.5 glass-strong",
+          "transition-all duration-300 focus:outline-none",
+          "border",
+          selected
+            ? "border-violet-500 shadow-[var(--sh-glow-violet)] scale-[1.02]"
+            : "border-border-strong hover:border-violet-500/40",
         )}
       >
-        {icon}
-      </span>
-      <div>
-        <div className="font-display font-semibold text-lg text-ink-900 leading-tight">
-          {title}
+        <span
+          className={cn(
+            "grid place-items-center size-12 rounded-xl text-white [&_svg]:size-5 transition-all",
+            accent.iconBg,
+            selected ? accent.iconGlow : "",
+          )}
+        >
+          {icon}
+        </span>
+        <div>
+          <div className="font-display font-semibold text-lg text-ink-900 leading-tight">
+            {title}
+          </div>
+          <div className="text-sm text-ink-500 mt-1 leading-relaxed">
+            {description}
+          </div>
         </div>
-        <div className="text-sm text-ink-500 mt-1">{description}</div>
-      </div>
-    </button>
+        {selected ? (
+          <span
+            aria-hidden
+            className="absolute top-3 right-3 grid place-items-center size-5 rounded-full bg-violet-500 text-white text-[10px] font-bold shadow-[var(--sh-glow-violet)]"
+          >
+            ✓
+          </span>
+        ) : null}
+      </button>
+    </TiltCard>
   );
 }

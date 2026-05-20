@@ -1,10 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
+import { Check, MessageCircle, Star } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { RatingStars } from "@/components/ui/rating-stars";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 import {
   InstagramIcon,
   TelegramIcon,
@@ -59,95 +59,133 @@ export function ProfileHero({ provider, availableToday }: Props) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col md:flex-row gap-4 md:gap-6 items-center md:items-start text-center md:text-left"
+      className="glass-strong rounded-2xl border border-border-strong p-5 sm:p-6 md:p-7 relative overflow-hidden"
     >
-      <Avatar
-        name={provider.name}
-        id={provider.id}
-        imageUrl={provider.avatar}
-        size="xl"
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-10 size-56 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(155,108,246,0.20), transparent 70%)",
+        }}
       />
-
-      <div className="flex-1 flex flex-col gap-2.5 md:gap-3 min-w-0 w-full">
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 min-w-0">
-          <h1 className="font-display font-semibold text-[26px] md:text-3xl lg:text-4xl text-ink-900 tracking-[-0.015em] leading-tight break-words min-w-0">
-            {provider.name}
-          </h1>
-          <div className="flex items-center gap-1.5 flex-wrap justify-center">
-            {provider.verified ? (
-              <Badge variant="verified">{t("provider.verified")}</Badge>
-            ) : null}
-            {availableToday ? (
-              <Badge variant="success-soft" pulse>
-                {t("provider.freeToday")}
-              </Badge>
-            ) : null}
-          </div>
+      <div className="relative flex flex-col md:flex-row gap-4 md:gap-6 items-center md:items-start text-center md:text-left">
+        <div className="relative shrink-0">
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full ring-2 ring-violet-500/60 ring-offset-2 ring-offset-bg shadow-[var(--sh-glow-violet)]"
+          />
+          <Avatar
+            name={provider.name}
+            id={provider.id}
+            imageUrl={provider.avatar}
+            size="xl"
+          />
+          {availableToday ? (
+            <motion.span
+              aria-label={t("provider.freeToday")}
+              animate={{ scale: [1, 1.18, 1], opacity: [1, 0.7, 1] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute bottom-1 right-1 size-3.5 rounded-full bg-success-500 ring-2 ring-bg shadow-[var(--sh-glow-cyan)]"
+            />
+          ) : null}
         </div>
 
-        <p className="text-ink-500 text-sm md:text-base">
-          {sublineParts.join(" · ")}
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-ink-500">
-          <RatingStars value={provider.rating} size={16} />
-          <b className="text-ink-900 font-mono">
-            {provider.rating.toFixed(1)}
-          </b>
-          <span aria-hidden className="text-ink-300">
-            ·
-          </span>
-          <span>{reviewsText}</span>
-        </div>
-
-        {hasAnyContact ? (
-          <div className="flex items-center justify-center md:justify-start gap-2">
-            {waHref ? (
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="WhatsApp"
-                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
-              >
-                <MessageCircle className="size-4" />
-              </a>
-            ) : null}
-            {tgHref ? (
-              <a
-                href={tgHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Telegram"
-                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
-              >
-                <TelegramIcon className="size-4" />
-              </a>
-            ) : null}
-            {igHref ? (
-              <a
-                href={igHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Instagram"
-                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
-              >
-                <InstagramIcon className="size-4" />
-              </a>
-            ) : null}
-            {ttHref ? (
-              <a
-                href={ttHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="TikTok"
-                className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-ink-50 text-ink-700 hover:bg-ink-100 transition-colors"
-              >
-                <TikTokIcon className="size-4" />
-              </a>
-            ) : null}
+        <div className="flex-1 flex flex-col gap-2.5 md:gap-3 min-w-0 w-full">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 min-w-0">
+            <h1 className="font-display font-semibold text-[26px] md:text-3xl lg:text-4xl text-ink-900 tracking-[-0.015em] leading-tight break-words min-w-0">
+              {provider.name}
+            </h1>
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              {provider.verified ? (
+                <span
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-xs font-semibold text-ink-900 glow-gold bg-gradient-to-br from-gold-500 via-gold-600 to-magenta-500"
+                  title={t("provider.verified")}
+                >
+                  <Check className="size-3.5" strokeWidth={2.5} />
+                  {t("provider.verified")}
+                </span>
+              ) : null}
+              {availableToday ? (
+                <span className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-success-500/15 border border-success-500/30 text-success-500 text-xs font-medium">
+                  <span className="size-1.5 rounded-full bg-success-500 animate-pulse" />
+                  {t("provider.freeToday")}
+                </span>
+              ) : null}
+            </div>
           </div>
-        ) : null}
+
+          <p className="text-ink-500 text-sm md:text-base">
+            {sublineParts.join(" · ")}
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-ink-500">
+            <span className="text-gold-400 inline-flex">
+              <RatingStars value={provider.rating} size={16} />
+            </span>
+            <AnimatedCounter
+              to={Math.round(provider.rating * 10)}
+              format={(v) => (v / 10).toFixed(1)}
+              className="text-ink-900 font-mono font-semibold"
+            />
+            <span aria-hidden className="text-ink-400">
+              ·
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Star className="size-3 text-gold-400" strokeWidth={2} />
+              {reviewsText}
+            </span>
+          </div>
+
+          {hasAnyContact ? (
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              {waHref ? (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="WhatsApp"
+                  className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-surface-2/80 border border-border-strong text-ink-700 hover:text-ink-900 hover:border-violet-500/60 hover:shadow-[var(--sh-glow-violet)] transition-all"
+                >
+                  <MessageCircle className="size-4" />
+                </a>
+              ) : null}
+              {tgHref ? (
+                <a
+                  href={tgHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Telegram"
+                  className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-surface-2/80 border border-border-strong text-ink-700 hover:text-ink-900 hover:border-violet-500/60 hover:shadow-[var(--sh-glow-violet)] transition-all"
+                >
+                  <TelegramIcon className="size-4" />
+                </a>
+              ) : null}
+              {igHref ? (
+                <a
+                  href={igHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-surface-2/80 border border-border-strong text-ink-700 hover:text-ink-900 hover:border-violet-500/60 hover:shadow-[var(--sh-glow-violet)] transition-all"
+                >
+                  <InstagramIcon className="size-4" />
+                </a>
+              ) : null}
+              {ttHref ? (
+                <a
+                  href={ttHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="TikTok"
+                  className="inline-grid place-items-center size-11 md:size-9 rounded-full bg-surface-2/80 border border-border-strong text-ink-700 hover:text-ink-900 hover:border-violet-500/60 hover:shadow-[var(--sh-glow-violet)] transition-all"
+                >
+                  <TikTokIcon className="size-4" />
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </motion.section>
   );

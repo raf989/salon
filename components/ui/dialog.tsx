@@ -59,11 +59,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
             // Opaque dark vail does the hiding (works everywhere); the
             // inline backdrop-filter adds blur on Chromium/WebKit. Older
             // Firefox without backdrop-filter still gets the dark layer.
-            className="absolute inset-0 bg-ink-900/80"
-            style={{
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-            }}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -74,7 +70,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
             aria-modal="true"
             aria-label={title}
             className={cn(
-              "relative w-full max-w-lg bg-surface rounded-[16px] shadow-[0_24px_48px_rgba(14,13,11,0.12)] p-6",
+              "relative w-full max-w-lg overflow-hidden bg-surface-2/85 backdrop-blur-xl border border-border-strong rounded-2xl shadow-[var(--sh-4)] p-6",
               className,
             )}
             initial={{ opacity: 0, scale: 0.96 }}
@@ -83,6 +79,14 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Aurora glow accent at the top of the modal */}
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500 to-transparent"
+              initial={{ opacity: 0, scaleX: 0.4 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            />
             <div className="flex items-start justify-between mb-4 gap-4">
               {title ? (
                 <h2 className="font-display font-semibold text-2xl text-ink-900 leading-tight">
@@ -95,7 +99,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
                 type="button"
                 onClick={onClose}
                 aria-label={t("common.close")}
-                className="text-ink-500 hover:text-ink-900 transition-colors p-1.5 rounded-md hover:bg-ink-50 -mt-1 -mr-1"
+                className="text-ink-500 hover:text-violet-400 transition-colors p-1.5 rounded-md hover:bg-surface-2 -mt-1 -mr-1"
               >
                 <X className="size-4" />
               </button>

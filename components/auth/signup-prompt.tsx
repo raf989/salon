@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Dialog } from "@/components/ui/dialog";
+import { MagneticButton } from "@/components/ui/magnetic-button";
+import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 
 type Props = {
@@ -19,24 +21,30 @@ type Props = {
 export function SignupPrompt({ open, onClose }: Props) {
   const { t } = useT();
   return (
-    <Dialog open={open} onClose={onClose} title={t("auth.required.title")}>
-      <p className="text-sm text-ink-600 leading-relaxed">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("auth.required.title")}
+      className="glass-strong rounded-2xl"
+    >
+      <p className="text-sm text-ink-500 leading-relaxed">
         {t("auth.required.body")}
       </p>
-      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Link
-          href="/login"
-          onClick={onClose}
-          className="inline-flex h-10 items-center justify-center rounded-[10px] border border-border-strong px-5 text-sm font-semibold text-ink-800 transition-colors hover:bg-ink-50"
-        >
-          {t("auth.required.login")}
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:items-center">
+        <Link href="/login" onClick={onClose} className="sm:inline-flex">
+          <Button variant="ghost" size="lg" className="w-full sm:w-auto">
+            {t("auth.required.login")}
+          </Button>
         </Link>
-        <Link
-          href="/register"
-          onClick={onClose}
-          className="inline-flex h-10 items-center justify-center rounded-[10px] bg-caspian-500 px-5 text-sm font-semibold text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] transition-colors hover:bg-caspian-600"
-        >
-          {t("auth.required.signUp")}
+        <Link href="/register" onClick={onClose} className="sm:inline-flex">
+          <MagneticButton
+            variant="primary"
+            size="lg"
+            className="w-full sm:w-auto"
+            type="button"
+          >
+            {t("auth.required.signUp")}
+          </MagneticButton>
         </Link>
       </div>
     </Dialog>

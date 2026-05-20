@@ -14,43 +14,75 @@ export type Localized = { az: string; ru: string };
 
 export type ProviderKind =
   | "photographer"
+  | "videographer"
   | "dj"
+  | "band"
   | "restaurant"
+  | "catering"
   | "host"
+  | "decorator"
+  | "florist"
   | "barber"
   | "salon"
-  | "makeup";
+  | "makeup"
+  | "nails"
+  | "brows"
+  | "cosmetologist";
 
 export type ProviderTier = "event" | "beauty";
 
 export const PROVIDER_TIER_OF: Record<ProviderKind, ProviderTier> = {
   photographer: "event",
+  videographer: "event",
   dj: "event",
+  band: "event",
   restaurant: "event",
+  catering: "event",
   host: "event",
+  decorator: "event",
+  florist: "event",
   barber: "beauty",
   salon: "beauty",
   makeup: "beauty",
+  nails: "beauty",
+  brows: "beauty",
+  cosmetologist: "beauty",
 };
 
 export const KIND_LABELS: Record<ProviderKind, Localized> = {
   photographer: { az: "Fotoqraf", ru: "Фотограф" },
+  videographer: { az: "Videooperator", ru: "Видеооператор" },
   dj: { az: "DJ", ru: "DJ" },
+  band: { az: "Canlı musiqi", ru: "Живая музыка" },
   restaurant: { az: "Restoran", ru: "Ресторан" },
+  catering: { az: "Keytering", ru: "Кейтеринг" },
   host: { az: "Aparıcı", ru: "Ведущий" },
+  decorator: { az: "Dekorator", ru: "Декоратор" },
+  florist: { az: "Florist", ru: "Флорист" },
   barber: { az: "Barber", ru: "Барбер" },
   salon: { az: "Salon", ru: "Салон" },
   makeup: { az: "Vizajist", ru: "Визажист" },
+  nails: { az: "Manikür ustası", ru: "Маникюрист" },
+  brows: { az: "Qaş və kirpik", ru: "Брови и ресницы" },
+  cosmetologist: { az: "Kosmetoloq", ru: "Косметолог" },
 };
 
 export const KIND_PLURAL: Record<ProviderKind, Localized> = {
   photographer: { az: "Fotoqraflar", ru: "Фотографы" },
-  dj: { az: "DJ-lər və aparıcılar", ru: "DJ и ведущие" },
+  videographer: { az: "Videooperatorlar", ru: "Видеооператоры" },
+  dj: { az: "DJ-lər", ru: "DJ-и" },
+  band: { az: "Canlı musiqi qrupları", ru: "Живая музыка" },
   restaurant: { az: "Restoranlar", ru: "Рестораны" },
+  catering: { az: "Keytering", ru: "Кейтеринг" },
   host: { az: "Aparıcılar", ru: "Ведущие" },
-  barber: { az: "Barberlər və salonlar", ru: "Барберы и салоны" },
+  decorator: { az: "Dekoratorlar", ru: "Декораторы" },
+  florist: { az: "Floristlər", ru: "Флористы" },
+  barber: { az: "Barberlər", ru: "Барберы" },
   salon: { az: "Salonlar", ru: "Салоны" },
   makeup: { az: "Vizajistlər", ru: "Визажисты" },
+  nails: { az: "Manikür ustaları", ru: "Маникюрные мастера" },
+  brows: { az: "Qaş və kirpik ustaları", ru: "Мастера бровей и ресниц" },
+  cosmetologist: { az: "Kosmetoloqlar", ru: "Косметологи" },
 };
 
 export const CATEGORY_LABELS: Record<ServiceCategory, Localized> = {

@@ -51,7 +51,18 @@ export function HeartButton({ providerId, className }: Props) {
         aria-pressed={active}
         onClick={handleClick}
         whileTap={{ scale: 0.85 }}
-        animate={active ? { scale: [1, 1.25, 1] } : { scale: 1 }}
+        // The active-state "pop" is a 3-keyframe sequence ([1, 1.25, 1]) —
+        // spring/inertia transitions only support 2 keyframes, so this
+        // pulse needs its own tween. The component-level spring still
+        // drives whileTap. (Framer Motion error: "Only two keyframes…")
+        animate={
+          active
+            ? {
+                scale: [1, 1.25, 1],
+                transition: { duration: 0.3, ease: "easeOut" },
+              }
+            : { scale: 1 }
+        }
         transition={{ type: "spring", stiffness: 400, damping: 14 }}
         className={cn(
           "grid place-items-center transition-colors",

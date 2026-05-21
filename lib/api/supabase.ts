@@ -3,14 +3,23 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getFirebaseAuth } from "@/lib/firebase";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321";
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "stub-anon-key";
+const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.warn(
-    "[supabase] Running in stub mode — no backend. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real data.",
-  );
+if (!envUrl || !envKey) {
+  const msg =
+    "[supabase] NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.";
+  // Fail loud in a production build: shipping with no backend config means
+  // every read/write fails later with an opaque error. In dev we keep the
+  // stub so the UI shell still runs without a backend.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`${msg} Set them in the deployment environment.`);
+  }
+  console.warn(`${msg} Running in stub mode — no backend.`);
 }
+
+const url = envUrl || "http://localhost:54321";
+const anonKey = envKey || "stub-anon-key";
 
 // Auth model: Firebase Phone Auth is the source of truth. Supabase is
 // configured under Auth → Third-party providers → Firebase to trust the

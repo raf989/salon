@@ -24,6 +24,7 @@ import {
   useVersion,
   useVersions,
 } from "./shared";
+import { getTodayISO } from "@/lib/utils";
 
 // ---- row mappers ------------------------------------------------------------
 
@@ -223,7 +224,7 @@ export async function createTender(input: CreateTenderInput): Promise<Tender> {
     budget_min: input.budgetMin,
     budget_max: input.budgetMax,
     deadline: input.deadline,
-    opened_at: new Date().toISOString().slice(0, 10),
+    opened_at: getTodayISO(),
     event_date: input.eventDate ?? null,
     event_time: input.eventTime ?? null,
     tags: input.tags,
@@ -245,10 +246,16 @@ export async function submitBid(
   tenderId: string,
   input: CreateBidInput,
 ): Promise<TenderBid> {
+  if (!input.authorUserId) {
+    // Bidding requires a signed-in user — RLS (migration 011) rejects any
+    // tender_bids insert with a null author. Fail fast with a clear message
+    // instead of letting the caller hit a cryptic RLS error.
+    throw new Error("submitBid — sign-in required");
+  }
   // Pre-flight: refuse bids on past-deadline tenders and refuse duplicate
-  // bids from the same auth user. RLS is demo-open so the only safety net
-  // is here + a uniqueness constraint in migration 007. Both are needed:
-  // the constraint catches a race, this check produces a friendly message.
+  // bids from the same auth user. Both this and migration 007's uniqueness
+  // constraint are needed: the constraint catches a race, this check
+  // produces a friendly message.
   const { data: tenderRow, error: tenderErr } = await supabase
     .from("tenders")
     .select("deadline")
@@ -256,7 +263,7 @@ export async function submitBid(
     .maybeSingle();
   if (tenderErr) throw asError(tenderErr, "submitBid.lookup");
   if (!tenderRow) throw new Error("submitBid — tender not found");
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = getTodayISO();
   if ((tenderRow.deadline as string) < todayISO) {
     throw new Error("submitBid — deadline passed");
   }
@@ -276,7 +283,7 @@ export async function submitBid(
     id: makeId("b"),
     tender_id: tenderId,
     provider_id: input.providerId || null,
-    author_user_id: input.authorUserId ?? null,
+    author_user_id: input.authorUserId,
     provider_name: input.providerName,
     provider_avatar: input.providerAvatar ?? null,
     price: input.price,
@@ -340,17 +347,23 @@ export async function deleteTender(id: string): Promise<void> {
 }
 
 /**
- * Delete a bid by id. The bidder uses this to retract a pending offer; the
- * tender author can also remove unwanted bids. RLS-wide for the prototype
- * — when real auth lands, restrict to `author_user_id = auth.uid()` or to
- * the parent tender's author.
+ * Withdraw a bid. Only a still-`pending` bid may be retracted — the
+ * `status` filter closes the race where the tender author accepts the bid
+ * while the bidder's confirm dialog is open. A 0-row result means the bid
+ * was already accepted/rejected; we throw `BID_NOT_PENDING` so the UI can
+ * explain that instead of silently "succeeding".
  */
 export async function deleteBid(bidId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("tender_bids")
     .delete()
-    .eq("id", bidId);
+    .eq("id", bidId)
+    .eq("status", "pending")
+    .select("id");
   if (error) throw asError(error, "deleteBid");
+  if (!data || data.length === 0) {
+    throw new Error("BID_NOT_PENDING");
+  }
   useVersions.getState().bump("tenders");
 }
 

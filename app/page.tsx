@@ -399,7 +399,7 @@ function HomePageInner() {
 
 
 function EmptyState() {
-  const { t } = useT();
+  const { t, pickLocalized } = useT();
   // Decorative pulsing orbs around the icon — playful "scanning" feel.
   const orbs = [
     { d: 0.0, s: 1.0, x: -42, y: -22 },
@@ -464,17 +464,21 @@ function EmptyState() {
             {t("results.empty")}
           </p>
           <p className="text-sm text-ink-500">
-            Loosen the filters or peek into another city — the catalog is alive,
-            refreshing in real-time.
+            {pickLocalized({
+              az: "Filtrləri yumşalt və ya başqa şəhərə bax — kataloq canlıdır, real vaxtda yenilənir.",
+              ru: "Ослабь фильтры или загляни в другой город — каталог живой, обновляется в реальном времени.",
+            })}
           </p>
         </div>
 
         <div className="relative flex items-center gap-2 text-xs text-ink-500">
           <Sparkles className="size-3.5 text-gold-500" strokeWidth={1.8} />
-          <span>scanning vendors</span>
+          <span>
+            {pickLocalized({ az: "icraçılar axtarılır", ru: "ищем исполнителей" })}
+          </span>
           <span className="mx-1 size-[3px] rounded-full bg-ink-400" />
           <Compass className="size-3.5 text-cyan-400" strokeWidth={1.8} />
-          <span>matching radius +5km</span>
+          <span>{pickLocalized({ az: "radius +5 km", ru: "радиус +5 км" })}</span>
         </div>
       </Card>
     </motion.div>

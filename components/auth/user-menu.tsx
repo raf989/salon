@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -14,6 +15,7 @@ type Props = { user: AuthUser };
 
 export function UserMenu({ user }: Props) {
   const { t } = useT();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -44,9 +46,15 @@ export function UserMenu({ user }: Props) {
     };
   }, [open]);
 
-  function handleLogout() {
-    void signOut();
+  async function handleLogout() {
     setOpen(false);
+    try {
+      await signOut();
+    } finally {
+      // Leave the page the logged-out user can no longer be on (dashboard,
+      // my-bids, favorites). `replace` so Back doesn't return them there.
+      router.replace("/");
+    }
   }
 
   return (

@@ -21,7 +21,6 @@ import {
   useProvidersWithStatus,
 } from "@/lib/api/repo";
 import { hasFreeSlotOnDate } from "@/lib/availability";
-import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
 import { useNow } from "@/lib/use-now";
 import { KIND_PLURAL, type Provider } from "@/lib/types";
 import { getTodayISO } from "@/lib/utils";
@@ -50,43 +49,21 @@ function ProviderPageInner({ id }: { id: string }) {
     return () => clearTimeout(t);
   }, [loaded]);
   const [booking, setBooking] = useState<Provider | null>(null);
-  // Appointments need the real provider id; derive it once provider resolves.
-  const apptId = provider?.id;
-  const appointments = useAppointments(
-    apptId ? { stylistId: apptId } : undefined,
-  );
+  const todayISO = getTodayISO();
+  // Today's appointments across every provider — feeds both this provider's
+  // "free today" badge and the similar-provider cards below. Scoping the
+  // fetch to one stylist would leave the similar cards blind to bookings.
+  const appointments = useAppointments({ date: todayISO });
   // All providers for the "similar providers" section.
   const { providers: allProviders } = useProvidersWithStatus();
-  const todayISO = getTodayISO();
   // Shared 30-second clock — keeps the "free today" badge honest on a
   // long-open profile page.
   const now = useNow();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const availableToday = useMemo<boolean>(() => {
     if (!provider) return false;
-    const slots = generateSlots(
-      provider.workingHours.start,
-      provider.workingHours.end,
-    );
-    const taken = new Set(
-      appointments
-        .filter(
-          (a) =>
-            a.stylistId === provider.id &&
-            a.date === todayISO &&
-            a.status !== "cancelled",
-        )
-        .map((a) => a.time),
-    );
-    return slots.some((time) => {
-      if (isInBreak(time, provider.breaks)) return false;
-      if (taken.has(time)) return false;
-      if (isSlotPast(toMinutes(time), nowMinutes, provider.workingHours.start))
-        return false;
-      return true;
-    });
-  }, [provider, appointments, todayISO, nowMinutes]);
+    return hasFreeSlotOnDate(provider, todayISO, appointments, todayISO, now);
+  }, [provider, appointments, todayISO, now]);
 
   const similar = useMemo<Provider[]>(() => {
     if (!provider) return [];
@@ -160,7 +137,7 @@ function ProviderPageInner({ id }: { id: string }) {
         >
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-display font-semibold text-2xl text-ink-900 tracking-tight">
-              Similar providers
+              {t("provider.similar")}
             </h2>
           </div>
           {similar.length >= 4 ? (

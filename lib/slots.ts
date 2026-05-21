@@ -77,23 +77,39 @@ export function isWithinHours(
 }
 
 /**
- * Is a slot at `slotMin` in the past relative to `nowMin`, given the day's
- * working window starts at `workingStart`? Both numbers are minutes since
- * midnight; the comparison wraps around the day so an early-morning slot
- * (e.g. 00:30) is correctly future when `now` is 22:00 the previous evening
- * — both belong to the same overnight working window.
+ * Is a slot at `slotMin` in the past relative to `nowMin`? Includes "right
+ * now" in the past set (a slot equal to `nowMin` is disabled).
  *
- * Includes "right now" in the past set (so a slot equal to `nowMin` is
- * disabled), matching the legacy behaviour the booking UI relied on.
+ * The earlier offset-only implementation had a bug: when `now` fell *before*
+ * the working day started, every slot's offset-from-start was smaller than
+ * `now`'s wrapped offset, so the whole day read as "past" — providers looked
+ * fully booked every morning before they opened. Same-day windows are now
+ * handled with a plain wall-clock compare; the offset trick is kept only for
+ * genuine overnight ranges (e.g. a DJ working 20:00–04:00).
  */
 export function isSlotPast(
   slotMin: number,
   nowMin: number,
   workingStart: string,
+  workingEnd: string,
 ): boolean {
   const startMin = toMinutes(workingStart);
+  const endMin = toMinutes(workingEnd);
+
+  // Same-day working window — the overwhelmingly common case. A slot is in
+  // the past once its wall-clock time has reached or passed `now`; before
+  // the day starts (now < start) nothing is past.
+  if (startMin <= endMin) {
+    return slotMin <= nowMin;
+  }
+
+  // Overnight window (start > end). Rank the slot and `now` by offset from
+  // the window start so an after-midnight slot sorts after an evening one.
+  // When `now` is outside the window (the daytime gap), nothing has passed.
   const day = 24 * 60;
-  const slotOff = (slotMin - startMin + day) % day;
+  const span = day - startMin + endMin;
   const nowOff = (nowMin - startMin + day) % day;
+  if (nowOff >= span) return false;
+  const slotOff = (slotMin - startMin + day) % day;
   return slotOff <= nowOff;
 }

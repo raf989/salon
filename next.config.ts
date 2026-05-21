@@ -16,6 +16,29 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Baseline security headers applied to every response. (A full CSP is
+  // intentionally omitted — the app's inline styles + Firebase/Supabase/
+  // reCAPTCHA origins make a correct policy fragile; these four are the
+  // safe, high-value wins.)
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

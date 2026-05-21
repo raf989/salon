@@ -5,10 +5,10 @@ import type { Localized } from "./types";
 
 export const DICT = {
   // brand
-  "brand.name": { az: "Vaxt", ru: "Vaxt" },
-  "brand.homeAria": { az: "Vaxt ana səhifə", ru: "Vaxt — на главную" },
+  "brand.name": { az: "BRONELE", ru: "BRONELE" },
+  "brand.homeAria": { az: "BRONELE ana səhifə", ru: "BRONELE — на главную" },
 
-  // header / nav (Vaxt structure)
+  // header / nav (BRONELE structure)
   "nav.catalog": { az: "Kataloq", ru: "Каталог" },
   "nav.tenders": { az: "Tenderlər", ru: "Тендеры" },
   "nav.favorites": { az: "Seçilmişlər", ru: "Избранное" },
@@ -20,6 +20,9 @@ export const DICT = {
     az: "Sənin göndərdiyin təkliflərin tarixi.",
     ru: "История твоих предложений на тендеры.",
   },
+  "myBids.stat.total": { az: "Cəmi", ru: "Всего" },
+  "myBids.stat.accepted": { az: "Qəbul edilib", ru: "Принято" },
+  "myBids.stat.pending": { az: "Gözləyir", ru: "В ожидании" },
   "myBids.empty.title": {
     az: "Hələ təklif göndərməmisən",
     ru: "Пока нет ни одной ставки",
@@ -55,6 +58,7 @@ export const DICT = {
     az: "Saxladığın icraçılar və tenderlər burada.",
     ru: "Сохранённые исполнители и тендеры в одном месте.",
   },
+  "favorites.saved": { az: "saxlanılıb", ru: "сохранено" },
   "favorites.section.providers": { az: "İcraçılar", ru: "Исполнители" },
   "favorites.section.tenders": { az: "Tenderlər", ru: "Тендеры" },
   "favorites.section.myBids": { az: "Mənim təkliflərim", ru: "Мои ставки" },
@@ -208,6 +212,18 @@ export const DICT = {
     ru: "удалить перерыв",
   },
   "dash.avail.breaks.add": { az: "Əlavə et", ru: "Добавить" },
+  "dash.avail.breaks.error.order": {
+    az: "Bitmə vaxtı başlama vaxtından sonra olmalıdır",
+    ru: "Время конца должно быть позже начала",
+  },
+  "dash.avail.breaks.error.bounds": {
+    az: "Fasilə iş saatları çərçivəsində olmalıdır",
+    ru: "Перерыв должен быть в рамках рабочих часов",
+  },
+  "dash.avail.breaks.error.overlap": {
+    az: "Fasilə başqa fasilə ilə üst-üstə düşür",
+    ru: "Перерыв пересекается с другим",
+  },
   "dash.avail.save": { az: "Yadda saxla", ru: "Сохранить" },
   "dash.avail.saved": { az: "Yeniləndi", ru: "Сохранено" },
   "dash.avail.edit": { az: "Redaktə et", ru: "Редактировать" },
@@ -285,7 +301,7 @@ export const DICT = {
   "dash.ach.ten": { az: "10 bron", ru: "10 бронирований" },
   "dash.ach.fiveStar": { az: "5★ reytinq", ru: "5★ рейтинг" },
   "dash.ach.hundred": { az: "100 bron", ru: "100 бронирований" },
-  "dash.ach.year": { az: "1 il Vaxt-da", ru: "1 год на Vaxt" },
+  "dash.ach.year": { az: "1 il BRONELE-də", ru: "1 год на BRONELE" },
 
   // weekday short labels (index 0=Sun)
   "weekday.short.0": { az: "B", ru: "Вс" },
@@ -346,6 +362,7 @@ export const DICT = {
   // provider page
   "provider.verified": { az: "Doğrulandı", ru: "Проверенный" },
   "provider.freeToday": { az: "Bu gün boş", ru: "Свободна сегодня" },
+  "provider.similar": { az: "Oxşar icraçılar", ru: "Похожие исполнители" },
   "provider.experienceYears": { az: "il təcrübə", ru: "лет опыта" },
   "provider.reviewsCount": { az: "{n} rəy", ru: "{n} отзывов" },
   "provider.priceFrom": { az: "minimum", ru: "от" },
@@ -394,10 +411,22 @@ export const DICT = {
   "meta.minPriceSuffix": { az: "minimum", ru: "от" },
 
   // common
-  "common.city.baku": { az: "Bakı", ru: "Bakı" },
+  "common.city.baku": { az: "Bakı", ru: "Баку" },
 
   // crumbs
   "crumbs.catalog": { az: "Kataloq", ru: "Каталог" },
+
+  // 404 / not-found
+  "notFound.title": {
+    az: "Bu səhifə yoxa çıxıb",
+    ru: "Эта страница исчезла",
+  },
+  "notFound.body": {
+    az: "Bəlkə icraçı profilini dəyişib, bəlkə yanlış döndün — kataloq bir klik uzaqdadır.",
+    ru: "Может, исполнитель перенёс профиль, может, вы свернули не туда — каталог в одном клике.",
+  },
+  "notFound.back": { az: "Kataloqa qayıt", ru: "Вернуться в каталог" },
+  "notFound.searchHint": { az: "yaxud bas", ru: "или нажми" },
 
   // dashboard — loading + no-provider recovery states
   "dash.loadingProfile": {
@@ -529,6 +558,18 @@ export const DICT = {
   "tenders.bidsCount": { az: "{n} təklif", ru: "{n} ставки" },
   "tenders.budget": { az: "Büdcə", ru: "Бюджет" },
   "tenders.deadline": { az: "Son tarix", ru: "Дедлайн" },
+  "tenders.deadline.closed": { az: "Bağlandı", ru: "Завершён" },
+  "tenders.deadline.today": {
+    az: "Bu gün bağlanır",
+    ru: "Закрывается сегодня",
+  },
+  "tenders.deadline.inDays": { az: "{n} gün qalıb", ru: "Осталось {n} дн." },
+  "tenders.stats.open": { az: "açıq tender", ru: "открытых тендеров" },
+  "tenders.stats.vendors": {
+    az: "aktiv icraçı",
+    ru: "активных исполнителей",
+  },
+  "tenders.hot": { az: "İndi aktual tenderlər", ru: "Горячие тендеры" },
   "tenders.eventDate": { az: "Tarix", ru: "Дата" },
   "tenders.author": { az: "Müştəri", ru: "Заказчик" },
   "tenders.bidPanel.title": {
@@ -676,12 +717,24 @@ export const DICT = {
     az: "Düzgün nömrə daxil edin",
     ru: "Введите корректный номер",
   },
+  "auth.login.error.noProfile": {
+    az: "Profil tapılmadı. Zəhmət olmasa yenidən qeydiyyatdan keçin.",
+    ru: "Профиль не найден. Пожалуйста, зарегистрируйтесь заново.",
+  },
+  "auth.error.network": {
+    az: "Şəbəkə xətası. İnternet bağlantınızı yoxlayın.",
+    ru: "Ошибка сети. Проверьте подключение к интернету.",
+  },
+  "auth.error.generic": {
+    az: "Xəta baş verdi. Yenidən cəhd edin.",
+    ru: "Произошла ошибка. Попробуйте ещё раз.",
+  },
 
   // auth — register shell
   "auth.register.title": { az: "Qeydiyyat", ru: "Регистрация" },
   "auth.register.subtitle": {
-    az: "Vaxt-da hesab yaradın",
-    ru: "Создайте аккаунт на Vaxt",
+    az: "BRONELE-də hesab yaradın",
+    ru: "Создайте аккаунт на BRONELE",
   },
   "auth.register.haveAccount": {
     az: "Hesabınız var?",
@@ -817,8 +870,8 @@ export const DICT = {
   // auth — success
   "auth.success.title": { az: "Hesab yaradıldı", ru: "Аккаунт создан" },
   "auth.success.subtitle.client": {
-    az: "Vaxt-a xoş gəlmisiniz!",
-    ru: "Добро пожаловать на Vaxt!",
+    az: "BRONELE-yə xoş gəlmisiniz!",
+    ru: "Добро пожаловать на BRONELE!",
   },
   "auth.success.subtitle.provider": {
     az: "İndi profilinizi tamamlayın",

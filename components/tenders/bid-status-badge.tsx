@@ -6,12 +6,11 @@ import type { TenderBidStatus } from "@/lib/types";
 
 // Dark Midnight Aurora palette per status.
 // `accepted` gets a subtle success glow for emphasis.
-const CLASS_BY_STATUS: Record<TenderBidStatus | "withdrawn", string> = {
+const CLASS_BY_STATUS: Record<TenderBidStatus, string> = {
   pending: "bg-gold-500/15 text-gold-400 border-gold-500/30",
   accepted:
     "bg-success-500/15 text-success-500 border-success-500/30 shadow-[0_0_12px_rgba(45,232,155,0.25)]",
   rejected: "bg-danger-500/15 text-danger-500 border-danger-500/30",
-  withdrawn: "bg-ink-100 text-ink-500 border-ink-200",
 };
 
 const LABEL_KEY_BY_STATUS = {

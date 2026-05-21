@@ -64,7 +64,7 @@ export async function generateMetadata({
       title,
       description,
       type: "profile",
-      siteName: "Vaxt",
+      siteName: "BRONELE",
     },
     twitter: {
       card: "summary_large_image",

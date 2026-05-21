@@ -5,10 +5,12 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Compass, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
+import { useT } from "@/lib/i18n";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 export default function NotFound() {
+  const { t } = useT();
   return (
     <main className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-20 overflow-hidden text-center">
       {/* Backdrop aurora */}
@@ -62,7 +64,7 @@ export default function NotFound() {
           transition={{ duration: 0.6, delay: 0.6, ease: EASE_OUT }}
           className="mt-6 font-display font-semibold text-2xl md:text-3xl text-ink-900"
         >
-          Bu səhifə yoxa çıxıb · Эта страница исчезла
+          {t("notFound.title")}
         </motion.h1>
 
         <motion.p
@@ -71,8 +73,7 @@ export default function NotFound() {
           transition={{ duration: 0.6, delay: 0.7, ease: EASE_OUT }}
           className="mt-3 text-ink-500 max-w-md"
         >
-          Maybe the vendor moved their profile, maybe you took a wrong turn —
-          either way, the catalog is one click away.
+          {t("notFound.body")}
         </motion.p>
 
         {/* Decorative orbiting hints */}
@@ -85,17 +86,17 @@ export default function NotFound() {
           <Link href="/">
             <Button variant="primary" size="md">
               <ArrowLeft className="size-4" strokeWidth={2} />
-              Back to catalog
+              {t("notFound.back")}
             </Button>
           </Link>
           <Link href="/tenders">
             <Button variant="ghost" size="md">
               <Compass className="size-4" strokeWidth={1.8} />
-              Browse tenders
+              {t("nav.tenders")}
             </Button>
           </Link>
           <span className="inline-flex items-center gap-1.5 text-xs text-ink-500 font-mono">
-            or hit{" "}
+            {t("notFound.searchHint")}{" "}
             <kbd className="inline-flex items-center px-1.5 py-0.5 rounded-md border border-border-strong bg-bg-elevated/40 text-[10px] text-ink-300">
               ⌘ K
             </kbd>

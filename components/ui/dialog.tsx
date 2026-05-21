@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { lockBodyScroll } from "@/lib/scroll-lock";
+
+// Elements that can receive keyboard focus — used to trap Tab inside the
+// dialog so keyboard / screen-reader users can't wander into the page behind.
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), ' +
+  'select:not([disabled]), textarea:not([disabled]), ' +
+  '[tabindex]:not([tabindex="-1"])';
 
 export type DialogProps = {
   open: boolean;
@@ -27,17 +35,59 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
     setMounted(true);
   }, []);
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // While open: lock body scroll (ref-counted), trap focus inside the
+  // dialog, handle Escape, and restore focus to the trigger on close.
   useEffect(() => {
     if (!open) return;
+    const releaseScroll = lockBodyScroll();
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    const focusables = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          FOCUSABLE_SELECTOR,
+        ) ?? [],
+      ).filter((el) => el.offsetParent !== null);
+
+    // Move focus into the dialog once the portal has mounted.
+    const raf = requestAnimationFrame(() => {
+      (focusables()[0] ?? dialogRef.current)?.focus();
+    });
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      const node = dialogRef.current;
+      if (!node) return;
+      if (items.length === 0) {
+        e.preventDefault();
+        node.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !node.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !node.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
+      cancelAnimationFrame(raf);
+      releaseScroll();
+      // Restore focus to whatever opened the dialog.
+      previouslyFocused?.focus?.();
     };
   }, [open, onClose]);
 
@@ -66,9 +116,11 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
             exit={{ opacity: 0 }}
           />
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            tabIndex={-1}
             className={cn(
               "relative w-full max-w-lg overflow-hidden bg-surface-2/85 backdrop-blur-xl border border-border-strong rounded-2xl shadow-[var(--sh-4)] p-6",
               className,

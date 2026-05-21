@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 // resolves the phone to its synthetic email and signs in with the
 // Email/Password provider, returning the same UID phone auth created.
 export function LoginForm() {
-  const { t, pickLocalized } = useT();
+  const { t } = useT();
   const router = useRouter();
   const cacheProfile = useStore((s) => s.cacheProfile);
 
@@ -41,11 +41,17 @@ export function LoginForm() {
     try {
       const cred = await signInWithPhonePassword(normalized, password);
       // Fetch the profile from the server — works on any device, not just
-      // the registration one. Cache it so the rest of the app
-      // (`useCurrentUser()`, header) sees it immediately, then route by role.
+      // the registration one. A network failure throws (handled below); a
+      // `null` means the account has no profile row (half-provisioned —
+      // registration's profile step never completed). Don't guess a role:
+      // surface a clear message rather than silently routing them to "/".
       const profile = await getUserProfile(cred.user.uid);
-      if (profile) cacheProfile(profile);
-      router.push(profile?.role === "provider" ? "/dashboard" : "/");
+      if (!profile) {
+        setError(t("auth.login.error.noProfile"));
+        return;
+      }
+      cacheProfile(profile);
+      router.push(profile.role === "provider" ? "/dashboard" : "/");
     } catch (err) {
       if (err instanceof FirebaseError) {
         // Firebase collapses "user not found" and "wrong password" into
@@ -61,21 +67,18 @@ export function LoginForm() {
           setError(t("auth.otp.error.tooManyRequests"));
         } else if (err.code === "auth/user-disabled") {
           setError(t("auth.login.error.notVerified"));
+        } else if (err.code === "auth/network-request-failed") {
+          setError(t("auth.error.network"));
         } else {
-          setError(err.message);
+          setError(t("auth.error.generic"));
         }
       } else {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(t("auth.error.generic"));
       }
     } finally {
       setSubmitting(false);
     }
   }
-
-  const forgotLabel = pickLocalized({
-    az: "Şifrəni unutmusan?",
-    ru: "Забыли пароль?",
-  });
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
@@ -131,15 +134,6 @@ export function LoginForm() {
       >
         {submitting ? t("auth.otp.checking") : t("auth.login.submit")}
       </MagneticButton>
-
-      <div className="flex items-center justify-center">
-        <Link
-          href="/login?recover=1"
-          className="text-xs text-ink-500 hover:text-violet-400 transition-colors"
-        >
-          {forgotLabel}
-        </Link>
-      </div>
 
       <p className="text-sm text-ink-500 text-center mt-2">
         {t("auth.login.noAccount")}{" "}

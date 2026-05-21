@@ -25,14 +25,20 @@ import { createClient } from "@supabase/supabase-js";
 // later, storage ownership moves to a signed-URL or edge-function flow.
 // =============================================================================
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "stub-anon-key";
+const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.warn(
-    "[storage] Running in stub mode — uploads will fail at runtime. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real storage.",
-  );
+if (!envUrl || !envKey) {
+  const msg =
+    "[storage] NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.";
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`${msg} Set them in the deployment environment.`);
+  }
+  console.warn(`${msg} Running in stub mode — uploads will fail at runtime.`);
 }
+
+const SUPABASE_URL = envUrl || "http://localhost:54321";
+const SUPABASE_ANON_KEY = envKey || "stub-anon-key";
 
 const storageClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false },

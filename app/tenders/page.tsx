@@ -8,10 +8,10 @@ import {
   SkeletonTenderCard,
   SkeletonTenderCardCompact,
 } from "@/components/ui/skeleton";
-import { useCurrentUser } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { useAuthResolved } from "@/lib/auth";
 import { useT, type DictKey } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn, getTodayISO } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Crumbs } from "@/components/ui/crumbs";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -27,37 +27,41 @@ type FilterKey = "all" | "event" | "mine";
 
 const FILTER_KEYS: ReadonlyArray<FilterKey> = ["all", "event", "mine"];
 
-// ms remaining → human readable urgency label
-function formatRemaining(ms: number): { text: string; urgent: boolean } {
-  if (ms <= 0) return { text: "Closed", urgent: false };
-  const minutes = Math.floor(ms / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (days >= 1) return { text: `Closes in ${days}d`, urgent: false };
-  if (hours >= 1) {
-    const remM = minutes - hours * 60;
-    return {
-      text: `Closes in ${hours}h ${remM}m`,
-      urgent: hours < 1,
-    };
-  }
-  return { text: `Closes in ${minutes}m`, urgent: true };
+// Whole-day difference between two YYYY-MM-DD dates (deadline − today).
+function daysUntil(deadlineISO: string, todayISO: string): number {
+  const d = new Date(`${deadlineISO}T00:00:00`).getTime();
+  const t = new Date(`${todayISO}T00:00:00`).getTime();
+  return Math.round((d - t) / 86_400_000);
 }
 
-function UrgencyPill({ deadline }: { deadline: number }) {
-  const [now, setNow] = useState<number>(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
-  const remaining = deadline - now;
-  const { text, urgent } = formatRemaining(remaining);
+// Deadline pill driven by the tender's real `deadline` date. Renders nothing
+// until mounted so the server HTML never disagrees with the client (the day
+// count depends on the local clock). The old version generated a fake
+// per-render `Date.now()` deadline that never counted down and caused an
+// SSR/CSR hydration mismatch.
+function UrgencyPill({ deadline }: { deadline: string }) {
+  const { t } = useT();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  const days = daysUntil(deadline, getTodayISO());
+  const closed = days < 0;
+  // "Urgent" = closes today or tomorrow — when the pulse earns its attention.
+  const urgent = !closed && days <= 1;
+  const text = closed
+    ? t("tenders.deadline.closed")
+    : days === 0
+      ? t("tenders.deadline.today")
+      : t("tenders.deadline.inDays").replace("{n}", String(days));
   return (
     <div
       className={cn(
         "absolute top-3 right-3 z-10 inline-flex items-center gap-1 h-6 px-2 rounded-full",
         "text-[11px] font-medium font-mono whitespace-nowrap",
-        "bg-magenta-500/15 border border-magenta-500/30 text-magenta-300",
+        closed
+          ? "bg-ink-50 border border-border-strong text-ink-400"
+          : "bg-magenta-500/15 border border-magenta-500/30 text-magenta-300",
         urgent && "animate-pulse shadow-[var(--sh-glow-magenta)]",
       )}
     >
@@ -75,38 +79,23 @@ export default function TendersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const { tenders, loaded: tendersLoaded } = useTendersWithStatus();
 
-  // Resolve the current user's display name to scope the "Мои" filter.
-  // Gate on `authResolved` (not a bare hydration flag): until the session
-  // + profile have settled, `currentUser` is null for everyone, which
-  // would make "Мои" flash empty for a logged-in author on first paint.
-  const currentUserName = useCurrentUser()?.name ?? null;
+  // Scope the "Мои" filter by Firebase UID, not display name — names
+  // collide between users and break the filter the moment someone renames
+  // their profile. Gate on `authResolved` so the list doesn't flash empty
+  // for a logged-in author during the auth handshake.
+  const sessionUserId = useStore((s) => s.sessionUserId);
   const authResolved = useAuthResolved();
-  const mineAuthor = authResolved ? currentUserName : null;
 
   const filtered = useMemo(() => {
     if (filter === "all") return tenders;
     if (filter === "mine") {
-      if (!mineAuthor) return [];
-      return tenders.filter((tender) => tender.authorName === mineAuthor);
+      if (!authResolved || !sessionUserId) return [];
+      return tenders.filter((tender) => tender.authUserId === sessionUserId);
     }
     return tenders.filter((tender) => tender.tier === filter);
-  }, [filter, tenders, mineAuthor]);
+  }, [filter, tenders, authResolved, sessionUserId]);
 
   const [featured, ...rest] = filtered;
-
-  // Build a stable mock deadline for each tender so the urgency timer
-  // always has a value to render. We use a per-id base time so it doesn't
-  // jitter between renders.
-  const deadlineFor = useMemo(() => {
-    const map = new Map<string, number>();
-    const base = Date.now();
-    tenders.forEach((t, i) => {
-      // Spread between ~30min and a few days out so we see a mix.
-      const offset = (i + 1) * 3_600_000; // i+1 hours from now
-      map.set(t.id, base + offset);
-    });
-    return map;
-  }, [tenders]);
 
   // Hot tenders: top 3-4 by ordering position in the loaded list.
   const hotTenders = useMemo(() => tenders.slice(0, 4), [tenders]);
@@ -160,7 +149,9 @@ export default function TendersPage() {
               to={stats.openTenders}
               className="font-display font-semibold text-2xl text-ink-900 font-mono"
             />
-            <span className="text-sm text-ink-500">open tenders</span>
+            <span className="text-sm text-ink-500">
+              {t("tenders.stats.open")}
+            </span>
           </div>
           <span aria-hidden className="text-ink-400">
             ·
@@ -170,7 +161,9 @@ export default function TendersPage() {
               to={stats.activeVendors}
               className="font-display font-semibold text-2xl text-ink-900 font-mono"
             />
-            <span className="text-sm text-ink-500">active vendors</span>
+            <span className="text-sm text-ink-500">
+              {t("tenders.stats.vendors")}
+            </span>
           </div>
         </motion.div>
       ) : null}
@@ -182,22 +175,19 @@ export default function TendersPage() {
               <Flame className="size-4" strokeWidth={2} />
             </span>
             <h2 className="font-display font-semibold text-xl text-ink-900 tracking-tight">
-              Hot tenders right now
+              {t("tenders.hot")}
             </h2>
           </div>
           <Carousel autoplay snap="center" showArrows>
-            {hotTenders.map((tender) => {
-              const dl = deadlineFor.get(tender.id) ?? Date.now() + 3_600_000;
-              return (
-                <div
-                  key={tender.id}
-                  className="relative w-[320px] sm:w-[360px] md:w-[400px]"
-                >
-                  <UrgencyPill deadline={dl} />
-                  <TenderCardCompact tender={tender} />
-                </div>
-              );
-            })}
+            {hotTenders.map((tender) => (
+              <div
+                key={tender.id}
+                className="relative w-[320px] sm:w-[360px] md:w-[400px]"
+              >
+                <UrgencyPill deadline={tender.deadline} />
+                <TenderCardCompact tender={tender} />
+              </div>
+            ))}
           </Carousel>
         </section>
       ) : null}
@@ -269,16 +259,12 @@ export default function TendersPage() {
             <section>
               <SectionHeader title={t("tenders.allTenders")} />
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {rest.map((tender) => {
-                  const dl =
-                    deadlineFor.get(tender.id) ?? Date.now() + 3_600_000;
-                  return (
-                    <div key={tender.id} className="relative">
-                      <UrgencyPill deadline={dl} />
-                      <TenderCardCompact tender={tender} />
-                    </div>
-                  );
-                })}
+                {rest.map((tender) => (
+                  <div key={tender.id} className="relative">
+                    <UrgencyPill deadline={tender.deadline} />
+                    <TenderCardCompact tender={tender} />
+                  </div>
+                ))}
               </div>
             </section>
           ) : null}

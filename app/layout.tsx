@@ -31,13 +31,13 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Vaxt — uyğun vaxtı seç, sürətli rezerv et",
-    template: "%s · Vaxt",
+    default: "BRONELE — uyğun vaxtı seç, sürətli rezerv et",
+    template: "%s · BRONELE",
   },
   description:
     "Fotoqraflar, DJ-lər, restoranlar, barberlər və salonlar. Bir klik — və birbaşa WhatsApp-da yazırsan.",
   openGraph: {
-    siteName: "Vaxt",
+    siteName: "BRONELE",
     type: "website",
   },
 };

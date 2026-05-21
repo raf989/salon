@@ -129,7 +129,17 @@ export async function createAppointment(
     .insert(row)
     .select()
     .single();
-  if (error) throw asError(error, "createAppointment");
+  if (error) {
+    // 23505 = unique_violation on the partial index appointments_slot_unique
+    // (migration 013): someone grabbed this slot first. Throw a typed marker
+    // so the booking UI can show a friendly "pick another time" message, and
+    // bump the version so the time grid refreshes to show the slot as taken.
+    if ((error as { code?: string }).code === "23505") {
+      useVersions.getState().bump("appointments");
+      throw new Error("SLOT_TAKEN");
+    }
+    throw asError(error, "createAppointment");
+  }
   useVersions.getState().bump("appointments");
   return rowToAppointment(data as Parameters<typeof rowToAppointment>[0]);
 }

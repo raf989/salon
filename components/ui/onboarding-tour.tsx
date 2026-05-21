@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 export type Step = {
   selector: string;
@@ -106,14 +107,10 @@ export function OnboardingTour({
     };
   }, [open, step, rect, autoAdvanceMs, next]);
 
-  // Lock body scroll while open.
+  // Lock body scroll while open (ref-counted — see lib/scroll-lock).
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [open]);
 
   if (!mounted || !open || !step) return null;

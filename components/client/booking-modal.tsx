@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Check, Palette, Scissors, Sparkles, Wind } from "lucide-react";
@@ -11,13 +11,16 @@ import { Calendar, type DayState } from "@/components/ui/calendar";
 import { Dialog } from "@/components/ui/dialog";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { TimeGrid } from "@/components/client/time-grid";
+import { ConfettiBurst, useConfetti } from "@/components/ui/confetti-burst";
+import { useToast } from "@/components/ui/toast";
 import {
   createAppointment,
   useAppointments,
   useServices,
 } from "@/lib/api/repo";
 import { useCurrentUser, useStore } from "@/lib/store";
-import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import { isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import { hasFreeSlotOnDate } from "@/lib/availability";
 import { telegramHref, whatsappHref } from "@/lib/contact-urls";
 import {
   cn,
@@ -124,38 +127,13 @@ function BookingFlow({
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const dayStateFn = useMemo<(iso: string) => DayState>(() => {
-    const slotsForStylist = generateSlots(
-      stylist.workingHours.start,
-      stylist.workingHours.end,
-    );
     return (iso: string): DayState => {
       if (!windowSet.has(iso)) return "default";
-      const isToday = iso === todayISO;
-      const taken = new Set(
-        appointments
-          .filter(
-            (a) =>
-              a.stylistId === stylist.id &&
-              a.date === iso &&
-              a.status !== "cancelled",
-          )
-          .map((a) => a.time),
-      );
-      const hasFree = slotsForStylist.some((time) => {
-        if (isInBreak(time, stylist.breaks)) return false;
-        if (taken.has(time)) return false;
-        if (
-          isToday &&
-          isSlotPast(toMinutes(time), nowMinutes, stylist.workingHours.start)
-        ) {
-          return false;
-        }
-        return true;
-      });
-      return hasFree ? "free" : "busy";
+      return hasFreeSlotOnDate(stylist, iso, appointments, todayISO, now)
+        ? "free"
+        : "busy";
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stylist, appointments, todayISO, windowSet, nowMinutes]);
+  }, [stylist, appointments, todayISO, windowSet, now]);
 
   const availableToday = dayStateFn(todayISO) === "free";
 
@@ -166,6 +144,14 @@ function BookingFlow({
 
   const errorLabel =
     lang === "ru" ? "Не получилось сохранить" : "Yadda saxlaya bilmədik";
+  const staleSlotLabel =
+    lang === "ru"
+      ? "Это время уже недоступно — выберите другое"
+      : "Bu vaxt artıq əlçatan deyil — başqa vaxt seçin";
+  const slotTakenLabel =
+    lang === "ru"
+      ? "Это время только что заняли — выберите другое"
+      : "Bu vaxt yenicə tutuldu — başqa vaxt seçin";
 
   const handleConfirm = async () => {
     const trimmedName = currentUser?.name.trim() ?? "";
@@ -177,6 +163,23 @@ function BookingFlow({
       submitting
     )
       return;
+    // Re-validate the picked slot — a long-open modal may have let the slot
+    // lapse into the past, or a break may have landed via realtime. A slot
+    // taken by someone else is caught by the DB unique index below.
+    if (
+      isInBreak(selectedTime, stylist.breaks) ||
+      (selectedDate === todayISO &&
+        isSlotPast(
+          toMinutes(selectedTime),
+          nowMinutes,
+          stylist.workingHours.start,
+          stylist.workingHours.end,
+        ))
+    ) {
+      setErrorMsg(staleSlotLabel);
+      setSelectedTime(null);
+      return;
+    }
     setSubmitting(true);
     setErrorMsg(null);
     try {
@@ -202,6 +205,14 @@ function BookingFlow({
           : typeof err === "string"
             ? err
             : "";
+      if (message === "SLOT_TAKEN") {
+        // Lost the booking race — surface a clear message and force a
+        // re-pick; the grid refreshes and shows the slot as taken.
+        setErrorMsg(slotTakenLabel);
+        setSelectedTime(null);
+        setSubmitting(false);
+        return;
+      }
       setErrorMsg(message ? `${errorLabel}: ${message}` : errorLabel);
       setSubmitting(false);
       return;
@@ -431,13 +442,29 @@ function SuccessView({
 }) {
   const { t, pickLocalized } = useT();
   const serviceLabel = serviceName ? pickLocalized(serviceName) : "";
+  const [fireConfetti, confettiProps] = useConfetti();
+  const { toast } = useToast();
+  // This view mounts only after createAppointment resolves — the single
+  // correct moment to celebrate. The booking CTA used to fire confetti and
+  // a "Booked!" toast merely on opening the modal, which lied to the user.
+  useEffect(() => {
+    fireConfetti();
+    toast({
+      title: t("booking.success.title"),
+      description: `${stylistName} · ${formatDate(date, lang)}`,
+      variant: "success",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Shared URL builders so all four "contact this provider" surfaces stay
   // identical (lib/contact-urls.ts).
   const waHref = whatsapp ? whatsappHref(whatsapp) : null;
   const tgHref = telegram ? telegramHref(telegram) : null;
   return (
-    <div className="flex flex-col items-center gap-6 py-6 text-center">
+    <>
+      <ConfettiBurst {...confettiProps} />
+      <div className="flex flex-col items-center gap-6 py-6 text-center">
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
@@ -487,6 +514,7 @@ function SuccessView({
           {t("booking.success.close")}
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

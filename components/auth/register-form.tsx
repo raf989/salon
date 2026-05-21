@@ -24,6 +24,7 @@ import {
   sendPhoneOtp,
   toE164,
 } from "@/lib/firebase";
+import { signOut } from "@/lib/auth";
 import { createProvider, createUserProfile } from "@/lib/api/repo";
 import { cn } from "@/lib/utils";
 import {
@@ -162,27 +163,38 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
           setErrors({ form: t("auth.otp.error.tooManyRequests") });
         } else if (err.code === "auth/quota-exceeded") {
           setErrors({ form: t("auth.otp.error.quotaExceeded") });
+        } else if (err.code === "auth/network-request-failed") {
+          setErrors({ form: t("auth.error.network") });
         } else {
-          setErrors({ form: err.message });
+          setErrors({ form: t("auth.error.generic") });
         }
       } else {
-        setErrors({
-          form: err instanceof Error ? err.message : String(err),
-        });
+        setErrors({ form: t("auth.error.generic") });
       }
     } finally {
       setSubmitting(false);
     }
   }
 
+  // Re-send the SMS and swap in the fresh ConfirmationResult so the next
+  // code entry validates against the new code. Errors propagate to OtpForm.
+  async function handleResend(): Promise<void> {
+    const conf = await sendPhoneOtp(phoneE164, RECAPTCHA_CONTAINER_ID);
+    setConfirmation(conf);
+  }
+
   function celebrateSuccess() {
     // Fire confetti + success toast + onboarding-tour flag, then bubble
     // the success up so the parent flow advances. The toast and confetti
     // are best-effort: even if a provider is missing, this never throws.
-    try {
-      sessionStorage.setItem("vaxt:show-onboarding-tour", "1");
-    } catch {
-      // sessionStorage can be unavailable in private modes; ignore.
+    if (role === "provider") {
+      // The post-register tour only exists on the provider dashboard —
+      // setting the flag for a client just leaves stale sessionStorage.
+      try {
+        sessionStorage.setItem("vaxt:show-onboarding-tour", "1");
+      } catch {
+        // sessionStorage can be unavailable in private modes; ignore.
+      }
     }
     fireConfetti();
     toast({
@@ -191,8 +203,8 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
         ru: "Аккаунт готов!",
       }),
       description: pickLocalized({
-        az: "Vaxt-a xoş gəlmisən.",
-        ru: "Добро пожаловать в Vaxt.",
+        az: "BRONELE-yə xoş gəlmisən.",
+        ru: "Добро пожаловать в BRONELE.",
       }),
       variant: "success",
     });
@@ -206,6 +218,7 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
         <OtpForm
           confirmation={confirmation}
           phone={phoneE164}
+          onResend={handleResend}
           onSuccess={async (uid) => {
             // OTP succeeded → Firebase user exists. Link the password so
             // future logins are phone+password (no SMS). If the credential
@@ -222,6 +235,11 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
               ) {
                 // Password was already set on a prior attempt — fine.
               } else {
+                // The phone account now exists but has no password — staying
+                // signed in here would lock the user out of phone+password
+                // login. Sign out so a retry (same phone → same UID) starts
+                // clean and can re-link the credential.
+                await signOut();
                 throw new Error(t("auth.register.error.linkFailed"));
               }
             }
@@ -274,6 +292,9 @@ export function RegisterForm({ role, onSuccess, onBack }: Props) {
             }
           }}
         />
+        {/* reCAPTCHA must stay mounted in the OTP stage too so "resend"
+            can build a fresh verifier (Firebase binds it to this node). */}
+        <div id={RECAPTCHA_CONTAINER_ID} />
       </>
     );
   }

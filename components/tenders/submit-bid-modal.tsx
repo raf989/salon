@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { useCurrentUser } from "@/lib/store";
-import { submitBid, useProviders } from "@/lib/api/repo";
+import { submitBid, useProviderByAuthUserId } from "@/lib/api/repo";
 import { formatPrice } from "@/lib/utils";
 import type { Tender } from "@/lib/types";
 
@@ -43,11 +43,13 @@ function SubmitBidForm({
 }) {
   const { t, lang, pickLocalized } = useT();
   const currentUser = useCurrentUser();
-  // Pull "my" avatar from the same place the dashboard does — providers[0]
-  // is what /dashboard treats as the current user until real auth↔provider
-  // linkage exists. We snapshot the URL onto the bid so cards can show a
-  // photo even though tender_bids has no FK back to providers.
-  const myAvatar = useProviders()[0]?.avatar;
+  // Snapshot the bidder's OWN avatar onto the bid — resolved by their
+  // Firebase UID. (Was `useProviders()[0]`, i.e. whoever sorted first in
+  // the table, so every bid was stamped with a stranger's face.)
+  const { provider: myProvider } = useProviderByAuthUserId(
+    currentUser?.id ?? null,
+  );
+  const myAvatar = myProvider?.avatar;
 
   const [price, setPrice] = useState<string>("");
   const [note, setNote] = useState<string>("");
@@ -104,16 +106,22 @@ function SubmitBidForm({
       });
       setDone(true);
       onSubmitted?.();
-      // Brief success flash, then close.
-      setTimeout(() => {
-        onClose();
-      }, 900);
+      // The success-flash → auto-close is handled by the effect on `done`
+      // below, so the timer is cancelled if the form unmounts first.
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Success flash → auto-close. In an effect so the timer is cleared if the
+  // keyed form unmounts (dialog closed) before the 900ms elapses.
+  useEffect(() => {
+    if (!done) return;
+    const id = window.setTimeout(onClose, 900);
+    return () => window.clearTimeout(id);
+  }, [done, onClose]);
 
   return (
     <form

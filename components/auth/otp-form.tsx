@@ -26,16 +26,20 @@ type Props = {
   // May be async — register-form links a password after OTP confirm, and
   // we want that to finish (or surface its error) before leaving this form.
   onSuccess: (uid: string) => void | Promise<void>;
+  // Re-send the SMS. The parent re-runs sendPhoneOtp and passes the fresh
+  // ConfirmationResult back via the `confirmation` prop on the next render.
+  onResend: () => Promise<void>;
 };
 
 const RESEND_SECONDS = 30;
 
-export function OtpForm({ confirmation, phone, onSuccess }: Props) {
+export function OtpForm({ confirmation, phone, onSuccess, onResend }: Props) {
   const { t, pickLocalized } = useT();
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [remaining, setRemaining] = useState(RESEND_SECONDS);
+  const [resending, setResending] = useState(false);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
@@ -63,11 +67,13 @@ export function OtpForm({ confirmation, phone, onSuccess }: Props) {
           setError(t("auth.otp.error.wrong"));
         } else if (err.code === "auth/code-expired") {
           setError(t("auth.otp.error.expired"));
+        } else if (err.code === "auth/network-request-failed") {
+          setError(t("auth.error.network"));
         } else {
-          setError(err.message);
+          setError(t("auth.error.generic"));
         }
       } else {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(t("auth.error.generic"));
       }
     } finally {
       setSubmitting(false);
@@ -115,6 +121,35 @@ export function OtpForm({ confirmation, phone, onSuccess }: Props) {
     setDigits(next);
     inputsRef.current[Math.min(txt.length, 5)]?.focus();
     if (error) setError(null);
+  }
+
+  async function handleResend() {
+    if (resending) return;
+    setResending(true);
+    setError(null);
+    try {
+      await onResend();
+      // Fresh code on its way — clear the cells and restart the cooldown.
+      setDigits(["", "", "", "", "", ""]);
+      setRemaining(RESEND_SECONDS);
+      inputsRef.current[0]?.focus();
+    } catch (err) {
+      if (
+        err instanceof FirebaseError &&
+        err.code === "auth/too-many-requests"
+      ) {
+        setError(t("auth.otp.error.tooManyRequests"));
+      } else if (
+        err instanceof FirebaseError &&
+        err.code === "auth/network-request-failed"
+      ) {
+        setError(t("auth.error.network"));
+      } else {
+        setError(t("auth.error.generic"));
+      }
+    } finally {
+      setResending(false);
+    }
   }
 
   const resendInLabel = pickLocalized({
@@ -238,10 +273,11 @@ export function OtpForm({ confirmation, phone, onSuccess }: Props) {
         ) : (
           <button
             type="button"
-            onClick={() => setRemaining(RESEND_SECONDS)}
-            className="text-xs font-semibold text-violet-400 hover:text-violet-300 transition-colors"
+            onClick={handleResend}
+            disabled={resending}
+            className="text-xs font-semibold text-violet-400 hover:text-violet-300 transition-colors disabled:opacity-50"
           >
-            {resendNowLabel}
+            {resending ? t("auth.otp.sending") : resendNowLabel}
           </button>
         )}
       </div>

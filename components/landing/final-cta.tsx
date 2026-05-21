@@ -15,8 +15,8 @@ const COPY = {
   eyebrow: { az: "Hazırsan?", ru: "Готов?" },
   titleA: { az: "Vaxtını idarə et —", ru: "Управляй своим временем —" },
   titleB: {
-    az: "Vaxt sənin tərəfindədir.",
-    ru: "Vaxt на твоей стороне.",
+    az: "BRONELE sənin tərəfindədir.",
+    ru: "BRONELE на твоей стороне.",
   },
   subtitle: {
     az: "Müştəri tap, ya da müştəri tapdır. Hər iki yol birbaşa burdan başlayır.",

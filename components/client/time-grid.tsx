@@ -73,7 +73,12 @@ export function TimeGrid({ stylist, date, selectedTime, onSelect }: Props) {
           const taken = takenTimes.has(time);
           const past =
             isToday &&
-            isSlotPast(toMinutes(time), nowMinutes, stylist.workingHours.start);
+            isSlotPast(
+              toMinutes(time),
+              nowMinutes,
+              stylist.workingHours.start,
+              stylist.workingHours.end,
+            );
           const disabled = inBreak || taken || past;
           const selected = selectedTime === time;
 

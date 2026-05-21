@@ -28,12 +28,9 @@ export function TenderCardCompact({ tender }: Props) {
       id={tender.id}
       className="p-5 flex flex-col gap-3 bg-surface/70 backdrop-blur-md border-border-strong rounded-2xl transition hover:border-violet-500/40 hover:shadow-[var(--sh-glow-violet)] hover:-translate-y-px scroll-mt-20"
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-[11px] font-medium text-violet-300">
           {t(tierKey)}
-        </span>
-        <span className="inline-flex items-center h-6 px-2 rounded-full bg-violet-500/15 border border-violet-500/25 text-[11px] font-mono text-violet-300">
-          {bidsLabel}
         </span>
       </div>
 
@@ -42,6 +39,9 @@ export function TenderCardCompact({ tender }: Props) {
       </h3>
 
       <div className="text-sm text-ink-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="inline-flex items-center h-6 px-2 rounded-full bg-violet-500/15 border border-violet-500/25 text-[11px] font-mono text-violet-300">
+          {bidsLabel}
+        </span>
         <span className="inline-flex items-center h-6 px-2 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-400 font-mono text-[11px]">
           {formatPrice(tender.budgetMin)}–{formatPrice(tender.budgetMax)}
         </span>

@@ -82,19 +82,19 @@ export default function MyBidsPage() {
           className="grid grid-cols-3 gap-3 mb-8"
         >
           <StatCard
-            label="total"
+            label={t("myBids.stat.total")}
             value={stats.total}
             accent="violet"
             icon={<Send className="size-4" strokeWidth={2} />}
           />
           <StatCard
-            label="accepted"
+            label={t("myBids.stat.accepted")}
             value={stats.accepted}
             accent="success"
             icon={<CheckCircle2 className="size-4" strokeWidth={2} />}
           />
           <StatCard
-            label="pending"
+            label={t("myBids.stat.pending")}
             value={stats.pending}
             accent="gold"
             icon={<Clock className="size-4" strokeWidth={2} />}
@@ -182,7 +182,17 @@ function BidRow({ bid, tender }: MyBid) {
       await deleteBid(bid.id);
       setConfirmOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      // deleteBid throws BID_NOT_PENDING when the author accepted/rejected
+      // the bid before the withdraw landed — explain it instead of showing
+      // the raw marker string.
+      setError(
+        msg === "BID_NOT_PENDING"
+          ? lang === "ru"
+            ? "Ставку уже приняли или отклонили — отозвать нельзя."
+            : "Təklif artıq qəbul və ya rədd edilib — geri götürmək olmur."
+          : msg,
+      );
     } finally {
       setDeleting(false);
     }

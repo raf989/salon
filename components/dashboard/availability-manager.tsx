@@ -69,6 +69,7 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
   const [breaks, setBreaks] = useState<Break[]>(me.breaks);
   const [newBreakStart, setNewBreakStart] = useState<string>("");
   const [newBreakEnd, setNewBreakEnd] = useState<string>("");
+  const [breakError, setBreakError] = useState<string | null>(null);
   // `me.activeDays` is an array of weekday-dict indices (0=Sun..6=Sat) the
   // provider is active on. Absent / undefined means "all days active" so the
   // toggle row defaults to fully on.
@@ -158,11 +159,33 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
 
   const addBreak = () => {
     if (!newBreakStart || !newBreakEnd) return;
-    if (newBreakEnd <= newBreakStart) return;
+    if (newBreakEnd <= newBreakStart) {
+      setBreakError(t("dash.avail.breaks.error.order"));
+      return;
+    }
+    // Break must sit inside the working window. Skip the bounds check for
+    // overnight ranges (start > end) — a plain string compare wouldn't hold.
+    if (start <= end && (newBreakStart < start || newBreakEnd > end)) {
+      setBreakError(t("dash.avail.breaks.error.bounds"));
+      return;
+    }
+    // Reject a break overlapping an existing one — half-open intervals
+    // overlap when `aStart < bEnd && bStart < aEnd`.
+    if (
+      breaks.some((b) => newBreakStart < b.end && b.start < newBreakEnd)
+    ) {
+      setBreakError(t("dash.avail.breaks.error.overlap"));
+      return;
+    }
+    setBreakError(null);
     // Auto-enter edit mode so the Save button surfaces and the sync-effect
     // doesn't immediately overwrite the new break with the persisted state.
     if (!isEditing) setIsEditing(true);
-    setBreaks((prev) => [...prev, { start: newBreakStart, end: newBreakEnd }]);
+    setBreaks((prev) =>
+      [...prev, { start: newBreakStart, end: newBreakEnd }].sort((a, b) =>
+        a.start.localeCompare(b.start),
+      ),
+    );
     setNewBreakStart("");
     setNewBreakEnd("");
   };
@@ -403,6 +426,11 @@ export function AvailabilityManager({ me }: AvailabilityManagerProps) {
             {t("dash.avail.breaks.add")}
           </Button>
         </div>
+        {breakError ? (
+          <p className="mt-2 text-xs text-danger-500" role="alert">
+            {breakError}
+          </p>
+        ) : null}
       </section>
 
       {/* Section 4 — Location & address */}

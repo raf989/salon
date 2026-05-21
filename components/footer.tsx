@@ -24,7 +24,7 @@ const COPY = {
   categories: { az: "Kateqoriyalar", ru: "Категории" },
   cities: { az: "Şəhərlər", ru: "Города" },
   product: { az: "Məhsul", ru: "Продукт" },
-  copyright: { az: "© 2026 Vaxt", ru: "© 2026 Vaxt" },
+  copyright: { az: "© 2026 BRONELE", ru: "© 2026 BRONELE" },
   fineprint: {
     az: "Bakıda hazırlandı · open-source planlaşdırılır · v0.1",
     ru: "Сделано в Баку · open-source в планах · v0.1",
@@ -86,7 +86,7 @@ export function Footer() {
               href="/"
               className="gradient-text-aurora font-display text-3xl font-semibold tracking-tight"
             >
-              Vaxt
+              BRONELE
             </Link>
             <p className="max-w-xs text-sm text-ink-500 leading-relaxed">
               {pickLocalized(COPY.tagline)}

@@ -6,8 +6,6 @@ import { MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, type DayState } from "@/components/ui/calendar";
 import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ConfettiBurst, useConfetti } from "@/components/ui/confetti-burst";
-import { useToast } from "@/components/ui/toast";
 import {
   InstagramIcon,
   TelegramIcon,
@@ -15,7 +13,7 @@ import {
 } from "@/components/ui/social-icons";
 import { useT } from "@/lib/i18n";
 import { useAppointments, useServices } from "@/lib/api/repo";
-import { generateSlots, isInBreak, isSlotPast, toMinutes } from "@/lib/slots";
+import { hasFreeSlotOnDate } from "@/lib/availability";
 import { useNow } from "@/lib/use-now";
 import {
   instagramHref,
@@ -58,41 +56,15 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
   // Shared 30-second clock so the calendar's "free / busy" flips at the
   // moment a slot actually becomes past, not on next render.
   const now = useNow();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const dayStateFn = useMemo<(iso: string) => DayState>(() => {
-    const slots = generateSlots(
-      provider.workingHours.start,
-      provider.workingHours.end,
-    );
     return (iso: string): DayState => {
       if (!windowSet.has(iso)) return "default";
-      const isToday = iso === todayISO;
-      const taken = new Set(
-        appointments
-          .filter(
-            (a) =>
-              a.stylistId === provider.id &&
-              a.date === iso &&
-              a.status !== "cancelled",
-          )
-          .map((a) => a.time),
-      );
-      const hasFree = slots.some((time) => {
-        if (isInBreak(time, provider.breaks)) return false;
-        if (taken.has(time)) return false;
-        if (
-          isToday &&
-          isSlotPast(toMinutes(time), nowMinutes, provider.workingHours.start)
-        ) {
-          return false;
-        }
-        return true;
-      });
-      return hasFree ? "free" : "busy";
+      return hasFreeSlotOnDate(provider, iso, appointments, todayISO, now)
+        ? "free"
+        : "busy";
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider, appointments, todayISO, windowSet, nowMinutes]);
+  }, [provider, appointments, todayISO, windowSet, now]);
 
   const availableToday = dayStateFn(todayISO) === "free";
 
@@ -124,24 +96,8 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
   const ttHref = provider.tiktok ? tiktokHref(provider.tiktok) : null;
   const hasAnyContact = Boolean(waHref || tgHref || igHref || ttHref);
 
-  // Side-effects fired on the "Book" CTA — confetti burst + success toast.
-  // The actual booking submission lives inside the BookingModal; we fire
-  // these here so any path that opens the booking flow gets the celebration.
-  const [fireConfetti, confettiProps] = useConfetti();
-  const { toast } = useToast();
-  const handleBook = () => {
-    fireConfetti();
-    toast({
-      title: "Booked!",
-      description: `${provider.name} — ${formatDate(selectedDate, lang)}`,
-      variant: "success",
-    });
-    onOpenBooking();
-  };
-
   return (
     <>
-      <ConfettiBurst {...confettiProps} />
       {/* Mobile-only sticky bottom action bar. On <lg the booking card lives
           below the entire profile, so without this users have to scroll back
           to find the CTA. */}
@@ -163,7 +119,7 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
             variant="primary"
             size="lg"
             className="shrink-0"
-            onClick={handleBook}
+            onClick={onOpenBooking}
           >
             {t("action.book")}
           </MagneticButton>
@@ -208,7 +164,7 @@ export function StickyBooking({ provider, onOpenBooking }: Props) {
           variant="primary"
           size="lg"
           className="w-full"
-          onClick={handleBook}
+          onClick={onOpenBooking}
         >
           {t("provider.bookOn").replace(
             "{date}",

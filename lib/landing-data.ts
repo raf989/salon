@@ -187,8 +187,8 @@ export type FaqItem = {
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
-    q: { az: "Vaxt platforması necə işləyir?",
-         ru: "Как работает платформа Vaxt?" },
+    q: { az: "BRONELE platforması necə işləyir?",
+         ru: "Как работает платформа BRONELE?" },
     a: { az: "Müştəri kateqoriyaya görə icraçı tapır, vaxt seçir və rezerv edir. Sonra WhatsApp-da müsbət iş gedir. Komissiya almırıq.",
          ru: "Клиент находит исполнителя, выбирает время, бронирует. Дальше — WhatsApp. Комиссию мы не берём." },
   },
@@ -211,8 +211,8 @@ export const FAQ_ITEMS: FaqItem[] = [
          ru: "Клиент открывает запрос (свадьба, корпоратив и т.д.) — все подходящие исполнители подают ставки. Клиент выбирает лучшую." },
   },
   {
-    q: { az: "Müştərini Vaxt qoruyur?",
-         ru: "Защищает ли Vaxt клиента?" },
+    q: { az: "Müştərini BRONELE qoruyur?",
+         ru: "Защищает ли BRONELE клиента?" },
     a: { az: "Hər icraçı verifikasiyadan keçir — telefon və sənəd yoxlaması. Müştəri rəylərini yalnız real rezervdən sonra qoya bilər.",
          ru: "Каждый исполнитель проверяется — телефон + документ. Отзывы оставляют только после реальной брони." },
   },

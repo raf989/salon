@@ -136,7 +136,9 @@ export default function FavoritesPage() {
               to={totalSaved}
               className="font-display font-semibold text-4xl text-ink-900 font-mono gradient-text-aurora"
             />
-            <span className="text-sm text-ink-500">saved</span>
+            <span className="text-sm text-ink-500">
+              {t("favorites.saved")}
+            </span>
           </div>
         </div>
       </motion.section>
@@ -182,7 +184,6 @@ export default function FavoritesPage() {
           </TabsList>
 
           <TabsContent value="providers">
-            <FilterBar />
             {favProviders.length === 0 ? (
               <EmptyState
                 icon={<Heart className="size-5" />}
@@ -204,7 +205,6 @@ export default function FavoritesPage() {
           </TabsContent>
 
           <TabsContent value="tenders">
-            <FilterBar />
             {favTenders.length === 0 ? (
               <EmptyState
                 icon={<Bookmark className="size-5" />}
@@ -221,7 +221,6 @@ export default function FavoritesPage() {
           </TabsContent>
 
           <TabsContent value="bids">
-            <FilterBar />
             {!sessionUserId ? (
               <EmptyState
                 icon={<Send className="size-5" />}
@@ -289,26 +288,6 @@ export default function FavoritesPage() {
         onClose={() => setBooking(null)}
       />
     </motion.main>
-  );
-}
-
-function FilterBar() {
-  return (
-    <div className="flex flex-wrap items-center gap-2 mb-4">
-      <input
-        type="search"
-        placeholder="Search…"
-        className="h-9 flex-1 min-w-[180px] sm:max-w-xs px-3 rounded-md bg-surface-2 border border-border-strong text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-violet-500/60 focus:shadow-[var(--sh-glow-violet)] transition-colors"
-      />
-      <select
-        defaultValue="recent"
-        className="h-9 px-3 rounded-md bg-surface-2 border border-border-strong text-sm text-ink-700 focus:outline-none focus:border-violet-500/60 transition-colors"
-      >
-        <option value="recent">Sort: recent</option>
-        <option value="rating">Sort: rating</option>
-        <option value="name">Sort: name</option>
-      </select>
-    </div>
   );
 }
 

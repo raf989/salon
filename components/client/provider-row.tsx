@@ -13,7 +13,7 @@ import { RatingStars } from "@/components/ui/rating-stars";
 import { useServices } from "@/lib/api/repo";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
-import { isWithinHours, toMinutes } from "@/lib/slots";
+import { getStatus } from "@/lib/get-status";
 import {
   CATEGORY_LABELS,
   KIND_LABELS,
@@ -74,25 +74,17 @@ export function ProviderRow({ provider, onBook, availableToday }: Props) {
   // track it in React (not pure CSS) so framer-motion can apply springs
   // with stagger on the way in and on the way out.
   const [isHovered, setIsHovered] = useState(false);
-  // Pure time-vs-hours check. We deliberately ignore manualStatus here —
-  // this pill shows whether the displayed range covers "now", not whether
-  // the provider has admin-closed themselves.
+  // Live availability — honors working hours, breaks AND the provider's
+  // manual override (`manualStatus`). getStatus also tolerates a null/absent
+  // `breaks` array, so a row with no breaks data can't crash the card.
   const now = useNow();
-  const isOpen = (() => {
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    if (
-      !isWithinHours(
-        nowMin,
-        provider.workingHours.start,
-        provider.workingHours.end,
-      )
-    ) {
-      return false;
-    }
-    return !provider.breaks.some(
-      (b) => nowMin >= toMinutes(b.start) && nowMin < toMinutes(b.end),
-    );
-  })();
+  const isOpen =
+    getStatus(
+      now,
+      provider.workingHours,
+      provider.breaks,
+      provider.manualStatus,
+    ) === "open";
 
   const services = allServices.filter((s) => provider.serviceIds.includes(s.id));
   const minPrice =

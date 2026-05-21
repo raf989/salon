@@ -23,6 +23,14 @@ export function hasFreeSlotOnDate(
   todayISO: string,
   now: Date,
 ): boolean {
+  // Respect the weekly schedule: `activeDays` lists the weekday indices
+  // (0=Sun..6=Sat) the provider works. `undefined` means every day; an
+  // explicit list (incl. empty) means only those days. Parse the ISO date
+  // as local midnight so the weekday matches the user's calendar.
+  if (provider.activeDays) {
+    const weekday = new Date(`${date}T00:00:00`).getDay();
+    if (!provider.activeDays.includes(weekday)) return false;
+  }
   const slots = generateSlots(
     provider.workingHours.start,
     provider.workingHours.end,
@@ -44,7 +52,12 @@ export function hasFreeSlotOnDate(
     if (taken.has(time)) return false;
     if (
       isToday &&
-      isSlotPast(toMinutes(time), nowMinutes, provider.workingHours.start)
+      isSlotPast(
+        toMinutes(time),
+        nowMinutes,
+        provider.workingHours.start,
+        provider.workingHours.end,
+      )
     ) {
       return false;
     }

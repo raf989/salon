@@ -70,11 +70,11 @@ export function AuthShell({ eyebrow, title, subtitle, children }: Props) {
             href="/"
             className="flex items-center gap-2 mb-6 md:mb-8 justify-center md:justify-start"
           >
-            <span className="grid size-8 place-items-center rounded-[10px] bg-gradient-to-br from-violet-500 via-magenta-500 to-violet-600 text-white font-display text-[15px] font-semibold shadow-[var(--sh-glow-violet)]">
-              V
+            <span className="grid size-8 place-items-center rounded-[10px] bg-gradient-to-br from-violet-500 via-magenta-500 to-violet-600 text-white font-display text-[15px] font-semibold italic shadow-[var(--sh-glow-violet)]">
+              B
             </span>
             <span className="font-display font-semibold text-xl text-ink-900 gradient-text-aurora">
-              Vaxt
+              BRONELE
             </span>
           </Link>
           <div className="glass-strong rounded-2xl p-7 md:p-8 flex-1 flex flex-col">
@@ -162,7 +162,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: Props) {
             <div className="flex items-center gap-2 text-white mb-2.5">
               <CalendarDays className="size-3.5" />
               <span className="text-[11px] font-semibold uppercase tracking-wider">
-                Today
+                {pickLocalized({ az: "Bu gün", ru: "Сегодня" })}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
@@ -192,7 +192,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: Props) {
                 <Star key={i} className="size-3.5 fill-current" />
               ))}
               <span className="ml-1.5 text-xs font-semibold text-white">
-                Excellent
+                {pickLocalized({ az: "Əla", ru: "Отлично" })}
               </span>
             </div>
           </motion.div>
@@ -207,7 +207,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: Props) {
           >
             <Sparkles className="size-3.5 text-cyan-300" />
             <span className="text-[11px] font-medium text-white">
-              Booked in 12s
+              {pickLocalized({ az: "12 saniyəyə rezerv", ru: "Бронь за 12 сек" })}
             </span>
           </motion.div>
 

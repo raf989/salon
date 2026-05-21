@@ -115,9 +115,9 @@ export function GalleryGrid({ provider }: Props) {
       ) : null}
 
       {mounted &&
-        lightboxIndex !== null &&
         createPortal(
           <AnimatePresence>
+            {lightboxIndex !== null ? (
             <motion.div
               key="lightbox"
               initial={{ opacity: 0 }}
@@ -184,6 +184,7 @@ export function GalleryGrid({ provider }: Props) {
                 </>
               ) : null}
             </motion.div>
+            ) : null}
           </AnimatePresence>,
           document.body,
         )}

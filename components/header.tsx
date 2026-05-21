@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { LayoutDashboard, LogOut, Menu, Search, X } from "lucide-react";
@@ -327,14 +327,19 @@ function MobileAuthSection({
   onClose: () => void;
 }) {
   const { t } = useT();
+  const router = useRouter();
   // Resolve THIS user's provider row by Firebase UID — not the seed-era
   // `useProviders()[0]` hack, which showed whoever sorts first.
   const { provider: meProvider } = useProviderByAuthUserId(user.id);
   const primaryPhone = meProvider?.phones?.[0] ?? user.phone ?? "";
 
-  function handleLogout() {
-    void signOut();
+  async function handleLogout() {
     onClose();
+    try {
+      await signOut();
+    } finally {
+      router.replace("/");
+    }
   }
 
   return (

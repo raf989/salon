@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 import {
   Search,
   Camera,
@@ -132,15 +133,11 @@ export function CommandPalette() {
     }
   }, [open]);
 
-  // Lock body scroll when open
+  // Lock body scroll when open (ref-counted — see lib/scroll-lock so this
+  // doesn't fight a Dialog that's open underneath the palette).
   useEffect(() => {
-    if (open) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
+    if (!open) return;
+    return lockBodyScroll();
   }, [open]);
 
   // Compute filtered results — vendors / categories / services / pages

@@ -368,25 +368,15 @@ export async function updateProvider(
     patchRow.manual_status = patch.manualStatus;
   patchRow.updated_at = new Date().toISOString();
 
-  // Try to UPDATE the existing overlay first. If a row exists this is atomic
-  // — only the columns in patchRow are written, every other column keeps its
-  // current value regardless of what a concurrent writer is doing.
-  const updateRes = await supabase
+  // Atomic upsert keyed on the `provider_id` primary key. The previous
+  // update-then-insert pattern had a race: two first-time edits both saw
+  // 0 updated rows and both ran INSERT, the second hitting a PK violation.
+  // Only the columns in `patchRow` are written; every other column keeps
+  // its value, so disjoint concurrent writers stay safe at the column level.
+  const upsertRes = await supabase
     .from("provider_edits")
-    .update(patchRow)
-    .eq("provider_id", id)
-    .select();
-  if (updateRes.error) throw asError(updateRes.error, "updateProvider:update");
-
-  // No row updated → overlay doesn't exist yet. Insert a fresh one with just
-  // the provider_id plus the supplied patch columns. Any unspecified column
-  // stays NULL, which rowToProvider() reads as "fall back to base".
-  if (!updateRes.data || updateRes.data.length === 0) {
-    const insertRes = await supabase
-      .from("provider_edits")
-      .insert({ provider_id: id, ...patchRow });
-    if (insertRes.error) throw asError(insertRes.error, "updateProvider:insert");
-  }
+    .upsert({ provider_id: id, ...patchRow }, { onConflict: "provider_id" });
+  if (upsertRes.error) throw asError(upsertRes.error, "updateProvider:upsert");
 
   useVersions.getState().bump("providerEdits");
   const updated = await getProvider(id);

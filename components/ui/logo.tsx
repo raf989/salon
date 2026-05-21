@@ -20,10 +20,10 @@ type Props = {
 };
 
 /**
- * Vaxt brand mark — animated rounded square with a violet→magenta→cyan
- * gradient fill, holographic conic shimmer, and a stylized "V" cut-out
- * that doubles as a clock-hand reference (Vaxt = "time" in AZ). The full
- * variant adds the Fraunces italic wordmark with the aurora gradient.
+ * BRONELE brand mark — animated rounded square with a violet→magenta→cyan
+ * gradient fill, holographic conic shimmer, and a stylized italic "B".
+ * The full variant adds the Fraunces italic wordmark with the aurora
+ * gradient.
  */
 export function Logo({
   size = "md",
@@ -39,7 +39,7 @@ export function Logo({
         className,
       )}
       style={{ gap: s.gap }}
-      aria-label="Vaxt"
+      aria-label="BRONELE"
     >
       <Mark size={s.mark} animated={animated} />
       {variant === "full" ? (
@@ -49,7 +49,7 @@ export function Logo({
             s.text,
           )}
         >
-          <span className="gradient-text-aurora">Vaxt</span>
+          <span className="gradient-text-aurora">BRONELE</span>
         </span>
       ) : null}
     </span>
@@ -88,42 +88,33 @@ function Mark({ size, animated }: { size: number; animated: boolean }) {
         className="absolute rounded-[26%] bg-bg"
         style={{ inset: Math.max(1, size * 0.06) }}
       />
-      {/* SVG "V" inside the plate */}
+      {/* SVG "B" inside the plate */}
       <svg
         viewBox="0 0 40 40"
         className="absolute inset-0 size-full"
         aria-hidden
       >
         <defs>
-          <linearGradient id="vaxt-v-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="bronele-b-grad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#FF87C8" />
             <stop offset="55%" stopColor="#9B6CF6" />
             <stop offset="100%" stopColor="#22D3EE" />
           </linearGradient>
-          <linearGradient id="vaxt-v-glow" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
         </defs>
-        {/* V strokes — two rounded lines forming a chevron */}
-        <path
-          d="M 11 12 L 20 28 L 29 12"
-          stroke="url(#vaxt-v-grad)"
-          strokeWidth="4.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-        {/* Subtle highlight along top of the V */}
-        <path
-          d="M 11 12 L 20 28 L 29 12"
-          stroke="url(#vaxt-v-glow)"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          opacity="0.7"
-        />
+        {/* Italic "B" glyph — mirrors the Fraunces italic wordmark */}
+        <text
+          x="20"
+          y="21"
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize="25"
+          fontStyle="italic"
+          fontWeight="700"
+          fill="url(#bronele-b-grad)"
+          style={{ fontFamily: "var(--font-fraunces), Georgia, serif" }}
+        >
+          B
+        </text>
         {/* Sparkle accent at top-right */}
         <motion.g
           animate={
@@ -134,7 +125,7 @@ function Mark({ size, animated }: { size: number; animated: boolean }) {
           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           style={{ transformOrigin: "30px 12px" }}
         >
-          <circle cx="30" cy="12" r="1.4" fill="#FFCE5A" />
+          <circle cx="30" cy="11" r="1.4" fill="#FFCE5A" />
         </motion.g>
       </svg>
     </span>

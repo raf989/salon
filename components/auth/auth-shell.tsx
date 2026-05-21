@@ -211,8 +211,9 @@ export function AuthShell({ eyebrow, title, subtitle, children }: Props) {
             </span>
           </motion.div>
 
-          {/* Quote overlay */}
-          <div className="relative z-10 flex items-end p-8 md:p-10 lg:p-12 w-full">
+          {/* Quote overlay. Extra bottom padding lifts the quote clear of
+              the floating "Отлично" rating card (bottom-[12%]). */}
+          <div className="relative z-10 flex items-end p-8 md:p-10 lg:p-12 pb-24 md:pb-28 lg:pb-36 w-full">
             <motion.h2
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}

@@ -233,6 +233,7 @@ function GooeyMorph({
   const text1Ref = useRef<HTMLSpanElement | null>(null);
   const text2Ref = useRef<HTMLSpanElement | null>(null);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
+  const filterRef = useRef<HTMLSpanElement | null>(null);
   const visibleRef = useRef(true);
 
   // Pause RAF when offscreen. The whole hero is a candidate to scroll past,
@@ -259,6 +260,10 @@ function GooeyMorph({
 
     const setMorph = (fraction: number) => {
       if (!text1Ref.current || !text2Ref.current) return;
+      // Gooey threshold ON only while morphing — it hard-quantizes the
+      // alpha channel and would destroy the letters' anti-aliasing (making
+      // them look pixelated) if left applied at rest.
+      if (filterRef.current) filterRef.current.style.filter = "url(#vaxt-gooey)";
       text2Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
       text2Ref.current.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
       const inv = 1 - fraction;
@@ -268,6 +273,9 @@ function GooeyMorph({
 
     const doCooldown = () => {
       morph = 0;
+      // At rest: drop the gooey threshold so the word renders crisp and
+      // anti-aliased instead of pixelated.
+      if (filterRef.current) filterRef.current.style.filter = "none";
       if (!text1Ref.current || !text2Ref.current) return;
       text2Ref.current.style.filter = "";
       text2Ref.current.style.opacity = "100%";
@@ -347,10 +355,13 @@ function GooeyMorph({
         {longest}
       </span>
 
-      {/* Threshold-wrapped morph layer */}
+      {/* Threshold-wrapped morph layer. The gooey filter is toggled on
+          only during a morph (see setMorph / doCooldown); at rest it stays
+          off so the word renders crisply anti-aliased. */}
       <span
+        ref={filterRef}
         className="absolute inset-0 inline-flex items-center justify-center whitespace-nowrap"
-        style={{ filter: "url(#vaxt-gooey)" }}
+        style={{ filter: "none" }}
       >
         <span
           ref={text1Ref}
